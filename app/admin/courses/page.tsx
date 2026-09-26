@@ -80,7 +80,7 @@ export default async function AdminCoursesPage() {
                 <ActionForm action={deleteCourse.bind(null, c.id)} className="mt-3 border-t border-dashed border-slate-200 pt-3">
                   <SubmitButton
                     className="btn-sm btn border border-red-200 text-red-600 hover:bg-red-50 focus-visible:ring-red-100"
-                    confirmMessage={`Xóa vĩnh viễn khóa "${c.title}" cùng toàn bộ bài học và đơn đăng ký?`}
+                    confirmMessage={`Xóa vĩnh viễn khóa "${c.title}" cùng toàn bộ bài học? Học viên sẽ không xem được khóa này nữa. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại.`}
                   >
                     Xóa khóa học
                   </SubmitButton>

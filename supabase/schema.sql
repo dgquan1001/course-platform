@@ -61,6 +61,9 @@ create table if not exists public.courses (
 alter table public.courses add column if not exists price int not null default 0;
 alter table public.courses add column if not exists status text not null default 'published'
   check (status in ('draft', 'published'));
+-- Học phí không được âm
+alter table public.courses drop constraint if exists courses_price_nonnegative;
+alter table public.courses add constraint courses_price_nonnegative check (price >= 0);
 
 -- ------------------------------------------------------------
 -- Bảng bài học
@@ -100,7 +103,9 @@ alter table public.profiles drop column if exists status;
 create table if not exists public.registrations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
-  course_id uuid not null references public.courses (id) on delete cascade,
+  course_id uuid references public.courses (id) on delete set null,
+  course_title text,
+  amount int,
   full_name text not null,
   email text not null,
   phone text not null,
@@ -112,6 +117,19 @@ create table if not exists public.registrations (
 -- Email không bắt buộc khi đăng ký (khách có thể chỉ dùng số điện thoại)
 alter table public.registrations alter column email drop not null;
 create index if not exists registrations_user_idx on public.registrations (user_id, course_id, status);
+
+-- Xóa khóa học vẫn giữ đơn đăng ký (lịch sử thanh toán): đơn lưu lại tên khóa và học phí
+-- tại thời điểm đăng ký, course_id chuyển về null khi khóa bị xóa.
+alter table public.registrations add column if not exists course_title text;
+alter table public.registrations add column if not exists amount int;
+update public.registrations r
+  set course_title = coalesce(r.course_title, c.title), amount = coalesce(r.amount, c.price)
+  from public.courses c
+  where c.id = r.course_id and (r.course_title is null or r.amount is null);
+alter table public.registrations alter column course_id drop not null;
+alter table public.registrations drop constraint if exists registrations_course_id_fkey;
+alter table public.registrations add constraint registrations_course_id_fkey
+  foreign key (course_id) references public.courses (id) on delete set null;
 
 -- ------------------------------------------------------------
 -- Mã đặt lại mật khẩu (gửi qua email). Chỉ server (service role) đọc/ghi.
@@ -175,10 +193,11 @@ drop policy if exists "profiles_admin_update" on public.profiles;
 create policy "profiles_admin_update" on public.profiles for update
   using (public.is_admin());
 
--- courses: ai cũng xem được khóa đang hiển thị; admin toàn quyền
+-- courses: ai cũng xem được khóa đang hiển thị; khóa đang ẩn (ngừng nhận đăng ký) vẫn hiện
+-- với học viên đã được duyệt khóa đó; admin toàn quyền (has_course_access đã gồm is_admin)
 drop policy if exists "courses_select" on public.courses;
 create policy "courses_select" on public.courses for select
-  using (status = 'published' or public.is_admin());
+  using (status = 'published' or public.has_course_access(id));
 drop policy if exists "courses_admin_insert" on public.courses;
 create policy "courses_admin_insert" on public.courses for insert
   with check (public.is_admin());

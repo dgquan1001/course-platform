@@ -24,8 +24,9 @@ export default async function CoursesPage({
   const user = (await getCurrentUser())!
 
   let unlocked: CourseRow[] = []
-  let pending: { id: string; course: CourseRow | null }[] = []
-  let rejected: { id: string; course: CourseRow | null }[] = []
+  type RegistrationRow = { id: string; title: string; amount: number | null; course: CourseRow | null }
+  let pending: RegistrationRow[] = []
+  let rejected: RegistrationRow[] = []
 
   const courseFields = 'id, title, description, price, lessons(count)'
 
@@ -35,15 +36,21 @@ export default async function CoursesPage({
   } else {
     const { data } = await supabase
       .from('registrations')
-      .select(`id, status, courses(${courseFields})`)
+      .select(`id, status, course_title, amount, courses(${courseFields})`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    const rows = (data ?? []).map((r) => ({
-      id: r.id,
-      status: r.status as string,
-      course: r.courses as unknown as CourseRow | null,
-    }))
+    const rows = (data ?? []).map((r) => {
+      const course = r.courses as unknown as CourseRow | null
+      return {
+        id: r.id,
+        status: r.status as string,
+        // Tên khóa & học phí lưu trong đơn: vẫn hiển thị khi khóa học đã bị xóa
+        title: course?.title ?? r.course_title ?? 'Khóa học',
+        amount: (r.amount as number | null) ?? course?.price ?? null,
+        course,
+      }
+    })
     const seen = new Set<string>()
     unlocked = rows
       .filter((r) => r.status === 'approved' && r.course && !seen.has(r.course.id) && seen.add(r.course.id))
@@ -85,7 +92,7 @@ export default async function CoursesPage({
                     <ClockIcon className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-semibold text-ocean-900">{r.course?.title ?? 'Khóa học'}</p>
+                    <p className="font-semibold text-ocean-900">{r.title}</p>
                     <p className="text-sm text-slate-500">Đang kiểm tra chuyển khoản</p>
                   </div>
                 </div>
@@ -138,14 +145,14 @@ export default async function CoursesPage({
               {rejected.map((r) => (
                 <div key={r.id} className="card flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-semibold text-ocean-900">{r.course?.title ?? 'Khóa học'}</p>
+                    <p className="font-semibold text-ocean-900">{r.title}</p>
                     <p className="text-sm text-slate-500">
                       Chưa xác nhận được chuyển khoản. Vui lòng liên hệ{' '}
                       <a href={hotlineHref} className="font-semibold text-ocean-700">{siteConfig.hotline}</a>.
                     </p>
                   </div>
-                  {r.course && (
-                    <span className="text-sm font-semibold text-slate-500">{formatPrice(r.course.price)}</span>
+                  {r.amount != null && (
+                    <span className="text-sm font-semibold text-slate-500">{formatPrice(r.amount)}</span>
                   )}
                 </div>
               ))}

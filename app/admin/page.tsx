@@ -54,7 +54,7 @@ export default async function AdminRegistrationsPage({
 
   let query = supabase
     .from('registrations')
-    .select('id, full_name, email, phone, status, payment_proof_path, created_at, reviewed_at, courses(title, price)')
+    .select('id, full_name, email, phone, status, payment_proof_path, created_at, reviewed_at, course_title, amount, courses(title, price)')
     .order('created_at', { ascending: filter === 'pending' })
     .limit(200)
   if (filter !== 'all') query = query.eq('status', filter)
@@ -121,6 +121,9 @@ export default async function AdminRegistrationsPage({
           <tbody className="divide-y divide-slate-100">
             {registrations?.map((r, i) => {
               const course = r.courses as unknown as { title: string; price: number } | null
+              // Tên khóa & học phí lưu lúc đăng ký (vẫn còn khi khóa đã bị xóa)
+              const courseTitle = course?.title ?? r.course_title
+              const amount = r.amount ?? course?.price
               const proofUrl = proofUrls.get(r.payment_proof_path)
               return (
                 <tr key={r.id} className="group align-middle transition hover:bg-ocean-50/40">
@@ -151,9 +154,12 @@ export default async function AdminRegistrationsPage({
                       {r.phone}
                     </a>
                   </td>
-                  <td className="min-w-[160px] max-w-[220px] px-3 py-3 text-slate-700">{course?.title ?? 'Khóa học đã xóa'}</td>
+                  <td className="min-w-[160px] max-w-[220px] px-3 py-3 text-slate-700">
+                    {courseTitle ?? 'Khóa học'}
+                    {!course && <span className="block text-xs italic text-slate-400">(khóa học đã xóa)</span>}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-gold-700">
-                    {course ? formatPrice(course.price) : '—'}
+                    {amount != null ? formatPrice(amount) : '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-600"><DateTime value={r.created_at} /></td>
                   <td className="whitespace-nowrap px-3 py-3">
@@ -164,7 +170,8 @@ export default async function AdminRegistrationsPage({
                   </td>
                   <td className="sticky right-0 bg-white px-3 py-3 shadow-[-6px_0_8px_-6px_rgba(23,42,61,0.15)] group-hover:bg-ocean-50">
                     <div className="flex justify-center gap-2">
-                      {r.status !== 'approved' && (
+                      {/* Khóa đã xóa thì không còn gì để mở: chỉ giữ đơn làm lịch sử */}
+                      {r.status !== 'approved' && course && (
                         <ActionForm action={setRegistrationStatus.bind(null, r.id, 'approved')}>
                           <SubmitButton className="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-200">
                             Duyệt
@@ -177,7 +184,7 @@ export default async function AdminRegistrationsPage({
                             className="btn btn-sm border border-red-200 bg-white text-red-600 hover:bg-red-50 focus-visible:ring-red-100"
                             confirmMessage={
                               r.status === 'approved'
-                                ? `Thu hồi quyền học "${course?.title}" của ${r.full_name}?`
+                                ? `Thu hồi quyền học "${courseTitle}" của ${r.full_name}?`
                                 : undefined
                             }
                           >

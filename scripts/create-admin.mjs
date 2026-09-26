@@ -1,10 +1,10 @@
 // Tạo (hoặc nâng quyền) tài khoản admin.
-// Cách dùng: npm run create-admin -- <gmail> <mật khẩu> ["Họ tên"]
+// Cách dùng: npm run create-admin -- <email> <mật khẩu> ["Họ tên"]
 import { adminClient, loadEnv } from './env.mjs'
 
 const [email, password, fullName = 'Quản trị viên'] = process.argv.slice(2)
 if (!email || !password || password.length < 6) {
-  console.error('Cách dùng: npm run create-admin -- <gmail> <mật khẩu (>= 6 ký tự)> ["Họ tên"]')
+  console.error('Cách dùng: npm run create-admin -- <email> <mật khẩu (>= 6 ký tự)> ["Họ tên"]')
   process.exit(1)
 }
 

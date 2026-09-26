@@ -57,7 +57,7 @@ export async function registerAction(
 
   const { data: course } = await admin
     .from('courses')
-    .select('id')
+    .select('id, title, price')
     .eq('id', courseId)
     .eq('status', 'published')
     .maybeSingle()
@@ -132,6 +132,9 @@ export async function registerAction(
   const { error: insertError } = await admin.from('registrations').insert({
     user_id: userId,
     course_id: courseId,
+    // Lưu lại tên khóa và học phí lúc đăng ký: giữ lịch sử thanh toán kể cả khi khóa bị sửa giá hoặc bị xóa
+    course_title: course.title,
+    amount: course.price,
     full_name: fullName,
     email,
     phone,

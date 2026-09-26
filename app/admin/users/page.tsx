@@ -1,7 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import StatusBadge from '@/components/StatusBadge'
 
-type UserRegistration = { user_id: string; status: string; courses: { title: string } | null }
+type UserRegistration = {
+  user_id: string
+  status: string
+  course_title: string | null
+  courses: { title: string } | null
+}
+
+// Tên khóa lưu trong đơn vẫn hiển thị khi khóa học đã bị xóa
+function CourseName({ r }: { r: UserRegistration }) {
+  if (r.courses) return <span>{r.courses.title}</span>
+  return (
+    <span>
+      {r.course_title ?? 'Khóa học'} <span className="text-xs italic text-slate-400">(đã xóa)</span>
+    </span>
+  )
+}
 
 export default async function AdminUsersPage({
   searchParams,
@@ -23,7 +38,7 @@ export default async function AdminUsersPage({
 
   const [{ data: users, error }, { data: regs }] = await Promise.all([
     query,
-    supabase.from('registrations').select('user_id, status, courses(title)'),
+    supabase.from('registrations').select('user_id, status, course_title, courses(title)'),
   ])
   if (error) throw new Error(error.message)
 
@@ -38,7 +53,7 @@ export default async function AdminUsersPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Tìm theo tên, Gmail hoặc số điện thoại"
+          placeholder="Tìm theo tên, email hoặc số điện thoại"
           className="input max-w-md"
         />
         <button className="btn-primary">Tìm</button>
@@ -73,7 +88,7 @@ export default async function AdminUsersPage({
                   <ul className="space-y-1">
                     {regsByUser.get(u.id)?.map((r, i) => (
                       <li key={i} className="flex flex-wrap items-center gap-2">
-                        <span>{r.courses?.title ?? 'Khóa học đã xóa'}</span>
+                        <CourseName r={r} />
                         <StatusBadge status={r.status} />
                       </li>
                     )) ?? <li className="text-slate-400">Chưa đăng ký</li>}
@@ -99,7 +114,7 @@ export default async function AdminUsersPage({
             <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2">
               {regsByUser.get(u.id)?.map((r, i) => (
                 <li key={i} className="flex flex-wrap items-center gap-2">
-                  <span>{r.courses?.title ?? 'Khóa học đã xóa'}</span>
+                  <CourseName r={r} />
                   <StatusBadge status={r.status} />
                 </li>
               )) ?? <li className="text-slate-400">Chưa đăng ký khóa học</li>}

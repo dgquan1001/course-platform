@@ -53,7 +53,7 @@ const benefits = [
 const faqs = [
   {
     q: 'Bao lâu thì khóa học được kích hoạt?',
-    a: 'Thông thường trong vài giờ làm việc sau khi trung tâm xác nhận chuyển khoản. Bạn đăng nhập bằng Gmail và mật khẩu đã tạo để theo dõi trạng thái.',
+    a: 'Thông thường trong vài giờ làm việc sau khi trung tâm xác nhận chuyển khoản. Bạn đăng nhập bằng số điện thoại (hoặc email) và mật khẩu đã tạo để theo dõi trạng thái.',
   },
   {
     q: 'Tôi chưa từng tập luyện, có theo được không?',

@@ -23,12 +23,13 @@ nhiều tầng, phải sửa đồng bộ tất cả các tầng.
 
 | ID | Quy tắc | Thực thi tại |
 | --- | --- | --- |
-| BR-20 | Khóa `published`: hiển thị công khai và nhận đăng ký. Khóa `draft`: chỉ admin thấy | RLS `courses_select`, `getPublishedCourses`, `registerAction` |
-| BR-21 | Giá là số nguyên VNĐ ≥ 0; `0` nghĩa là "Liên hệ" (QR không điền số tiền) | `formatPrice`, `vietQrUrl`, input `min=0` |
+| BR-20 | Khóa `published`: hiển thị công khai và nhận đăng ký. Khóa `draft` (**Ẩn = chỉ ngừng nhận đăng ký**): không hiện trên website, không nhận đơn mới, nhưng học viên **đã được duyệt** khóa đó vẫn thấy khóa trong "Khóa học của tôi" và học bình thường; admin thấy mọi khóa | RLS `courses_select` (`status = 'published' or has_course_access(id)`), `getPublishedCourses`, `registerAction` |
+| BR-21 | Giá là số nguyên VNĐ từ 0 đến 1.000.000.000; `0` nghĩa là "Liên hệ" (QR không điền số tiền) | `formatPrice`, `vietQrUrl`, input `min=0`, `readCourse` (server), `check courses_price_nonnegative` (DB) |
 | BR-22 | Thứ tự hiển thị theo `sort_order` tăng dần (khóa học và bài học) | Các truy vấn `.order('sort_order')` |
-| BR-23 | Xóa khóa học xóa **vĩnh viễn** toàn bộ bài học và đơn đăng ký của khóa đó | `on delete cascade` |
-| BR-24 | Mỗi bài học có đúng 1 link video (YouTube/TikTok); link không nhận dạng được sẽ được nhúng nguyên dạng | `lib/video.ts` |
+| BR-23 | Xóa khóa học xóa **vĩnh viễn** khóa và toàn bộ bài học (học viên mất quyền xem), nhưng **giữ nguyên mọi đơn đăng ký** làm lịch sử thanh toán: `course_id` thành `null`, tên khóa và học phí vẫn còn trong đơn. Đơn của khóa đã xóa không duyệt được nữa | `lessons … on delete cascade`, `registrations.course_id … on delete set null`, `setRegistrationStatus` |
+| BR-24 | Mỗi bài học có đúng 1 link video **https** YouTube (`watch?v=`, `youtu.be`, `/shorts/`, `/embed/`) hoặc TikTok (`/video/`, `/embed/v2/`, `/player/v1/`); link khác bị từ chối khi lưu | `lib/video.ts#isSupportedVideoUrl`, `readLesson` |
 | BR-25 | Chỉ admin được thêm/sửa/xóa khóa học & bài học | RLS + `requireAdmin()` |
+| BR-26 | Dữ liệu admin nhập được kiểm tra ở server: tên bắt buộc ≤ 200 ký tự, mô tả ≤ 5000 ký tự, thứ tự là số nguyên trong ±100.000, trạng thái ∈ {draft, published}, mã (ID) phải là UUID | `app/admin/actions.ts` |
 
 ## Đơn đăng ký & thanh toán
 
@@ -42,7 +43,7 @@ nhiều tầng, phải sửa đồng bộ tất cả các tầng.
 | BR-35 | Đơn chỉ được tạo từ server bằng service role; client không có quyền insert | Không có policy insert trên `registrations` |
 | BR-36 | Chuyển trạng thái đơn: xem sơ đồ dưới. Chỉ admin được chuyển | RLS `registrations_admin_update`, `setRegistrationStatus` |
 | BR-37 | `reviewed_at` = thời điểm duyệt/từ chối gần nhất; về `pending` thì xóa | `setRegistrationStatus` |
-| BR-38 | Thông tin trên đơn (họ tên, email, SĐT) là **ảnh chụp tại thời điểm đăng ký**, không tự cập nhật khi học viên sửa profile | Thiết kế bảng `registrations` |
+| BR-38 | Thông tin trên đơn (họ tên, email, SĐT, **tên khóa `course_title`, học phí `amount`**) là **ảnh chụp tại thời điểm đăng ký**, không tự cập nhật khi học viên sửa profile hay admin sửa/xóa khóa học | `registerAction`, bảng `registrations` |
 
 ```mermaid
 stateDiagram-v2
@@ -66,9 +67,9 @@ stateDiagram-v2
 | BR-43 | Học viên chỉ xem được đơn và profile của chính mình | RLS `registrations_select`, `profiles_select` |
 | BR-44 | Ảnh chuyển khoản chỉ admin xem được | Storage policy `payment_proofs_admin_select` |
 
-> ⚠️ Xem [RV-01](../10-review/project-review.md): khi khóa bị chuyển sang `draft`, học viên đã được duyệt hiện
-> **không mở được trang chi tiết khóa** và khóa biến mất khỏi "Khóa học của tôi" (do RLS `courses_select`),
-> mâu thuẫn với ý nghĩa "Ẩn – chưa mở đăng ký". Cần chốt quy tắc nghiệp vụ.
+| BR-45 | Khóa đang ẩn vẫn đọc được bởi học viên đã được duyệt khóa đó (xem BR-20); khách và học viên chưa mua nhận trang 404 | RLS `courses_select` |
+
+> Đã chốt (RV-01, 26/09/2026): **Ẩn = chỉ ngừng nhận đăng ký**, học viên đã mua vẫn học được.
 
 ## Đặt lại mật khẩu
 

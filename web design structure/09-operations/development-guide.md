@@ -89,7 +89,8 @@ npx supabase db push                     # áp dụng lên project đã link
 
 ## 5. Git workflow (đề xuất)
 
-> Thư mục dự án hiện **chưa** là git repository. Việc đầu tiên nên làm: `git init`, commit toàn bộ (trừ file trong `.gitignore`), đẩy lên GitHub private.
+> Repository đã được khởi tạo (26/09/2026, nhánh `main`, `.gitattributes` chuẩn hóa xuống dòng LF).
+> Việc còn lại: tạo repo **private** trên GitHub, `git remote add origin <url>`, `git push -u origin main`, bật CI (mục 6).
 
 - Nhánh: `main` (production) · `feature/<mô-tả>` · `fix/<mô-tả>`.
 - Commit theo Conventional Commits: `feat: …`, `fix: …`, `docs: …`, `refactor: …`, `test: …`, `chore: …`.

@@ -11,7 +11,7 @@ erDiagram
   AUTH_USERS ||--o{ REGISTRATIONS : "đặt đơn"
   AUTH_USERS ||--o{ PASSWORD_RESETS : "yêu cầu mã"
   COURSES ||--o{ LESSONS : "gồm"
-  COURSES ||--o{ REGISTRATIONS : "được đăng ký"
+  COURSES |o--o{ REGISTRATIONS : "được đăng ký (set null khi xóa khóa)"
   REGISTRATIONS }o--|| STORAGE_OBJECTS : "payment_proof_path"
 
   AUTH_USERS {
@@ -50,7 +50,9 @@ erDiagram
   REGISTRATIONS {
     uuid id PK
     uuid user_id FK "→ auth.users, cascade"
-    uuid course_id FK "→ courses, cascade"
+    uuid course_id FK "→ courses, set null khi xóa khóa"
+    text course_title "snapshot tên khóa"
+    int amount "snapshot học phí"
     text full_name "snapshot"
     text email "snapshot, nullable"
     text phone "snapshot"
@@ -96,7 +98,7 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `title` | text | ✗ | — | Tên khóa học |
 | `description` | text | ✓ | — | Mô tả ngắn (hiển thị tối đa 3 dòng ở thẻ) |
 | `cover_image` | text | ✓ | — | **Dự phòng**, chưa dùng ở UI (roadmap R-03) |
-| `price` | int | ✗ | `0` | Học phí VNĐ. Không có `check (price >= 0)` ở DB (UI chặn `min=0`) |
+| `price` | int | ✗ | `0` | Học phí VNĐ. `constraint courses_price_nonnegative check (price >= 0)`; server giới hạn ≤ 1 tỷ |
 | `status` | text | ✗ | `'published'` | `check (status in ('draft','published'))` |
 | `sort_order` | int | ✗ | `0` | Thứ tự hiển thị tăng dần |
 | `created_at` | timestamptz | ✗ | `now()` | |
@@ -121,7 +123,9 @@ Index: `lessons_course_id_idx (course_id, sort_order)`.
 | --- | --- | --- | --- | --- |
 | `id` | uuid | ✗ | `gen_random_uuid()` | PK |
 | `user_id` | uuid | ✗ | — | FK `auth.users(id)` cascade |
-| `course_id` | uuid | ✗ | — | FK `courses(id)` cascade |
+| `course_id` | uuid | ✓ | — | FK `courses(id)` **on delete set null** – `null` nghĩa là khóa đã bị xóa, đơn vẫn giữ làm lịch sử |
+| `course_title` | text | ✓ | — | Snapshot tên khóa lúc đăng ký (đơn cũ được điền tự động khi chạy schema) |
+| `amount` | int | ✓ | — | Snapshot học phí lúc đăng ký (VNĐ) – dùng cho lịch sử thanh toán / báo cáo doanh thu |
 | `full_name` | text | ✗ | — | Snapshot tại thời điểm đăng ký |
 | `email` | text | ✓ | — | Snapshot email thật (đã bỏ `not null`) |
 | `phone` | text | ✗ | — | Snapshot SĐT |
@@ -166,7 +170,7 @@ Index: `password_resets_user_idx (user_id, created_at desc)`.
 | profiles | SELECT | `profiles_select` | `auth.uid() = id or is_admin()` |
 | profiles | UPDATE | `profiles_admin_update` | `is_admin()` |
 | profiles | INSERT/DELETE | — | Không ai (chỉ trigger/service role) |
-| courses | SELECT | `courses_select` | `status = 'published' or is_admin()` |
+| courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_admin()`; học viên đã duyệt đọc được khóa đang ẩn) |
 | courses | INSERT / UPDATE / DELETE | `courses_admin_*` | `is_admin()` |
 | lessons | SELECT | `lessons_select` | `has_course_access(course_id)` |
 | lessons | INSERT / UPDATE / DELETE | `lessons_admin_*` | `is_admin()` |
@@ -187,7 +191,7 @@ Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security
 
 Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600)`).
 
-> ⚠️ Khi xóa khóa học/đơn/tài khoản, **file ảnh không bị xóa** theo (Storage không cascade) → ảnh mồ côi (RV-08).
+> Khi xóa khóa học, đơn vẫn còn nên ảnh vẫn được tham chiếu. Khi xóa **tài khoản**, đơn bị xóa theo nhưng file ảnh **không** → ảnh mồ côi (RV-08).
 
 ## 6. Truy vấn chính & index phục vụ
 
@@ -206,8 +210,8 @@ Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600
 
 | Hành động | Ảnh hưởng |
 | --- | --- |
-| Xóa user trong Supabase Auth | Cascade xóa `profiles`, `registrations`, `password_resets` (ảnh trong Storage **còn lại**) |
-| Xóa khóa học | Cascade xóa `lessons`, `registrations` của khóa (mất lịch sử thanh toán!) |
+| Xóa user trong Supabase Auth | Cascade xóa `profiles`, `registrations`, `password_resets` (ảnh trong Storage **còn lại**) – ⚠️ mất lịch sử thanh toán của user, xem RK-03 |
+| Xóa khóa học | Cascade xóa `lessons`; `registrations.course_id` → `null`, **đơn và ảnh chuyển khoản được giữ** |
 | Xóa bài học | Chỉ xóa bài học |
 | Thu hồi đơn | `status = 'rejected'`, giữ nguyên dữ liệu |
 
@@ -222,9 +226,6 @@ Nếu muốn admin tự sửa trên giao diện → tạo bảng `settings` (roa
 -- Chặn trùng đơn đang hiệu lực ở tầng DB (BR-34)
 create unique index if not exists registrations_active_unique
   on public.registrations (user_id, course_id) where status in ('pending', 'approved');
-
--- Giá không âm
-alter table public.courses add constraint courses_price_nonnegative check (price >= 0) not valid;
 
 -- Truy vết người duyệt & lý do (US-09.05, US-09.06)
 alter table public.registrations add column if not exists reviewed_by uuid references auth.users (id);

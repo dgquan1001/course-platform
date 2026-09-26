@@ -19,4 +19,4 @@ Kiểm tra quyền chỉ ở UI/middleware là không đủ.
 - ✅ App di động/tích hợp sau này dùng lại được cùng quy tắc.
 - ⚠️ Mọi bảng mới **bắt buộc** thêm RLS + policy; quên là lộ dữ liệu hoặc bị chặn toàn bộ.
 - ⚠️ Hàm `security definer` phải `set search_path = public` để tránh chiếm quyền qua search_path.
-- ⚠️ RLS của `courses` ảnh hưởng tới học viên đã mua khi khóa bị ẩn (xem RV-01).
+- ✅ (RV-01) `courses_select` dùng `status = 'published' or has_course_access(id)` để học viên đã mua vẫn đọc được khóa đang ẩn.

@@ -129,11 +129,51 @@ Xem bảng mục 3; phương án chi tiết nằm trong [roadmap.md](roadmap.md)
 9. **Accessibility** tốt: label, aria, focus, reduced motion, vùng chạm 44px.
 10. **Schema idempotent** dễ vận hành cho người không chuyên.
 
-## 6. Kế hoạch xử lý đề xuất
+## 6. Trạng thái xử lý (cập nhật 26/09/2026, commit `0f6cfef`)
+
+| ID | Trạng thái | Cách xử lý | Kiểm thử |
+| --- | --- | --- | --- |
+| RV-01 | ✅ Đã sửa | Chốt "Ẩn = chỉ ngừng nhận đăng ký". Policy `courses_select`: `status = 'published' or has_course_access(id)` | TC-41, TC-42 |
+| RV-02 | ✅ Đã sửa | `registrations.course_title`, `amount` (snapshot, đơn cũ tự điền); FK `on delete set null`; UI hiện "(khóa học đã xóa)", chặn duyệt đơn của khóa đã xóa | TC-18, TC-44 |
+| RV-05 | ✅ Đã sửa | Validate server trong `app/admin/actions.ts` + `isSupportedVideoUrl`; DB `check (price >= 0)` | TC-02, TC-09 |
+| RV-09 | ✅ Đã sửa | FAQ, placeholder admin, hướng dẫn `create-admin` | TC-11 |
+| RV-10 | 🟡 Một phần | `git init` (nhánh `main`), `.gitattributes`, 2 commit. Chưa có remote GitHub & CI | — |
+| Còn lại | ⬜ | RV-03, 04, 06, 07, 08, 11 → 20 giữ nguyên đề xuất | — |
+
+## 7. Risk case phát hiện ở vòng review thứ 2 (chờ duyệt)
+
+Phương pháp: review lại toàn bộ code sau khi sửa, **thăm dò thực tế** trên bản build local với Supabase thật
+(script tạm, đã xóa dữ liệu), và quan sát từ lần chạy E2E.
+Cột "Bằng chứng": 🔬 đã tái hiện thực tế · 📖 suy ra từ code · 👁 quan sát khi chạy E2E.
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Đề xuất xử lý | Công sức |
+| --- | --- | --- | --- | --- | --- | --- |
+| RK-01 | 🟠 | Học viên nhập email dạng `<SĐT người khác>@sdt.hv.invalid` ở trang Tài khoản (hoặc form đăng ký) → chiếm email đăng nhập nội bộ của SĐT đó | 🔬 Probe: auth email đổi thành `03…@sdt.hv.invalid` thành công | Chủ thật của SĐT đó **không đăng ký được** nếu không có email ("Email này đã có tài khoản") | `isValidEmail` từ chối mọi email đuôi `@sdt.hv.invalid`; thêm TC | XS |
+| RK-02 | 🟠 | Email không được xác minh khi đăng ký / thêm / đổi email (`email_confirm: true`) | 📖 `registerAction`, `updateProfileAction` | Có thể "giữ chỗ" email của người khác → họ không đăng ký được bằng email của mình; admin liên hệ nhầm người | Gửi mã 6 số xác nhận trước khi lưu email mới (tái dùng cơ chế `password_resets`) | M |
+| RK-03 | 🟠 | Xóa tài khoản trong Supabase Auth xóa luôn mọi đơn của tài khoản (`user_id … on delete cascade`) | 📖 schema | Mất lịch sử thanh toán – cùng loại rủi ro RV-02 nhưng phía học viên | `user_id` nullable + `on delete set null` (đơn đã có snapshot họ tên, SĐT, email); hướng dẫn runbook | S |
+| RK-04 | 🟡 | Đơn `pending` của khóa đã bị xóa: học viên thấy "Đang chờ xác nhận" mãi; admin chỉ có thể Từ chối | 📖 + 👁 TC-44 | Khách đã chuyển tiền nhưng không có hướng xử lý rõ ràng | Học viên thấy "Khóa học đã ngừng – liên hệ hotline để hoàn tiền"; admin có bộ lọc "Đơn của khóa đã xóa" | S |
+| RK-05 | 🟡 | Đơn `pending` của khóa **đang ẩn** vẫn duyệt được → học viên được mở khóa đã ngừng bán | 📖 | Có thể là mong muốn (khách đã trả tiền trước khi ẩn) | **Cần chốt nghiệp vụ**; nếu đúng ý thì chỉ ghi vào BR | XS |
+| RK-06 | 🟠 | Chưa có rate limit / CAPTCHA cho đăng ký, đăng nhập, quên mật khẩu (RV-04) | 📖 | Spam tạo tài khoản + upload ảnh bằng service role, tốn Storage | Cloudflare Turnstile ở form đăng ký + giới hạn theo IP | M |
+| RK-07 | 🟡 | Gửi 2 đơn cùng lúc cho cùng khóa tạo 2 đơn `pending` (RV-07) | 📖 kiểm tra trùng chỉ ở tầng ứng dụng | Admin duyệt trùng, số liệu sai | Unique index một phần `(user_id, course_id) where status in ('pending','approved')` | XS |
+| RK-08 | 🟡 | Server tin MIME do trình duyệt khai báo; file không phải ảnh đổi đuôi `.png` vẫn được lưu | 📖 `registerAction` | Admin thấy ảnh lỗi; lưu file rác | Đọc magic bytes / `sharp(buffer).metadata()` trước khi upload | S |
+| RK-09 | 🟡 | Bài học tạo trước RV-05 có thể chứa link không hợp lệ; khi sửa bài đó admin buộc phải sửa link | 📖 | Admin bất ngờ bị báo lỗi | Chạy 1 truy vấn rà soát `lessons.video_url`; hiển thị cảnh báo trong trang admin | XS |
+| RK-10 | 🟠 | E2E chạy trên Supabase trong `.env.local` (có thể là production) | 👁 Lần chạy lỗi giữa chừng từng để sót 2 khóa `[E2E]` (đã dọn; đã vá `cleanup()`) | Dữ liệu test lẫn vào dữ liệu thật; khách có thể thấy khóa test trong vài phút | Tạo project Supabase staging cho E2E | S |
+
+### Đã kiểm tra – **không** phải rủi ro
+
+| Nghi vấn | Kết quả |
+| --- | --- |
+| Open redirect qua `next=/\example.com`, `//example.com`, `/%5Cexample.com` | 🔬 Không khai thác được: luôn ở lại localhost (Next.js chuẩn hóa URL; `safeNext` chặn `//`) |
+| Phiên đăng nhập cũ còn dùng được sau khi đặt lại mật khẩu | 🔬👁 Supabase thu hồi phiên cũ (TC-42 phải đăng nhập lại học viên 2 sau khi reset) |
+| Học viên chưa mua đọc được khóa đang ẩn sau khi đổi policy | 🔬 TC-41, TC-42: khách và học viên chưa mua nhận 404 / 0 dòng |
+| Đơn cũ thiếu snapshot sau khi chạy schema | 🔬 0 đơn có `course_title` null |
+
+## 8. Kế hoạch xử lý đề xuất
 
 | Đợt | Hạng mục | Ước lượng |
 | --- | --- | --- |
-| Ngay | RV-10 (git), RV-09 (nội dung), chốt & sửa RV-01 | 0,5 ngày |
-| Sprint 1 | RV-02, RV-05, RV-07, RV-03, RV-13 | 2 ngày |
+| ~~Ngay~~ | ~~RV-10 (git), RV-09, RV-01, RV-02, RV-05~~ – ✅ xong 26/09/2026 | — |
+| Tiếp theo | RK-01, RK-07, RK-05 (chốt), RK-09, RK-03 | 1 ngày |
+| Sprint 1 | RV-03, RV-13, RK-04, RK-08, RK-10 (staging), remote GitHub + CI | 2 ngày |
 | Sprint 2 | RV-04, RV-16, RV-11, RV-06 | 3 ngày |
 | Sau | RV-08, RV-12, RV-17, RV-20, RV-18 | Theo roadmap |

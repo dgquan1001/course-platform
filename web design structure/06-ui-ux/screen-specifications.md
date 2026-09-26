@@ -201,7 +201,7 @@ Nội dung khóa học (12 bài)
  ├ (2) …                                   ┤
 ```
 Không có quyền: thẻ 🛡 "Khóa học chưa được mở cho tài khoản của bạn" / "Nếu bạn đã đăng ký, vui lòng chờ…" / [Đăng ký khóa học này].
-Khóa không đọc được (không tồn tại hoặc đang ẩn với học viên) → 404.
+Khóa không đọc được (không tồn tại, hoặc đang ẩn với người chưa được duyệt) → 404. Khóa đang ẩn vẫn hiển thị bình thường với học viên đã được duyệt.
 
 ## SCR-09 – Xem bài học
 
@@ -238,7 +238,7 @@ Bảng quản trị
 | --- | --- |
 | Rỗng | "Không có đơn đăng ký nào." |
 | Không có ảnh | Ô xám "Không có ảnh" |
-| Khóa đã xóa | "Khóa học đã xóa", học phí "—" |
+| Khóa đã xóa | Tên khóa đã lưu + dòng nhỏ "(khóa học đã xóa)", học phí theo snapshot; ẩn nút **Duyệt** |
 | Lỗi truy vấn | `app/admin/error.tsx` |
 | Loading | `app/admin/loading.tsx` |
 

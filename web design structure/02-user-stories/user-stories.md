@@ -218,9 +218,18 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 ### US-07.03 – Ẩn / hiện khóa học ✅ (1 SP)
 - FR: FR-092 · BR: BR-20
 - **AC1** Given bấm "Ẩn khóa học" Then badge "Đang ẩn", khóa biến mất khỏi trang chủ và ô chọn khóa.
+- **AC2** Given học viên đã được duyệt khóa đó When khóa bị ẩn Then học viên vẫn thấy khóa trong "Khóa học của tôi" và xem được bài học; khách/học viên chưa mua nhận 404.
 
 ### US-07.04 – Xóa khóa học ✅ (1 SP)
-- BR: BR-23 · **AC1** Given bấm "Xóa khóa học" Then hỏi xác nhận; đồng ý → xóa khóa, bài học, đơn đăng ký.
+- BR: BR-23 · **AC1** Given bấm "Xóa khóa học" Then hỏi xác nhận (nêu rõ đơn và lịch sử thanh toán được giữ); đồng ý → xóa khóa và bài học.
+- **AC2** Then mọi đơn của khóa vẫn còn với tên khóa, học phí đã lưu; bảng admin hiện "(khóa học đã xóa)", không còn nút Duyệt; học viên vẫn thấy đơn trong lịch sử.
+
+### US-07.07 – Dữ liệu nhập sai bị chặn ở server ✅ (2 SP)
+**Là** chủ trung tâm, **tôi muốn** hệ thống từ chối dữ liệu khóa học/bài học không hợp lệ kể cả khi bị gửi thẳng lên server, **để** website không hiển thị giá sai hay nhúng link lạ.
+- FR: FR-096 · BR: BR-21, BR-24, BR-26
+- **AC1** Given tên chỉ có khoảng trắng / > 200 ký tự Then báo lỗi, không lưu.
+- **AC2** Given học phí âm, số thập phân hoặc chữ Then báo lỗi; database cũng chặn học phí âm.
+- **AC3** Given link video không phải https YouTube/TikTok (kể cả `javascript:`, `http://`) Then báo lỗi.
 
 ### US-07.05 – Quản lý bài học ✅ (3 SP)
 - FR: FR-093

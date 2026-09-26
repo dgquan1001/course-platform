@@ -54,7 +54,7 @@ Quy ước chung:
 | `phone` | ✓ | `normalizePhone` ≠ null |
 | `email` | khách: tùy chọn; đã đăng nhập: bỏ qua | `isValidEmail`, lưu chữ thường |
 | `password` | khách ✓ | ≥ 6 ký tự |
-| `courseId` | ✓ | tồn tại và `published` |
+| `courseId` | ✓ | tồn tại và `published`; lưu kèm snapshot `course_title`, `amount` vào đơn |
 | `paymentProof` | ✓ | File, MIME/đuôi ∈ {png, jpg/jpeg, webp, heic, heif}, ≤ 5MB |
 
 - **Client dùng**: service role (tạo user, upload, insert), server client (đọc phiên, đăng nhập).
@@ -126,25 +126,32 @@ Cập nhật `profiles`, `revalidatePath('/', 'layout')`. Thành công: "Đã c�
 
 ### 3.6. Admin actions – `app/admin/actions.ts`
 
-Tất cả đi qua `run(message, op)`: `requireAdmin()` → thực thi bằng **server client (RLS)** với `.select('id')` →
+Tất cả đi qua `run(message, op, invalid)`: `requireAdmin()` → nếu dữ liệu không hợp lệ trả `invalid` → thực thi bằng **server client (RLS)** với `.select('id')` →
 lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui lòng tải lại trang."; thành công →
 `revalidatePath('/', 'layout')` và `{ ok: true, message }`.
 
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
-| `setRegistrationStatus` | `registrationId`, `status` | — | `registrations.status`, `reviewed_at` (null nếu pending) | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
+| `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected | — | `registrations.status`, `reviewed_at` (null nếu pending). Duyệt chỉ áp dụng khi `course_id is not null` (khóa chưa bị xóa) | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
 | `createCourse` | — | `title, description, price, sort_order, status` | insert `courses` | `Đã thêm khóa học "<title>".` |
 | `updateCourse` | `courseId` | như trên | update `courses` | "Đã lưu thông tin khóa học." |
-| `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website." |
-| `deleteCourse` | `courseId` | — | delete `courses` (cascade) | "Đã xóa khóa học." |
+| `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
+| `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
 | `createLesson` | `courseId` | `title, video_url, description, sort_order` | insert `lessons` | `Đã thêm bài học "<title>".` |
 | `updateLesson` | `lessonId` | như trên | update `lessons` | "Đã lưu bài học." |
 | `deleteLesson` | `lessonId` | — | delete `lessons` | "Đã xóa bài học." |
 
-Chuẩn hóa input: `description` rỗng → `null`; `price`, `sort_order` → `Number(x || 0)`; `status` ≠ `draft` → `published`.
+Kiểm tra ở server (RV-05):
 
-> ⚠️ Admin actions **không** validate `title` rỗng / `price` âm / `video_url` hợp lệ ở server (chỉ dựa vào `required`,
-> `min`, `type=url` của HTML). Xem RV-05.
+| Trường | Quy tắc | Thông báo lỗi |
+| --- | --- | --- |
+| `title` | bắt buộc sau `trim`, ≤ 200 ký tự | "Vui lòng nhập tên khóa học/bài học." / "Tên … tối đa 200 ký tự." |
+| `description` | ≤ 5000 ký tự; rỗng → `null` | "Mô tả tối đa 5000 ký tự." |
+| `price` | số nguyên 0 – 1.000.000.000; trống = 0 | "Học phí phải là số nguyên." / "Học phí phải từ 0 đến 1.000.000.000." |
+| `sort_order` | số nguyên ±100.000; trống = 0 | "Thứ tự … phải là số nguyên." |
+| `status` | `draft` \| `published` | "Trạng thái khóa học không hợp lệ." |
+| `video_url` | `isSupportedVideoUrl`: https + youtube.com/youtu.be/youtube-nocookie.com/tiktok.com và nhận dạng được ID | "Link video phải là link YouTube hoặc TikTok hợp lệ (…)" |
+| ID (bind) | UUID | "Mã … không hợp lệ, vui lòng tải lại trang." |
 
 ## 4. Supabase API được gọi trực tiếp
 

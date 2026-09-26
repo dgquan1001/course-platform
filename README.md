@@ -34,7 +34,10 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác (Duyệt / Từ chối / Thu hồi). Cột Thao tác
   luôn cố định bên phải khi bảng phải cuộn ngang trên màn hình nhỏ
 - Học viên: danh sách tài khoản, số điện thoại, các khóa đã đăng ký và trạng thái, tìm kiếm
-- Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên
+- Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên.
+  **Ẩn** = ngừng nhận đăng ký (học viên đã được duyệt vẫn học bình thường).
+  **Xóa** = xóa khóa và bài học, nhưng **giữ nguyên đơn đăng ký** (tên khóa & học phí lúc đăng ký) làm lịch sử thanh toán
+- Dữ liệu khóa học / bài học được kiểm tra ở server (tên, học phí 0 – 1 tỷ, link video YouTube/TikTok https)
 - Bài học: thêm / sửa / xóa bài học của từng khóa
 
 **Trải nghiệm chung**
@@ -132,6 +135,10 @@ mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
     npm run build
     npm run test:e2e
 
+Nếu đang chạy `npm run dev` (dev server ghi đè thư mục `.next`), build và test vào thư mục riêng:
+
+    $env:NEXT_DIST_DIR=".next-e2e"; npm run build; npm run test:e2e
+
 Ảnh chụp màn hình được lưu trong `test-results/` (thư mục tự tạo, không commit).
 
 Biến tùy chọn: `E2E_PORT` (mặc định `3123`) và `BROWSER_CHANNEL` (mặc định `chrome`,
@@ -197,6 +204,11 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
       create-admin.mjs          Tạo / nâng quyền tài khoản admin
       e2e.mjs                   Kiểm thử end-to-end
       env.mjs                   Đọc .env.local cho các script
+
+## Tài liệu thiết kế
+
+Bộ tài liệu đầy đủ (yêu cầu, user story, kiến trúc, database, API, UI/UX, bảo mật, kiểm thử, vận hành, review):
+[`web design structure/README.md`](web%20design%20structure/README.md).
 
 ## Gợi ý mở rộng
 

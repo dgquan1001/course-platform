@@ -69,3 +69,4 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | Ngày | Phiên bản | Nội dung | Người thực hiện |
 | --- | --- | --- | --- |
 | 26/09/2026 | 1.0 | Tạo bộ tài liệu đầy đủ từ mã nguồn phiên bản 0.1.0 | Claude (AI) |
+| 26/09/2026 | 1.1 | Cập nhật theo bản sửa RV-01, RV-02, RV-05, RV-09, git init; bảng 46 test case E2E (PASS); risk case RK-01 → RK-10 | Claude (AI) |

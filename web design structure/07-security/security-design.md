@@ -34,7 +34,7 @@
 | Tài nguyên / thao tác | Khách (anon) | Học viên | Admin | Service role (server) |
 | --- | --- | --- | --- | --- |
 | courses – đọc `published` | ✅ | ✅ | ✅ | ✅ |
-| courses – đọc `draft` | ❌ | ❌ | ✅ | ✅ |
+| courses – đọc `draft` | ❌ | 🔸 khóa đã `approved` | ✅ | ✅ |
 | courses – thêm/sửa/xóa | ❌ | ❌ | ✅ | ✅ |
 | lessons – đọc | ❌ | 🔸 khóa đã `approved` | ✅ | ✅ |
 | lessons – thêm/sửa/xóa | ❌ | ❌ | ✅ | ✅ |
@@ -69,12 +69,12 @@
 | T8 | Brute-force mã reset | Spoofing | 5 lần/mã, 60s/mã | Trung bình – giới hạn số mã/ngày/tài khoản |
 | T9 | Dò tài khoản tồn tại qua quên mật khẩu/đăng ký | Information disclosure | — (đánh đổi UX) | Thấp – chấp nhận |
 | T10 | Lộ service role key | Elevation | `.gitignore` có `.env*.local`; chỉ dùng server | Nghiêm trọng nếu xảy ra → xoay khóa ngay (runbook) |
-| T11 | XSS | Tampering | React escape mặc định; không dùng `dangerouslySetInnerHTML` | Thấp. Chú ý `video_url` nhúng iframe: admin nhập URL tùy ý (chỉ admin) |
+| T11 | XSS | Tampering | React escape mặc định; không dùng `dangerouslySetInnerHTML`; `video_url` chỉ nhận https YouTube/TikTok (RV-05) | Thấp. Dữ liệu cũ nhập trước RV-05 chưa được kiểm tra lại |
 | T12 | CSRF lên Server Action | Tampering | Next.js kiểm tra Origin cho Server Actions; cookie SameSite=Lax | Thấp |
 | T13 | Open redirect sau đăng nhập | Spoofing | `safeNext()` | Thấp |
 | T14 | Clickjacking trang admin | Tampering | — | Thấp – thêm header `X-Frame-Options: DENY`/CSP `frame-ancestors` |
 | T15 | Chiếm quyền qua `search_path` trong hàm security definer | Elevation | `set search_path = public` | Thấp |
-| T16 | Mất dữ liệu thanh toán khi admin xóa khóa học | Repudiation / Integrity | Hộp xác nhận | Trung bình – soft delete (RV-02) |
+| T16 | Mất dữ liệu thanh toán khi admin xóa khóa học | Repudiation / Integrity | ✅ Đơn giữ lại với snapshot tên khóa & học phí (`on delete set null`) | Thấp. Còn rủi ro khi xóa **tài khoản** (RK-03) |
 | T17 | Không truy vết ai duyệt đơn | Repudiation | — | Trung bình – `reviewed_by` + audit log |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)

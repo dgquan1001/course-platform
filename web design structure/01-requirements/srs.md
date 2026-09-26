@@ -104,7 +104,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
 | FR-070 | `/admin` hiển thị bảng đơn với 4 tab: Chờ duyệt (mặc định, cũ nhất trước), Đã duyệt, Từ chối, Tất cả (mới nhất trước) kèm số lượng | M | ✅ |
-| FR-071 | Cột: STT, Ảnh chuyển khoản (thumbnail, bấm mở ảnh lớn), Họ tên, Email ("Không có email"), SĐT (link `tel:`), Khóa học, Học phí, Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác | M | ✅ |
+| FR-071 | Cột: STT, Ảnh chuyển khoản (thumbnail, bấm mở ảnh lớn), Họ tên, Email ("Không có email"), SĐT (link `tel:`), Khóa học (kèm "(khóa học đã xóa)" nếu có), Học phí (theo snapshot lúc đăng ký), Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác | M | ✅ |
 | FR-072 | Cột Thao tác cố định bên phải khi bảng cuộn ngang | S | ✅ |
 | FR-073 | Thao tác: Duyệt (khi ≠ approved), Từ chối (khi pending), Thu hồi (khi approved, có hộp xác nhận) | M | ✅ |
 | FR-074 | Duyệt/Từ chối ghi `reviewed_at`; chuyển về pending xóa `reviewed_at` | M | ✅ |
@@ -125,10 +125,12 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | --- | --- | --- | --- |
 | FR-090 | `/admin/courses`: danh sách khóa (tên, trạng thái, giá, số bài, số học viên đã duyệt, số đơn chờ) | M | ✅ |
 | FR-091 | Thêm khóa: tên*, mô tả, giá (VNĐ, bước 1000), thứ tự, trạng thái | M | ✅ |
-| FR-092 | Sửa thông tin khóa; Ẩn/Hiển thị nhanh; Xóa (có xác nhận, xóa cả bài học và đơn đăng ký) | M | ✅ |
+| FR-092 | Sửa thông tin khóa; Ẩn/Hiển thị nhanh (ẩn = ngừng nhận đăng ký, học viên đã mua vẫn học); Xóa (có xác nhận, xóa bài học, **giữ đơn đăng ký**) | M | ✅ |
 | FR-093 | `/admin/courses/[courseId]`: danh sách bài học, thêm (thứ tự mặc định = số bài + 1), sửa, xóa (có xác nhận), "Xem thử" | M | ✅ |
 | FR-094 | Mọi thao tác admin kiểm tra quyền ở server (`requireAdmin`) **và** ở database (RLS) | M | ✅ |
 | FR-095 | Thao tác không ảnh hưởng dòng nào → báo "Không tìm thấy dữ liệu, vui lòng tải lại trang." | S | ✅ |
+| FR-096 | Validate dữ liệu admin ở server (tên, mô tả, học phí, thứ tự, trạng thái, link video, ID) – xem api-specification §3.6 | M | ✅ |
+| FR-097 | Đơn đăng ký lưu snapshot tên khóa & học phí; bảng admin, trang học viên hiển thị "(khóa học đã xóa)" khi khóa không còn | M | ✅ |
 
 ### 2.10. Trải nghiệm chung
 

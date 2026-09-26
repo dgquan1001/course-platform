@@ -1,0 +1,8 @@
+node_modules
+.next
+.env*.local
+.DS_Store
+*.tsbuildinfo
+test-results
+.idea/workspace.xml
+.idea/claudeCodeEditorTabs.xml

@@ -1,0 +1,13 @@
+const styles: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Chờ duyệt', className: 'bg-gold-100 text-gold-800' },
+  approved: { label: 'Đã duyệt', className: 'bg-emerald-100 text-emerald-700' },
+  rejected: { label: 'Từ chối', className: 'bg-red-100 text-red-700' },
+  published: { label: 'Đang hiển thị', className: 'bg-emerald-100 text-emerald-700' },
+  draft: { label: 'Đang ẩn', className: 'bg-slate-100 text-slate-600' },
+  admin: { label: 'Admin', className: 'bg-ocean-100 text-ocean-700' },
+}
+
+export default function StatusBadge({ status }: { status: string }) {
+  const s = styles[status] ?? { label: status, className: 'bg-slate-100 text-slate-600' }
+  return <span className={`badge ${s.className}`}>{s.label}</span>
+}

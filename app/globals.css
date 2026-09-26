@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-white font-sans text-slate-700 antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-ocean-950;
+  }
+
+  ::selection {
+    @apply bg-gold-200 text-ocean-950;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[44px] select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-semibold transition duration-150 focus-visible:outline-none focus-visible:ring-4 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
+  }
+
+  .btn-primary {
+    @apply btn bg-ocean-600 text-white shadow-sm hover:bg-ocean-700 focus-visible:ring-ocean-200;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold-400 text-ocean-950 shadow-sm hover:bg-gold-300 focus-visible:ring-gold-200;
+  }
+
+  .btn-outline {
+    @apply btn border border-ocean-200 bg-white text-ocean-700 hover:border-ocean-300 hover:bg-ocean-50 focus-visible:ring-ocean-100;
+  }
+
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-ocean-50 hover:text-ocean-700 focus-visible:ring-ocean-100 active:bg-ocean-100;
+  }
+
+  /* Link trên header đang trỏ tới trang hiện tại */
+  .nav-active {
+    @apply bg-ocean-50 text-ocean-700 ring-1 ring-inset ring-ocean-200;
+  }
+
+  .btn-sm {
+    @apply min-h-[36px] rounded-lg px-3 py-1.5 text-xs;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 transition placeholder:text-slate-400 focus:border-ocean-400 focus:outline-none focus:ring-4 focus:ring-ocean-100 sm:text-sm;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .card {
+    @apply rounded-2xl border border-slate-100 bg-white shadow-[0_1px_3px_rgba(23,42,61,0.06)];
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-gold-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gold-800;
+  }
+
+  .alert-error {
+    @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700;
+  }
+
+  .alert-success {
+    @apply rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+}

@@ -227,17 +227,23 @@ Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc k
 Bảng quản trị
  Đơn đăng ký | Học viên | Khóa học
 [Chờ duyệt (3)] [Đã duyệt (40)] [Từ chối (2)] [Tất cả (45)]
-┌────┬──────┬──────────┬─────────┬──────────┬────────┬─────────┬──────────┬─────────┬──────────┬────────────────┐
-│STT │Ảnh CK│Họ và tên │Email    │SĐT       │Khóa học│Học phí  │Ngày ĐK   │Trạng thái│Ngày xử lý│ Thao tác (sticky)│
-├────┼──────┼──────────┼─────────┼──────────┼────────┼─────────┼──────────┼─────────┼──────────┼────────────────┤
-│ 1  │[img] │Nguyễn A  │a@gm…    │0912…(tel)│Khóa A  │199.000đ │26/09/2026│Chờ duyệt│    —     │[Duyệt][Từ chối]│
-│ 2  │[img] │Chị Lan   │Không có email│08…  │Khóa B  │299.000đ │…         │Đã duyệt │…         │   [Thu hồi]    │
-└────┴──────┴──────────┴─────────┴──────────┴────────┴─────────┴──────────┴─────────┴──────────┴────────────────┘
+┌────┬──────┬──────────┬─────────┬──────────┬────────┬─────────┬──────────┬─────────┬──────────┬───────────┬────────────────┐
+│STT │Ảnh CK│Họ và tên │Email    │SĐT       │Khóa học│Học phí  │Ngày ĐK   │Trạng thái│Ngày xử lý│Người xử lý│ Thao tác (sticky)│
+├────┼──────┼──────────┼─────────┼──────────┼────────┼─────────┼──────────┼─────────┼──────────┼───────────┼────────────────┤
+│ 1  │[img] │Nguyễn A  │a@gm…    │0912…(tel)│Khóa A  │199.000đ │26/09/2026│Chờ duyệt│    —     │     —     │[Duyệt][Từ chối]│
+│ 2  │[img] │Chị Lan   │Không có email│08…  │Khóa B  │299.000đ │…         │Đã duyệt │…         │Admin Hùng │   [Thu hồi]    │
+└────┴──────┴──────────┴─────────┴──────────┴────────┴─────────┴──────────┴─────────┴──────────┴───────────┴────────────────┘
 ```
 | Trạng thái | Hiển thị |
 | --- | --- |
 | Rỗng | "Không có đơn đăng ký nào." |
 | Không có ảnh | Ô xám "Không có ảnh" |
+| Từ chối / Thu hồi | Bấm nút mở ô "Lý do (học viên sẽ thấy, không bắt buộc)" + nút "Xác nhận từ chối" / "Xác nhận thu hồi" (thay cho hộp xác nhận) |
+| Trạng thái | Badge + dòng "Lý do: …" (nếu có) + "Lịch sử (n)" thu gọn: thời điểm, người xử lý, trạng thái trước → sau, lý do |
+| Admin khác vừa xử lý | Toast lỗi "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang." |
+| Người xử lý | Tên admin đã duyệt/từ chối/thu hồi gần nhất (họ tên → email → SĐT); "—" với đơn chờ duyệt hoặc đơn xử lý trước khi có cột này |
+| Khóa đang ẩn | Dòng nhỏ "(khóa đang ẩn)" dưới tên khóa; vẫn có nút Duyệt |
+| Tài khoản đã xóa | Dòng nhỏ "(tài khoản đã xóa)" dưới họ tên; không có nút Duyệt |
 | Khóa đã xóa | Tên khóa đã lưu + dòng nhỏ "(khóa học đã xóa)", học phí theo snapshot; ẩn nút **Duyệt** |
 | Lỗi truy vấn | `app/admin/error.tsx` |
 | Loading | `app/admin/loading.tsx` |
@@ -245,13 +251,17 @@ Bảng quản trị
 ## SCR-11 – Admin: Học viên
 
 ```text
-[Tìm theo tên, Gmail hoặc số điện thoại_______] [Tìm]
+[Tất cả tài khoản] [Admin (2)]
+[Tìm theo tên, email hoặc số điện thoại_______] [Tìm]
 37 tài khoản
-┌ Học viên ─────────────┬ SĐT ──────┬ Khóa học ─────────────────┬ Ngày tạo ┐
-│ Nguyễn A [Admin]      │ 0912…     │ Khóa A [Đã duyệt]         │ 26/09/2026│
-│ a@gmail.com           │           │ Khóa B [Chờ duyệt]        │           │
+┌ Học viên ─────────────────┬ SĐT ──────┬ Khóa học ─────────────────┬ Ngày tạo ─┬ Quyền ────────────┐
+│ Nguyễn A [Admin]          │ 0912…     │ Khóa A [Đã duyệt]         │ 26/09/2026│ [Gỡ quyền admin]  │
+│ a@gmail.com               │           │ Khóa B [Chờ duyệt]        │           │                   │
+│ Cấp quyền bởi Admin B · 26/09/2026                                                                 │
+│ Admin B [Admin]           │ …         │ Chưa đăng ký              │ …         │ Tài khoản của bạn │
 ```
-Mobile (< md): mỗi tài khoản là một thẻ. Rỗng: "Không tìm thấy học viên."
+Mobile (< md): mỗi tài khoản là một thẻ, nút quyền ở cuối thẻ. Rỗng: "Không tìm thấy tài khoản."
+Cấp / gỡ quyền có hộp xác nhận; dòng của chính mình không có nút.
 
 ## SCR-12 – Admin: Khóa học
 

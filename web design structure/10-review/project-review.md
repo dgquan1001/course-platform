@@ -129,7 +129,7 @@ Xem bảng mục 3; phương án chi tiết nằm trong [roadmap.md](roadmap.md)
 9. **Accessibility** tốt: label, aria, focus, reduced motion, vùng chạm 44px.
 10. **Schema idempotent** dễ vận hành cho người không chuyên.
 
-## 6. Trạng thái xử lý (cập nhật 26/09/2026, commit `0f6cfef`)
+## 6. Trạng thái xử lý (cập nhật 26/09/2026, sau vòng sửa RK – E2E 53/53 PASS)
 
 | ID | Trạng thái | Cách xử lý | Kiểm thử |
 | --- | --- | --- | --- |
@@ -137,10 +137,12 @@ Xem bảng mục 3; phương án chi tiết nằm trong [roadmap.md](roadmap.md)
 | RV-02 | ✅ Đã sửa | `registrations.course_title`, `amount` (snapshot, đơn cũ tự điền); FK `on delete set null`; UI hiện "(khóa học đã xóa)", chặn duyệt đơn của khóa đã xóa | TC-18, TC-44 |
 | RV-05 | ✅ Đã sửa | Validate server trong `app/admin/actions.ts` + `isSupportedVideoUrl`; DB `check (price >= 0)` | TC-02, TC-09 |
 | RV-09 | ✅ Đã sửa | FAQ, placeholder admin, hướng dẫn `create-admin` | TC-11 |
+| RV-11 | 🟡 Một phần | Người xử lý đơn: `reviewed_by`, `reviewed_by_name` do trigger ghi, cột "Người xử lý" ở bảng admin. Chưa có lý do từ chối (R-05) | TC-49, TC-50 |
+| RV-07 | ✅ Đã sửa | Xem RK-07 | TC-48 |
 | RV-10 | 🟡 Một phần | `git init` (nhánh `main`), `.gitattributes`, 2 commit. Chưa có remote GitHub & CI | — |
-| Còn lại | ⬜ | RV-03, 04, 06, 07, 08, 11 → 20 giữ nguyên đề xuất | — |
+| Còn lại | ⬜ | RV-03, 04, 06, 08, 12 → 20 giữ nguyên đề xuất | — |
 
-## 7. Risk case phát hiện ở vòng review thứ 2 (chờ duyệt)
+## 7. Risk case phát hiện ở vòng review thứ 2
 
 Phương pháp: review lại toàn bộ code sau khi sửa, **thăm dò thực tế** trên bản build local với Supabase thật
 (script tạm, đã xóa dữ liệu), và quan sát từ lần chạy E2E.
@@ -159,6 +161,59 @@ Cột "Bằng chứng": 🔬 đã tái hiện thực tế · 📖 suy ra từ co
 | RK-09 | 🟡 | Bài học tạo trước RV-05 có thể chứa link không hợp lệ; khi sửa bài đó admin buộc phải sửa link | 📖 | Admin bất ngờ bị báo lỗi | Chạy 1 truy vấn rà soát `lessons.video_url`; hiển thị cảnh báo trong trang admin | XS |
 | RK-10 | 🟠 | E2E chạy trên Supabase trong `.env.local` (có thể là production) | 👁 Lần chạy lỗi giữa chừng từng để sót 2 khóa `[E2E]` (đã dọn; đã vá `cleanup()`) | Dữ liệu test lẫn vào dữ liệu thật; khách có thể thấy khóa test trong vài phút | Tạo project Supabase staging cho E2E | S |
 
+### 7.1. Trạng thái xử lý risk case (cập nhật 26/09/2026)
+
+| ID | Trạng thái | Cách xử lý | Kiểm thử |
+| --- | --- | --- | --- |
+| RK-01 | ✅ Đã sửa | `isValidEmail` từ chối mọi email đuôi `@sdt.hv.invalid` (không phân biệt hoa thường) → áp dụng cho form đăng ký và trang Tài khoản | TC-52 |
+| RK-03 | ✅ Đã sửa | `registrations.user_id` nullable, FK `on delete set null`; server chặn duyệt đơn `user_id is null`; bảng admin hiện "(tài khoản đã xóa)"; cập nhật runbook | TC-54 |
+| RK-05 | ✅ Đã chốt | Nghiệp vụ: đơn chờ duyệt của khóa ẩn **vẫn duyệt được**; khóa ẩn không có trong form đăng ký và server từ chối đơn mới → không phát sinh đơn mới (BR-39). Bảng admin ghi "(khóa đang ẩn)" | TC-13, TC-41, TC-53 |
+| RK-07 | ✅ Đã sửa | Unique index một phần `registrations_active_key (user_id, course_id) where status in ('pending','approved')`; lỗi `23505` → thông báo thân thiện ở form đăng ký và khi admin duyệt lại đơn cũ | TC-48 |
+| RK-09 | ✅ Đã sửa | Rà soát dữ liệu thật: 3/3 bài học có link hợp lệ. Admin thấy "N bài lỗi link video" ở danh sách khóa + cảnh báo đỏ ở bài; trang học không nhúng link lạ, hiện "Video bài học đang được cập nhật" | TC-47, TC-51 |
+| Người xử lý | ✅ Mới | Trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by` (= `auth.uid()`), `reviewed_by_name` khi đổi trạng thái; không sửa tay được. Bảng admin có cột "Người xử lý" | TC-49, TC-50 |
+
+Xác minh: schema đã chạy trên Supabase; E2E **53/53 PASS** (26/09/2026), dữ liệu test dọn sạch. Còn mở: RK-02, RK-04, RK-06, RK-08, RK-10 và RK-11 → RK-15 (§7.2).
+
+### 7.2. Risk case mới – vòng review thứ 3 (nhiều admin, người xử lý)
+
+Phát hiện khi review bản sửa ở §7.1, trong bối cảnh sắp có **nhiều tài khoản admin quyền ngang nhau**.
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Đề xuất xử lý | Công sức |
+| --- | --- | --- | --- | --- | --- | --- |
+| RK-11 | 🟠 | Hai admin xử lý cùng một đơn từ trang cũ (VD admin A bấm Duyệt, admin B chưa tải lại và bấm Từ chối) → thao tác sau **ghi đè** thao tác trước, không cảnh báo | 📖 `setRegistrationStatus` chỉ lọc theo `id` | Học viên vừa được mở khóa lại bị khóa; cột "Người xử lý" chỉ còn người bấm sau | Truyền trạng thái đang thấy vào action, update thêm `.eq('status', expected)`; 0 dòng → "Đơn đã được admin khác xử lý, vui lòng tải lại trang." | XS |
+| RK-12 | 🟡 | Chỉ lưu **lần xử lý gần nhất**: Duyệt → Thu hồi → Duyệt lại thì mất dấu ai làm gì trước đó | 📖 trigger ghi đè `reviewed_*` | Không truy vết được khi có tranh chấp thanh toán giữa các admin | Bảng `registration_events(registration_id, actor, actor_name, from_status, to_status, note, created_at)` do chính trigger ghi (gộp với R-05 `review_note`) | S |
+| RK-13 | 🟡 | Admin tạo bằng script / sửa DB, không có trang quản lý admin; muốn biết ai đang có quyền hoặc gỡ quyền phải vào Supabase | 📖 BR-03 | Nhân viên nghỉ việc vẫn còn quyền duyệt | Tab "Admin" trong `/admin/users`, nút cấp/gỡ quyền (không tự gỡ chính mình, luôn còn ≥ 1 admin); thay đổi quyền ghi vào lịch sử | S |
+| RK-14 | 🟡 | Mọi lỗi `23505` trong admin actions đều hiện thông báo "Học viên đã có một đơn khác…" | 📖 `dbErrors` dùng chung trong `run()` | Khi sau này thêm unique index cho bảng khác, thông báo sẽ sai ngữ cảnh | Cho `run()` nhận bảng thông báo lỗi riêng theo action | XS |
+| RK-15 | 🔵 | Cập nhật trạng thái đơn bằng service role (script, webhook tự động R-08) → `reviewed_by`/`reviewed_by_name` = null, cột "Người xử lý" hiện "—" | 🔬 TC-50 | Không phân biệt "hệ thống tự duyệt" với dữ liệu cũ | Khi làm R-08: trigger ghi `reviewed_by_name = 'Hệ thống'` khi không có phiên đăng nhập | XS |
+
+### 7.3. Trạng thái Đợt 3 – nhiều admin (cập nhật 26/09/2026)
+
+| ID | Trạng thái | Cách xử lý | Kiểm thử |
+| --- | --- | --- | --- |
+| RK-11 | ✅ Đã sửa | `setRegistrationStatus(id, status, expected)`: update thêm `.eq('status', expected)`; 0 dòng → "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang." | TC-56 |
+| RK-12 + R-05 | ✅ Đã sửa | Bảng `registration_events` do trigger ghi mỗi lần đổi trạng thái (admin chỉ đọc); cột `review_note`; Từ chối/Thu hồi có ô lý do; bảng admin hiện "Lý do" + "Lịch sử (n)"; học viên thấy lý do | TC-26, TC-30, TC-57 |
+| RK-13 | ✅ Đã sửa | Trang Học viên: tab "Admin", nút Cấp/Gỡ quyền admin (có xác nhận, không có ở dòng của mình), "Cấp quyền bởi …". Trigger `profiles_guard_role`: chặn tự gỡ, khóa tuần tự + chặn gỡ admin cuối cùng, ghi `role_events` | TC-55, TC-58 (admin cuối cùng: G-12) |
+| RK-14 | ✅ Đã sửa | `run(message, op, invalid, { notFound, errors })`: thông báo lỗi theo từng thao tác | TC-48, TC-56 |
+
+Xác minh: schema Đợt 3 đã chạy trên Supabase; E2E **57/57 PASS** (26/09/2026), dữ liệu test dọn sạch.
+Còn mở: chặn gỡ **admin cuối cùng** mới kiểm tra bằng đọc code (G-12, cần staging – RK-10).
+
+### 7.4. Trạng thái Đợt 4 – vận hành an toàn & Đợt 5 – chống lạm dụng (cập nhật 26/09/2026)
+
+| ID | Trạng thái | Cách xử lý | Kiểm thử |
+| --- | --- | --- | --- |
+| RK-10 | 🟡 Một phần | `npm run test:e2e` từ chối chạy nếu `E2E_SUPABASE_REF` ≠ mã project trong `NEXT_PUBLIC_SUPABASE_URL`; `scripts/env.mjs` nhận biến từ CI; hướng dẫn staging (runbook §1.1). **Chờ chủ dự án tạo project staging** (roadmap A-1) | Thủ công: chạy trên project hiện tại → bị từ chối |
+| RV-10 (CI) | 🟡 Một phần | `.github/workflows/ci.yml`: job `check` (typecheck, lint, build – không cần Supabase), job `e2e` trên staging khi bật `E2E_ENABLED`; thêm script `npm run typecheck`. Chờ push / cấu hình secrets (A-2, A-3) | Thủ công: build với Supabase giả thành công |
+| RV-13 | ✅ Đã sửa | `create index profiles_email_idx on profiles (email)` | Schema |
+| RV-03 | ✅ Đã sửa | `lib/password.ts` (`MIN_PASSWORD_LENGTH = 8`) dùng cho 3 form + 3 server action + `create-admin`; tài khoản cũ vẫn đăng nhập được | TC-59 |
+| RK-06 / RV-04 | ✅ Đã sửa (Turnstile chờ khóa) | Bảng `rate_limits` + hàm `hit_rate_limit` (chỉ service role): đăng ký 20/giờ/IP, sai mật khẩu 5 lần/15 phút/tài khoản+IP và 30/IP → khóa tạm, quên mật khẩu 10/giờ/IP. Turnstile bật khi có khóa (A-4) | TC-63, TC-64 |
+| RK-08 | ✅ Đã sửa | `lib/image-type.ts`: nhận diện JPG/PNG/WEBP/HEIC theo magic bytes; MIME lưu theo nội dung | TC-60 |
+| RK-04 | ✅ Đã sửa | Học viên: "Khóa học đã ngừng… hoàn tiền"; admin: tab "Khóa đã xóa – cần hoàn tiền" (chỉ hiện khi có đơn) → Từ chối kèm lý do | TC-61 |
+| RV-16 | ✅ Đã sửa | `next.config.mjs`: CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS, tắt X-Powered-By. E2E bắt lỗi console nên vi phạm CSP sẽ làm test đỏ | TC-62, TC-46 (không lỗi JavaScript / vi phạm CSP) |
+
+Xác minh: schema Đợt 4–5 đã chạy trên Supabase; E2E **63/63 PASS** (26/09/2026), dữ liệu test dọn sạch.
+Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadmap.md](roadmap.md) §2–3.
+
 ### Đã kiểm tra – **không** phải rủi ro
 
 | Nghi vấn | Kết quả |
@@ -167,13 +222,28 @@ Cột "Bằng chứng": 🔬 đã tái hiện thực tế · 📖 suy ra từ co
 | Phiên đăng nhập cũ còn dùng được sau khi đặt lại mật khẩu | 🔬👁 Supabase thu hồi phiên cũ (TC-42 phải đăng nhập lại học viên 2 sau khi reset) |
 | Học viên chưa mua đọc được khóa đang ẩn sau khi đổi policy | 🔬 TC-41, TC-42: khách và học viên chưa mua nhận 404 / 0 dòng |
 | Đơn cũ thiếu snapshot sau khi chạy schema | 🔬 0 đơn có `course_title` null |
+| Xóa tài khoản admin làm lỗi khóa ngoại `reviewed_by` (trigger chặn sửa người xử lý) | 📖 Trigger cho phép `reviewed_by` về null nên `on delete set null` chạy được; `reviewed_by_name` vẫn giữ |
+| Unique index chặn đơn trùng không tạo được do dữ liệu cũ | 🔬 Trước khi chạy schema: 0 cặp trùng; TC-48 xác nhận index hoạt động |
 
 ## 8. Kế hoạch xử lý đề xuất
 
 | Đợt | Hạng mục | Ước lượng |
 | --- | --- | --- |
 | ~~Ngay~~ | ~~RV-10 (git), RV-09, RV-01, RV-02, RV-05~~ – ✅ xong 26/09/2026 | — |
-| Tiếp theo | RK-01, RK-07, RK-05 (chốt), RK-09, RK-03 | 1 ngày |
-| Sprint 1 | RV-03, RV-13, RK-04, RK-08, RK-10 (staging), remote GitHub + CI | 2 ngày |
-| Sprint 2 | RV-04, RV-16, RV-11, RV-06 | 3 ngày |
-| Sau | RV-08, RV-12, RV-17, RV-20, RV-18 | Theo roadmap |
+| ~~Tiếp theo~~ | ~~RK-01, RK-07, RK-05 (chốt), RK-09, RK-03~~ + người xử lý đơn (RV-11 một phần) – ✅ xong 26/09/2026 (xem §7.1) | — |
+| ~~Đợt 3 – Nhiều admin~~ | ~~RK-11, RK-14, RK-12 + R-05, RK-13~~ – ✅ xong 26/09/2026, E2E 57/57 (xem §7.3) | — |
+| ~~Đợt 4 – Vận hành an toàn~~ | ~~RK-10 (rào chặn + hướng dẫn staging), CI, RV-13, RV-03~~ – ✅ 26/09/2026, chờ chủ dự án tạo staging (xem §7.4) | — |
+| ~~Đợt 5 – Chống lạm dụng & dữ liệu~~ | ~~RK-06 / RV-04, RK-08, RK-04, RV-16~~ – ✅ 26/09/2026 (xem §7.4) | — |
+| **Tiếp theo** | Theo thứ tự trong [roadmap.md](roadmap.md) §3: Đợt 6 hoàn tất hạ tầng → Đợt 7 tài khoản & thông báo → Đợt 8 quy mô dữ liệu → … | — |
+
+**Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;
+có staging mới test được "admin cuối cùng" (G-12). Sau đó Đợt 5 (chống lạm dụng) trước khi quảng bá rộng.
+
+### Chi tiết Đợt 3 (đã thực hiện – giữ làm tham chiếu)
+
+| Hạng mục | Thay đổi | Kiểm thử E2E mới |
+| --- | --- | --- |
+| RK-11 | `setRegistrationStatus(id, status, expected)`; bảng admin truyền `r.status` vào action; update thêm `.eq('status', expected)` | 2 trang admin cùng mở; trang 1 duyệt, trang 2 bấm Từ chối → báo "đã được admin khác xử lý", trạng thái vẫn `approved` |
+| RK-12 + R-05 | Bảng `registration_events` (RLS: admin đọc; không ai sửa/xóa), trigger ghi mỗi lần đổi trạng thái; cột `review_note`; form Từ chối/Thu hồi có ô lý do; bảng admin có nút "Lịch sử" | Duyệt → Thu hồi (kèm lý do) → Duyệt: lịch sử đủ 3 dòng đúng người; học viên thấy lý do |
+| RK-13 | Tab "Admin" trong `/admin/users`, action `setUserRole` (chặn tự gỡ quyền và gỡ admin cuối cùng) | Admin cấp quyền cho học viên → học viên vào được /admin; gỡ quyền → bị chặn |
+| RK-14 | `run(message, op, invalid, errors?)` | Nằm trong TC-48 / kiểm thử RK-11 |

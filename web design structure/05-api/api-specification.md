@@ -53,6 +53,10 @@ Quy ước chung:
 | `fullName` | ✓ | không rỗng |
 | `phone` | ✓ | `normalizePhone` ≠ null |
 | `email` | khách: tùy chọn; đã đăng nhập: bỏ qua | `isValidEmail`, lưu chữ thường |
+| `password` | khách: bắt buộc, ≥ 8 ký tự | "Mật khẩu cần ít nhất 8 ký tự." |
+| `paymentProof` | ≤ 5MB, định dạng theo magic bytes (JPG/PNG/WEBP/HEIC) | "Ảnh chuyển khoản phải là ảnh JPG, PNG, WEBP hoặc HEIC hợp lệ." |
+| `cf-turnstile-response` | chỉ khi bật Turnstile | "Vui lòng xác nhận bạn không phải robot rồi bấm Đăng ký lại." |
+| (IP) | ≤ 20 đơn / giờ | "Bạn đã gửi quá nhiều đơn đăng ký. Vui lòng thử lại sau hoặc gọi … để được hỗ trợ." |
 | `password` | khách ✓ | ≥ 6 ký tự |
 | `courseId` | ✓ | tồn tại và `published`; lưu kèm snapshot `course_title`, `amount` vào đơn |
 | `paymentProof` | ✓ | File, MIME/đuôi ∈ {png, jpg/jpeg, webp, heic, heif}, ≤ 5MB |
@@ -132,11 +136,12 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
-| `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected | — | `registrations.status`, `reviewed_at` (null nếu pending). Duyệt chỉ áp dụng khi `course_id is not null` (khóa chưa bị xóa) | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
+| `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang."); trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
 | `createCourse` | — | `title, description, price, sort_order, status` | insert `courses` | `Đã thêm khóa học "<title>".` |
 | `updateCourse` | `courseId` | như trên | update `courses` | "Đã lưu thông tin khóa học." |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
+| `setUserRole` | `userId` (UUID, khác chính mình), `role` ∈ admin/user | — | update `profiles.role`; trigger `profiles_guard_role` chặn tự gỡ quyền / gỡ admin cuối cùng ("Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã gỡ quyền admin." |
 | `createLesson` | `courseId` | `title, video_url, description, sort_order` | insert `lessons` | `Đã thêm bài học "<title>".` |
 | `updateLesson` | `lessonId` | như trên | update `lessons` | "Đã lưu bài học." |
 | `deleteLesson` | `lessonId` | — | delete `lessons` | "Đã xóa bài học." |

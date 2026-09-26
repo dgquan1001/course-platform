@@ -70,3 +70,6 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | --- | --- | --- | --- |
 | 26/09/2026 | 1.0 | Tạo bộ tài liệu đầy đủ từ mã nguồn phiên bản 0.1.0 | Claude (AI) |
 | 26/09/2026 | 1.1 | Cập nhật theo bản sửa RV-01, RV-02, RV-05, RV-09, git init; bảng 46 test case E2E (PASS); risk case RK-01 → RK-10 | Claude (AI) |
+| 26/09/2026 | 1.2 | Xử lý RK-01, RK-03, RK-05 (chốt), RK-07, RK-09; thêm người xử lý đơn (`reviewed_by`); TC-47 → TC-54 | Claude (AI) |
+| 26/09/2026 | 1.3 | Đợt 3 – nhiều admin: RK-11 (không ghi đè), RK-12 + R-05 (lịch sử xử lý, lý do từ chối), RK-13 (cấp/gỡ quyền admin), RK-14; TC-55 → TC-58 | Claude (AI) |
+| 26/09/2026 | 1.4 | Đợt 4 (rào chặn E2E/staging, CI GitHub Actions, index email, mật khẩu ≥ 8) + Đợt 5 (giới hạn tần suất, Turnstile tùy chọn, kiểm tra ảnh theo nội dung, đơn của khóa đã xóa, security headers/CSP); roadmap có báo cáo, checklist, lộ trình theo thứ tự; TC-59 → TC-64 | Claude (AI) |

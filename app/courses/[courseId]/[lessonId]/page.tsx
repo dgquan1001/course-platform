@@ -50,15 +50,21 @@ export default async function LessonPage({
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="-mx-4 overflow-hidden bg-ocean-950 sm:mx-0 sm:rounded-2xl">
-            <div className={video.vertical ? 'mx-auto aspect-[9/16] w-full max-w-sm' : 'aspect-video'}>
-              <iframe
-                src={video.src}
-                title={lesson.title}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
-            </div>
+            {video ? (
+              <div className={video.vertical ? 'mx-auto aspect-[9/16] w-full max-w-sm' : 'aspect-video'}>
+                <iframe
+                  src={video.src}
+                  title={lesson.title}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <p className="grid aspect-video place-items-center px-6 text-center text-sm text-ocean-100">
+                Video bài học đang được cập nhật, vui lòng quay lại sau.
+              </p>
+            )}
           </div>
 
           <p className="mt-6 text-sm font-semibold text-gold-700">

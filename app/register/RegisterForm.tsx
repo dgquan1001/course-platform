@@ -4,12 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Script from 'next/script'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice, hotlineHref, siteConfig, vietQrUrl } from '@/lib/site-config'
 import type { PublicCourse } from '@/lib/supabase/public'
 import { realEmail } from '@/lib/phone'
+import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import { CheckIcon, CopyIcon, SpinnerIcon, UploadIcon } from '@/components/icons'
 import { registerAction, type RegisterState } from './actions'
+
+// Cloudflare Turnstile chống bot: chỉ hiện khi đã cấu hình khóa (xem lib/turnstile.ts)
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+type TurnstileApi = { render: (el: HTMLElement, opts: { sitekey: string; language?: string }) => void; reset: () => void }
+const turnstile = () => (window as Window & { turnstile?: TurnstileApi }).turnstile
 
 const MAX_UPLOAD = 5 * 1024 * 1024
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif'
@@ -117,6 +124,15 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   const [compressing, setCompressing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const topRef = useRef<HTMLDivElement>(null)
+  const captchaRef = useRef<HTMLDivElement>(null)
+
+  // Vẽ widget Turnstile (script có thể đã tải sẵn khi chuyển trang trong website)
+  function renderCaptcha() {
+    if (TURNSTILE_SITE_KEY && captchaRef.current && !captchaRef.current.hasChildNodes()) {
+      turnstile()?.render(captchaRef.current, { sitekey: TURNSTILE_SITE_KEY, language: 'vi' })
+    }
+  }
+  useEffect(renderCaptcha, [])
 
   // Nút "Đăng ký" của từng khóa học (?course=...) chọn sẵn khóa đó
   useEffect(() => {
@@ -150,6 +166,8 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     // Form có thể bị reset sau khi gửi: đồng bộ lại ảnh xem trước
     if (!fileRef.current?.files?.length) setProof(null)
+    // Mã Turnstile chỉ dùng được 1 lần: lấy mã mới cho lần gửi lại
+    if (TURNSTILE_SITE_KEY) turnstile()?.reset()
   }, [state])
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -316,8 +334,8 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
                   name="password"
                   type="password"
                   required
-                  minLength={6}
-                  placeholder="Ít nhất 6 ký tự"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  placeholder={passwordHint}
                   className="input"
                   autoComplete="new-password"
                 />
@@ -415,6 +433,13 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               </span>
               <span className="shrink-0 text-lg font-bold text-ocean-700">{formatPrice(amount)}</span>
             </div>
+
+            {TURNSTILE_SITE_KEY && (
+              <>
+                <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" onLoad={renderCaptcha} />
+                <div ref={captchaRef} className="flex justify-center" />
+              </>
+            )}
 
             <SubmitButton disabled={noCourses || compressing} />
           </div>

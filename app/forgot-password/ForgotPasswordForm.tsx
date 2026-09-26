@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
+import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import { SpinnerIcon } from '@/components/icons'
 import { forgotPasswordAction, type ForgotState } from './actions'
 
@@ -82,11 +83,11 @@ export default function ForgotPasswordForm() {
           </div>
           <div>
             <label htmlFor="password" className="label">Mật khẩu mới</label>
-            <input id="password" name="password" type="password" required minLength={6} placeholder="Ít nhất 6 ký tự" className="input" autoComplete="new-password" />
+            <input id="password" name="password" type="password" required minLength={MIN_PASSWORD_LENGTH} placeholder={passwordHint} className="input" autoComplete="new-password" />
           </div>
           <div>
             <label htmlFor="confirmPassword" className="label">Nhập lại mật khẩu mới</label>
-            <input id="confirmPassword" name="confirmPassword" type="password" required minLength={6} className="input" autoComplete="new-password" />
+            <input id="confirmPassword" name="confirmPassword" type="password" required minLength={MIN_PASSWORD_LENGTH} className="input" autoComplete="new-password" />
           </div>
           <IntentButton intent="verify" className="btn-primary w-full">
             Đặt lại mật khẩu

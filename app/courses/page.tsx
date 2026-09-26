@@ -24,7 +24,7 @@ export default async function CoursesPage({
   const user = (await getCurrentUser())!
 
   let unlocked: CourseRow[] = []
-  type RegistrationRow = { id: string; title: string; amount: number | null; course: CourseRow | null }
+  type RegistrationRow = { id: string; title: string; amount: number | null; note: string | null; course: CourseRow | null }
   let pending: RegistrationRow[] = []
   let rejected: RegistrationRow[] = []
 
@@ -36,7 +36,7 @@ export default async function CoursesPage({
   } else {
     const { data } = await supabase
       .from('registrations')
-      .select(`id, status, course_title, amount, courses(${courseFields})`)
+      .select(`id, status, course_title, amount, review_note, courses(${courseFields})`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -48,6 +48,8 @@ export default async function CoursesPage({
         // Tên khóa & học phí lưu trong đơn: vẫn hiển thị khi khóa học đã bị xóa
         title: course?.title ?? r.course_title ?? 'Khóa học',
         amount: (r.amount as number | null) ?? course?.price ?? null,
+        // Lý do admin ghi khi từ chối / thu hồi
+        note: r.review_note as string | null,
         course,
       }
     })
@@ -93,7 +95,15 @@ export default async function CoursesPage({
                   </span>
                   <div className="min-w-0">
                     <p className="font-semibold text-ocean-900">{r.title}</p>
-                    <p className="text-sm text-slate-500">Đang kiểm tra chuyển khoản</p>
+                    {r.course ? (
+                      <p className="text-sm text-slate-500">Đang kiểm tra chuyển khoản</p>
+                    ) : (
+                      // Khóa đã bị xóa sau khi khách chuyển khoản: hướng dẫn liên hệ để hoàn tiền
+                      <p className="text-sm text-red-700">
+                        Khóa học đã ngừng. Vui lòng gọi{' '}
+                        <a href={hotlineHref} className="font-semibold underline">{siteConfig.hotline}</a> để được hỗ trợ hoàn tiền.
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -146,6 +156,7 @@ export default async function CoursesPage({
                 <div key={r.id} className="card flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-ocean-900">{r.title}</p>
+                    {r.note && <p className="mt-0.5 text-sm text-slate-700">Lý do: {r.note}</p>}
                     <p className="text-sm text-slate-500">
                       Chưa xác nhận được chuyển khoản. Vui lòng liên hệ{' '}
                       <a href={hotlineHref} className="font-semibold text-ocean-700">{siteConfig.hotline}</a>.

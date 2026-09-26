@@ -1,0 +1,60 @@
+# Kiểm tra mỗi lần push lên main và mỗi pull request:
+#  1. check: typecheck + lint + build (không cần Supabase thật)
+#  2. e2e:   chạy E2E trên project Supabase KIỂM THỬ (staging). Chỉ chạy khi đã cấu hình:
+#     Settings › Secrets and variables › Actions
+#       - Variables: E2E_ENABLED = true
+#       - Secrets:   E2E_SUPABASE_URL, E2E_SUPABASE_ANON_KEY, E2E_SUPABASE_SERVICE_ROLE_KEY, E2E_SUPABASE_REF
+#     Tuyệt đối không dùng khóa của project production (E2E tạo/xóa tài khoản, khóa học).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Giá trị giả: build không cần kết nối Supabase (trang công khai trả danh sách rỗng nếu lỗi)
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  e2e:
+    needs: check
+    if: ${{ vars.E2E_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    # Chỉ 1 lần chạy E2E cùng lúc trên project staging
+    concurrency: e2e-staging
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_SUPABASE_REF: ${{ secrets.E2E_SUPABASE_REF }}
+      BROWSER_CHANNEL: chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:e2e
+      - name: Lưu ảnh chụp màn hình khi lỗi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: test-results/*.png
+          retention-days: 7

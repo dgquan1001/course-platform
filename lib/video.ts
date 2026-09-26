@@ -22,7 +22,10 @@ export function isSupportedVideoUrl(url: string) {
   return false
 }
 
-export function getVideoEmbed(url: string): VideoEmbed {
+// Link không hợp lệ (VD: bài học nhập trước khi có kiểm tra link) trả null: không nhúng link lạ vào iframe
+export function getVideoEmbed(url: string): VideoEmbed | null {
+  if (!isSupportedVideoUrl(url)) return null
+
   // YouTube: watch?v=..., youtu.be/..., /shorts/..., /embed/...
   const yt = url.match(YOUTUBE_ID)
   if (yt) {
@@ -38,5 +41,5 @@ export function getVideoEmbed(url: string): VideoEmbed {
     return { src: `https://www.tiktok.com/player/v1/${tt[1]}?rel=0`, vertical: true }
   }
 
-  return { src: url, vertical: false }
+  return null
 }

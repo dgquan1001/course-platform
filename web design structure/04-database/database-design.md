@@ -49,7 +49,7 @@ erDiagram
   }
   REGISTRATIONS {
     uuid id PK
-    uuid user_id FK "→ auth.users, cascade"
+    uuid user_id FK "→ auth.users, set null khi xóa tài khoản"
     uuid course_id FK "→ courses, set null khi xóa khóa"
     text course_title "snapshot tên khóa"
     int amount "snapshot học phí"
@@ -59,6 +59,8 @@ erDiagram
     text payment_proof_path
     text status "pending | approved | rejected"
     timestamptz reviewed_at
+    uuid reviewed_by FK "→ profiles, set null"
+    text reviewed_by_name "snapshot tên admin"
     timestamptz created_at
   }
   PASSWORD_RESETS {
@@ -122,7 +124,7 @@ Index: `lessons_course_id_idx (course_id, sort_order)`.
 | Cột | Kiểu | Null | Mặc định | Ý nghĩa |
 | --- | --- | --- | --- | --- |
 | `id` | uuid | ✗ | `gen_random_uuid()` | PK |
-| `user_id` | uuid | ✗ | — | FK `auth.users(id)` cascade |
+| `user_id` | uuid | ✓ | — | FK `auth.users(id)` **on delete set null** – `null` nghĩa là tài khoản đã bị xóa, đơn vẫn giữ làm lịch sử (RK-03) |
 | `course_id` | uuid | ✓ | — | FK `courses(id)` **on delete set null** – `null` nghĩa là khóa đã bị xóa, đơn vẫn giữ làm lịch sử |
 | `course_title` | text | ✓ | — | Snapshot tên khóa lúc đăng ký (đơn cũ được điền tự động khi chạy schema) |
 | `amount` | int | ✓ | — | Snapshot học phí lúc đăng ký (VNĐ) – dùng cho lịch sử thanh toán / báo cáo doanh thu |
@@ -131,11 +133,16 @@ Index: `lessons_course_id_idx (course_id, sort_order)`.
 | `phone` | text | ✗ | — | Snapshot SĐT |
 | `payment_proof_path` | text | ✗ | — | Đường dẫn trong bucket `payment-proofs` |
 | `status` | text | ✗ | `'pending'` | `check (status in ('pending','approved','rejected'))` |
-| `reviewed_at` | timestamptz | ✓ | — | Thời điểm admin xử lý gần nhất |
+| `reviewed_at` | timestamptz | ✓ | — | Thời điểm admin xử lý gần nhất (trigger ghi) |
+| `reviewed_by` | uuid | ✓ | — | Admin xử lý gần nhất, FK `profiles(id)` **on delete set null** (trigger ghi `auth.uid()`) |
+| `reviewed_by_name` | text | ✓ | — | Snapshot tên admin lúc xử lý (`full_name` → `email` → `phone`), hiển thị ở cột "Người xử lý" |
+| `review_note` | text | ✓ | — | Lý do từ chối / thu hồi (học viên thấy). Trigger xóa khi về pending; không đổi được nếu `status` không đổi |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
 Index: `registrations_user_idx (user_id, course_id, status)` – phục vụ `has_course_access` và kiểm tra trùng;
-`registrations_status_idx (status, created_at)` – phục vụ tab admin.
+`registrations_status_idx (status, created_at)` – phục vụ tab admin;
+`registrations_active_key` **unique** `(user_id, course_id) where status in ('pending','approved')` – chặn đơn trùng kể cả khi gửi đồng thời (BR-34, RK-07).
+Nếu dữ liệu cũ đang có đơn trùng, `schema.sql` bỏ qua bước tạo index và in cảnh báo; xử lý đơn trùng rồi chạy lại.
 
 ### 2.5. `public.password_resets`
 
@@ -151,6 +158,45 @@ Index: `registrations_user_idx (user_id, course_id, status)` – phục vụ `ha
 
 Index: `password_resets_user_idx (user_id, created_at desc)`.
 
+### 2.6. `public.registration_events` (lịch sử xử lý đơn)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | ✗ | `gen_random_uuid()` | PK |
+| `registration_id` | uuid | ✗ | — | FK `registrations(id)` on delete cascade |
+| `actor` | uuid | ✓ | — | Admin thực hiện, FK `profiles(id)` on delete set null; null = service role / hệ thống |
+| `actor_name` | text | ✓ | — | Snapshot tên admin |
+| `from_status`, `to_status` | text | ✗ | — | Trạng thái trước → sau |
+| `note` | text | ✓ | — | Lý do (nếu có) |
+| `created_at` | timestamptz | ✗ | `now()` | |
+
+Index: `registration_events_registration_idx (registration_id, created_at)`. Chỉ trigger `registrations_stamp_review` ghi.
+
+### 2.7. `public.role_events` (nhật ký phân quyền)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | ✗ | `gen_random_uuid()` | PK |
+| `user_id` | uuid | ✓ | — | Tài khoản được đổi quyền, FK `profiles(id)` on delete set null |
+| `user_name` | text | ✓ | — | Snapshot tên tài khoản |
+| `actor`, `actor_name` | uuid, text | ✓ | — | Admin thực hiện (null = script / service role) |
+| `from_role`, `to_role` | text | ✗ | — | `user` ↔ `admin` |
+| `created_at` | timestamptz | ✗ | `now()` | |
+
+Index: `role_events_user_idx (user_id, created_at desc)`. Chỉ trigger `profiles_guard_role` ghi.
+
+### 2.8. `public.rate_limits` (giới hạn tần suất)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `key` | text | ✗ | — | PK. VD `register:<IP>`, `login-fail:<IP>:<SĐT/email>`, `login-fail-ip:<IP>`, `forgot:<IP>` |
+| `window_start` | timestamptz | ✗ | `now()` | Bắt đầu khung đếm hiện tại |
+| `hits` | int | ✗ | `0` | Số lần trong khung |
+
+RLS bật, không policy (chỉ service role). Hàm `hit_rate_limit(p_key, p_limit, p_window_seconds, p_increment default true)`:
+`security definer`, chỉ `service_role` được `execute`; cửa sổ cố định; `p_increment = false` chỉ kiểm tra;
+thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
+
 ## 3. Hàm & trigger
 
 | Tên | Loại | Bảo mật | Mô tả |
@@ -159,6 +205,10 @@ Index: `password_resets_user_idx (user_id, created_at desc)`.
 | `on_auth_user_created` | trigger | — | `after insert on auth.users for each row` |
 | `is_admin()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role = 'admin')` |
 | `has_course_access(target_course uuid)` | SQL, `stable` | `security definer` | `is_admin() or exists(registrations where user_id = auth.uid() and course_id = target_course and status = 'approved')`. Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
+| `stamp_registration_review()` | trigger function | `security definer`, `search_path = public` | Khi `status` đổi: về `pending` → xóa `reviewed_at/by/by_name`; trạng thái khác → `now()`, `auth.uid()`, tên admin từ `profiles`. Khi `status` không đổi → giữ nguyên giá trị cũ (không sửa tay được; riêng `reviewed_by` được về `null` để khóa ngoại hoạt động khi xóa admin) |
+| `guard_role_change()` | trigger function | `security definer`, `search_path = public` | Khi `profiles.role` đổi: chặn tự gỡ quyền admin của mình; `pg_advisory_xact_lock` rồi chặn gỡ admin cuối cùng; ghi `role_events` |
+| `profiles_guard_role` | trigger | — | `before update of role on profiles for each row` |
+| `registrations_stamp_review` | trigger | — | `before update on registrations for each row`. Mỗi lần đổi `status` ghi thêm 1 dòng `registration_events` (kèm `review_note`). Cập nhật bằng service role (không có phiên) → `reviewed_by` null |
 
 > Lưu ý: nếu SĐT trong `raw_user_meta_data` trùng một profile khác, trigger vi phạm unique index →
 > **toàn bộ** việc tạo user thất bại ("Database error creating new user"). Ứng dụng kiểm tra trùng trước (`isPhoneTaken`).
@@ -178,6 +228,8 @@ Index: `password_resets_user_idx (user_id, created_at desc)`.
 | registrations | UPDATE | `registrations_admin_update` | `is_admin()` |
 | registrations | INSERT/DELETE | — | Chỉ service role |
 | password_resets | Mọi thao tác | — (RLS bật, không policy) | Chỉ service role |
+| registration_events | SELECT | `registration_events_admin_select` | `is_admin()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
+| role_events | SELECT | `role_events_admin_select` | `is_admin()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
 | storage.objects (`payment-proofs`) | SELECT | `payment_proofs_admin_select` | `bucket_id = 'payment-proofs' and is_admin()` |
 | storage.objects (`payment-proofs`) | INSERT/UPDATE/DELETE | — | Chỉ service role |
 
@@ -191,7 +243,7 @@ Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security
 
 Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600)`).
 
-> Khi xóa khóa học, đơn vẫn còn nên ảnh vẫn được tham chiếu. Khi xóa **tài khoản**, đơn bị xóa theo nhưng file ảnh **không** → ảnh mồ côi (RV-08).
+> Khi xóa khóa học hoặc tài khoản, đơn vẫn còn nên ảnh vẫn được tham chiếu. Ảnh chỉ mồ côi khi đơn bị xóa thủ công (RV-08).
 
 ## 6. Truy vấn chính & index phục vụ
 
@@ -202,7 +254,7 @@ Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600
 | Tab admin | `registrations where status=? order by created_at limit 200` + đếm theo status | `registrations_status_idx` |
 | Danh sách bài | `lessons where course_id=? order by sort_order` | `lessons_course_id_idx` |
 | Đăng nhập bằng SĐT | `profiles where phone=?` | `profiles_phone_key` |
-| Đăng nhập bằng email | `profiles where email=?` | *Chưa có index* (đề xuất `create index on profiles(email)`) |
+| Đăng nhập bằng email | `profiles where email=?` | `profiles_email_idx` (RV-13) |
 | Mã reset gần nhất | `password_resets where user_id=? [and used_at is null] order by created_at desc limit 1` | `password_resets_user_idx` |
 | Tìm học viên | `profiles where full_name/email/phone ilike '%q%'` | Full scan (chấp nhận với < 10k dòng; lớn hơn dùng `pg_trgm`) |
 
@@ -210,7 +262,7 @@ Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600
 
 | Hành động | Ảnh hưởng |
 | --- | --- |
-| Xóa user trong Supabase Auth | Cascade xóa `profiles`, `registrations`, `password_resets` (ảnh trong Storage **còn lại**) – ⚠️ mất lịch sử thanh toán của user, xem RK-03 |
+| Xóa user trong Supabase Auth | Cascade xóa `profiles`, `password_resets`; `registrations.user_id` → `null`, **đơn và ảnh chuyển khoản được giữ** (RK-03). Nếu user là admin: `registrations.reviewed_by` → `null`, `reviewed_by_name` vẫn còn |
 | Xóa khóa học | Cascade xóa `lessons`; `registrations.course_id` → `null`, **đơn và ảnh chuyển khoản được giữ** |
 | Xóa bài học | Chỉ xóa bài học |
 | Thu hồi đơn | `status = 'rejected'`, giữ nguyên dữ liệu |
@@ -222,15 +274,8 @@ Nếu muốn admin tự sửa trên giao diện → tạo bảng `settings` (roa
 
 ## 9. Đề xuất cải tiến schema (chưa áp dụng)
 
+Đã áp dụng 26/09/2026: unique index chặn trùng đơn (`registrations_active_key`), người xử lý (`reviewed_by`, `reviewed_by_name`);
+Đợt 3: `review_note`, `registration_events`, `role_events`.
+
 ```sql
--- Chặn trùng đơn đang hiệu lực ở tầng DB (BR-34)
-create unique index if not exists registrations_active_unique
-  on public.registrations (user_id, course_id) where status in ('pending', 'approved');
-
--- Truy vết người duyệt & lý do (US-09.05, US-09.06)
-alter table public.registrations add column if not exists reviewed_by uuid references auth.users (id);
-alter table public.registrations add column if not exists review_note text;
-
--- Tra cứu đăng nhập bằng email
-create index if not exists profiles_email_idx on public.profiles (email);
 ```

@@ -5,6 +5,7 @@ import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import StatusBadge from '@/components/StatusBadge'
 import { ArrowLeftIcon } from '@/components/icons'
+import { isSupportedVideoUrl } from '@/lib/video'
 import { createLesson, deleteLesson, updateLesson } from '../../actions'
 import { LessonFields } from '../fields'
 
@@ -49,6 +50,12 @@ export default async function AdminCourseLessonsPage({
                   <a href={l.video_url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-ocean-600 hover:underline">
                     {l.video_url}
                   </a>
+                  {/* Bài nhập trước khi có kiểm tra link: học viên không xem được, admin cần sửa */}
+                  {!isSupportedVideoUrl(l.video_url) && (
+                    <p role="alert" className="mt-1 text-sm font-semibold text-red-600">
+                      Link video không hợp lệ, học viên chưa xem được bài này. Hãy sửa lại link YouTube/TikTok.
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400">Thứ tự: {l.sort_order}</p>
                 </div>
                 <Link href={`/courses/${course.id}/${l.id}`} className="btn-ghost btn-sm shrink-0">

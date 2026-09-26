@@ -184,7 +184,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ### US-05.03 – Duyệt đơn ✅ (2 SP)
 - FR: FR-073, FR-074
-- **AC1** Given đơn `pending` When bấm "Duyệt" Then trạng thái `approved`, có Ngày xử lý, toast "Đã duyệt đơn, khóa học đã được mở cho học viên."
+- **AC1** Given đơn `pending` When bấm "Duyệt" Then trạng thái `approved`, có Ngày xử lý và Người xử lý (admin đang đăng nhập), toast "Đã duyệt đơn, khóa học đã được mở cho học viên."
 
 ### US-05.04 – Từ chối đơn ✅ (1 SP)
 - **AC1** Given đơn `pending` When bấm "Từ chối" Then trạng thái `rejected`, học viên thấy đơn trong "Đơn chưa được xác nhận".
@@ -262,8 +262,10 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 | US-09.02 | Là admin, tôi muốn đặt lại mật khẩu cho học viên không có email | S | 2 | Action mới dùng `auth.admin.updateUserById`; roadmap R-02 |
 | US-09.03 | Là admin, tôi muốn tải ảnh bìa cho khóa học | C | 3 | Cột `cover_image` đã có sẵn; bucket public mới; R-03 |
 | US-09.04 | Là học viên, tôi muốn đánh dấu bài đã học và thấy % tiến độ | C | 5 | Bảng `lesson_progress`; R-04 |
-| US-09.05 | Là admin, tôi muốn ghi lý do từ chối để học viên biết | S | 2 | Cột `review_note`; R-05 |
-| US-09.06 | Là admin, tôi muốn biết ai đã duyệt đơn | S | 1 | Cột `reviewed_by`; R-05 |
+| ~~US-09.05~~ | Là admin, tôi muốn ghi lý do từ chối để học viên biết | S | 2 | ✅ Đã làm (Đợt 3): cột `review_note`, BR-46 |
+| ~~US-09.11~~ | Là admin, tôi muốn cấp/gỡ quyền admin cho người khác và biết ai đã cấp | S | 2 | ✅ Đã làm (Đợt 3): tab "Admin" ở `/admin/users`, `role_events`, BR-03 |
+| ~~US-09.12~~ | Là admin, tôi muốn xem lịch sử xử lý của từng đơn và không bị admin khác ghi đè | S | 2 | ✅ Đã làm (Đợt 3): `registration_events`, BR-36, BR-47 |
+| ~~US-09.06~~ | Là admin, tôi muốn biết ai đã duyệt đơn | S | 1 | ✅ Đã làm 26/09/2026: cột "Người xử lý" (`reviewed_by`, `reviewed_by_name`), BR-37 |
 | US-09.07 | Là admin, tôi muốn phân trang/lọc đơn theo khóa & ngày, xuất Excel | C | 5 | R-06 |
 | US-09.08 | Là chủ trung tâm, tôi muốn xem báo cáo doanh thu theo tháng/khóa | C | 5 | View SQL; R-07 |
 | US-09.09 | Là khách, tôi muốn thanh toán tự động xác nhận qua webhook ngân hàng | W | 13 | R-08 (Casso/SePay) |

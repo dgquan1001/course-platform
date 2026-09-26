@@ -69,13 +69,19 @@
 | T8 | Brute-force mã reset | Spoofing | 5 lần/mã, 60s/mã | Trung bình – giới hạn số mã/ngày/tài khoản |
 | T9 | Dò tài khoản tồn tại qua quên mật khẩu/đăng ký | Information disclosure | — (đánh đổi UX) | Thấp – chấp nhận |
 | T10 | Lộ service role key | Elevation | `.gitignore` có `.env*.local`; chỉ dùng server | Nghiêm trọng nếu xảy ra → xoay khóa ngay (runbook) |
-| T11 | XSS | Tampering | React escape mặc định; không dùng `dangerouslySetInnerHTML`; `video_url` chỉ nhận https YouTube/TikTok (RV-05) | Thấp. Dữ liệu cũ nhập trước RV-05 chưa được kiểm tra lại |
+| T11 | XSS | Tampering | React escape mặc định; không dùng `dangerouslySetInnerHTML`; `video_url` chỉ nhận https YouTube/TikTok (RV-05) | Thấp. Dữ liệu cũ đã rà soát (0 link lỗi); link không hợp lệ không được nhúng vào iframe, admin thấy cảnh báo (RK-09) |
 | T12 | CSRF lên Server Action | Tampering | Next.js kiểm tra Origin cho Server Actions; cookie SameSite=Lax | Thấp |
 | T13 | Open redirect sau đăng nhập | Spoofing | `safeNext()` | Thấp |
 | T14 | Clickjacking trang admin | Tampering | — | Thấp – thêm header `X-Frame-Options: DENY`/CSP `frame-ancestors` |
 | T15 | Chiếm quyền qua `search_path` trong hàm security definer | Elevation | `set search_path = public` | Thấp |
-| T16 | Mất dữ liệu thanh toán khi admin xóa khóa học | Repudiation / Integrity | ✅ Đơn giữ lại với snapshot tên khóa & học phí (`on delete set null`) | Thấp. Còn rủi ro khi xóa **tài khoản** (RK-03) |
-| T17 | Không truy vết ai duyệt đơn | Repudiation | — | Trung bình – `reviewed_by` + audit log |
+| T16 | Mất dữ liệu thanh toán khi admin xóa khóa học | Repudiation / Integrity | ✅ Đơn giữ lại với snapshot tên khóa & học phí (`on delete set null`) | Thấp. Xóa tài khoản cũng giữ đơn (`user_id … on delete set null`, RK-03) |
+| T17 | Không truy vết ai duyệt đơn | Repudiation | ✅ Trigger ghi `reviewed_by` = `auth.uid()` + tên admin; không sửa tay được qua API | Thấp. Lịch sử đầy đủ trong `registration_events`, nhật ký phân quyền `role_events` (Đợt 3); chỉ trigger ghi, admin chỉ đọc |
+| T18 | 2 admin xử lý cùng một đơn, thao tác sau ghi đè thao tác trước | Tampering | ✅ Update có điều kiện `status = expected` (RK-11) | Thấp |
+| T19 | Mất hết admin / admin tự khóa mình / nhân viên nghỉ việc còn quyền | Elevation / DoS | ✅ Trigger `profiles_guard_role`: chặn tự gỡ, luôn còn ≥ 1 admin; tab "Admin" để rà soát và gỡ quyền (RK-13) | Thấp. Admin quyền ngang nhau nên một admin có thể gỡ quyền admin khác – đã ghi nhật ký |
+| T20 | Spam đăng ký / dò mật khẩu / dò tài khoản qua quên mật khẩu | DoS / Spoofing | ✅ Giới hạn tần suất theo IP trong database (`rate_limits`), khóa tạm 15 phút sau 5 lần sai; Turnstile tùy chọn (RK-06) | Thấp–Trung bình. Chưa bật Turnstile trên production cho tới khi có khóa Cloudflare |
+| T21 | File giả dạng ảnh (đổi đuôi) | Tampering | ✅ Kiểm tra magic bytes, lưu MIME theo nội dung (RK-08) | Thấp |
+| T22 | Clickjacking, nhúng script lạ, lộ công nghệ | Tampering / Info disclosure | ✅ CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn script/frame/ảnh giới hạn), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS, tắt `X-Powered-By` (RV-16) | Thấp. `script-src` còn `'unsafe-inline'` (Next.js); nâng cấp dùng nonce khi cần |
+| T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
 

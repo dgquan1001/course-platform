@@ -8,6 +8,8 @@ import { findAccount } from '@/lib/accounts'
 import { resetCodeEmail, sendMail } from '@/lib/mailer'
 import { setFlash } from '@/lib/flash'
 import { siteConfig } from '@/lib/site-config'
+import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
+import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
 
 export type ForgotState = {
   stage: 'request' | 'verify'
@@ -40,6 +42,10 @@ async function requestCode(prev: ForgotState, formData: FormData): Promise<Forgo
   const fail = (error: string): ForgotState => ({ ...prev, identifier, error, info: null })
 
   if (!identifier) return fail('Vui lòng nhập email hoặc số điện thoại.')
+  // Giới hạn theo IP (tính cả khi không tìm thấy tài khoản: chống dò danh sách tài khoản)
+  if (!(await withinLimit(`forgot:${clientIp()}`, LIMITS.forgotPassword))) {
+    return fail(`Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau 1 giờ hoặc gọi ${siteConfig.hotline}.`)
+  }
   const account = await findAccount(identifier)
   if (!account) return fail('Không tìm thấy tài khoản với email hoặc số điện thoại này.')
   if (!account.email) {
@@ -103,7 +109,7 @@ async function verifyCode(prev: ForgotState, formData: FormData): Promise<Forgot
   const fail = (error: string): ForgotState => ({ ...prev, stage: 'verify', identifier, error, info: null })
 
   if (!/^\d{6}$/.test(code)) return fail('Mã xác nhận gồm 6 chữ số.')
-  if (password.length < 6) return fail('Mật khẩu mới cần ít nhất 6 ký tự.')
+  if (password.length < MIN_PASSWORD_LENGTH) return fail(passwordTooShort('Mật khẩu mới'))
   if (password !== confirm) return fail('Mật khẩu nhập lại không khớp.')
 
   const account = await findAccount(identifier)

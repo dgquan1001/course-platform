@@ -3,8 +3,8 @@
 import { adminClient, loadEnv } from './env.mjs'
 
 const [email, password, fullName = 'Quản trị viên'] = process.argv.slice(2)
-if (!email || !password || password.length < 6) {
-  console.error('Cách dùng: npm run create-admin -- <email> <mật khẩu (>= 6 ký tự)> ["Họ tên"]')
+if (!email || !password || password.length < 8) {
+  console.error('Cách dùng: npm run create-admin -- <email> <mật khẩu (>= 8 ký tự)> ["Họ tên"]')
   process.exit(1)
 }
 

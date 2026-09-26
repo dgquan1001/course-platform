@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isEmailTaken, isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail } from '@/lib/phone'
+import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
 import type { ActionResult } from '@/lib/action-result'
 
 const fail = (error: string): ActionResult => ({ ok: false, error })
@@ -53,7 +54,7 @@ export async function changePasswordAction(formData: FormData): Promise<ActionRe
   const next = String(formData.get('newPassword') ?? '')
   const confirm = String(formData.get('confirmPassword') ?? '')
 
-  if (next.length < 6) return fail('Mật khẩu mới cần ít nhất 6 ký tự.')
+  if (next.length < MIN_PASSWORD_LENGTH) return fail(passwordTooShort('Mật khẩu mới'))
   if (next !== confirm) return fail('Mật khẩu nhập lại không khớp.')
 
   // Kiểm tra mật khẩu hiện tại bằng một client riêng (không ảnh hưởng phiên đăng nhập)

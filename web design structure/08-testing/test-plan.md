@@ -30,12 +30,17 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 26/09/2026 · commit `0f6cfef` · Chrome · Supabase theo `.env.local` · **46/46 PASS** · dữ liệu test đã dọn sạch
-(đã kiểm tra lại: 0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test còn sót).
+**Lần chạy gần nhất**: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
+(0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
+Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
+đã xác minh: vẫn xảy ra khi build không có header bảo mật, và Playwright báo lỗi iframe khác domain là lỗi của trang (stack rỗng).
+E2E nay bỏ qua lỗi không có stack khi trang đang nhúng iframe bên thứ ba (vẫn in số lượng), lỗi của website (stack trỏ về BASE) vẫn làm test đỏ;
+lỗi JavaScript được ghi kèm tên bước + URL, và được in ra cả khi E2E dừng giữa chừng.
 
 | TC | Vai trò | Kịch bản | Truy vết | Kết quả | Thời gian |
 | --- | --- | --- | --- | --- | --- |
-| TC-01 | Hệ thống | Database đủ bảng, bucket `payment-proofs`, cột snapshot `course_title`/`amount` | NFR-09, FR-097 | ✅ PASS | 1,8s |
+| TC-01 | Hệ thống | Database đủ bảng, bucket `payment-proofs`, cột snapshot `course_title`/`amount`, cột người xử lý `reviewed_by`/`reviewed_by_name` | NFR-09, FR-097 | ✅ PASS | 1,8s |
 | TC-02 | Hệ thống | Database chặn học phí âm (`courses_price_nonnegative`) | BR-21, RV-05 | ✅ PASS | 0,3s |
 | TC-03 | Hệ thống | Tạo admin test, trigger tự sinh profile | BR-01 | ✅ PASS | 1,1s |
 | TC-04 | Khách | `/admin`, `/courses`, `/account` chuyển tới đăng nhập kèm `next` | US-03.02 | ✅ PASS | 0,5s |
@@ -58,11 +63,11 @@
 | TC-21 | Học viên | Thấy đơn đang chờ; khóa A còn khóa; không vào được `/admin` | US-02.08, US-04.02 AC2 | ✅ PASS | 2,2s |
 | TC-22 | Học viên | Đăng ký thêm khóa B: điền sẵn, không hỏi email/mật khẩu | US-02.05 AC1 | ✅ PASS | 1,4s |
 | TC-23 | Học viên | Đăng ký lại khóa A đang chờ bị chặn | US-02.05 AC2 | ✅ PASS | 1,2s |
-| TC-24 | Admin | Bảng đơn đủ 11 cột ở cả 4 tab | US-05.01 | ✅ PASS | 8,0s |
+| TC-24 | Admin | Bảng đơn đủ 12 cột (thêm "Người xử lý") ở cả 4 tab | US-05.01 | ✅ PASS | 8,0s |
 | TC-25 | Admin | Xem ảnh chuyển khoản (tải được) và duyệt khóa A | US-05.02, US-05.03 | ✅ PASS | 3,8s |
 | TC-26 | Admin | Từ chối đơn khóa B của học viên 1 | US-05.04 | ✅ PASS | 1,7s |
 | TC-27 | Admin | Đơn không có email hiển thị "Không có email" | US-02.03 AC1 | ✅ PASS | <0,1s |
-| TC-28 | Admin | Tab Đã duyệt / Từ chối / Tất cả đúng trạng thái, ngày xử lý, nút | US-05.01 | ✅ PASS | 3,1s |
+| TC-28 | Admin | Tab Đã duyệt / Từ chối / Tất cả đúng trạng thái, ngày xử lý, người xử lý, nút | US-05.01 | ✅ PASS | 3,1s |
 | TC-29 | Admin | Danh sách học viên đúng trạng thái từng khóa | US-06.01 | ✅ PASS | 1,2s |
 | TC-30 | Học viên | Khóa A đã mở, khóa B báo chưa xác nhận; xem được video YouTube | US-04.01, US-04.03 | ✅ PASS | 5,4s |
 | TC-31 | Học viên | Điện thoại: menu Tài khoản → Đăng xuất; đăng nhập lại bằng email | US-03.03, US-08.03 | ✅ PASS | 3,3s |
@@ -82,6 +87,38 @@
 | TC-45 | Hệ thống | Chụp màn hình giao diện máy tính | — | ✅ PASS | 0,9s |
 | TC-46 | Hệ thống | Không có lỗi JavaScript trên mọi trình duyệt đã dùng | NFR-13 | ✅ PASS | 0s |
 
+**Bổ sung 26/09/2026** (RK-01, RK-03, RK-05, RK-07, RK-09, người xử lý). Cột "Vị trí" là bước đứng trước trong kịch bản.
+Cần chạy `supabase/schema.sql` mới nhất trước khi chạy E2E.
+
+| TC | Vị trí | Vai trò | Kịch bản | Truy vết | Kết quả | Thời gian |
+| --- | --- | --- | --- | --- | --- | --- |
+| TC-47 | sau TC-09 | Admin | Bài học cũ có link video không hợp lệ (ghi thẳng DB): danh sách khóa hiện "1 bài lỗi link video", trang bài học có cảnh báo đỏ; bài hợp lệ không bị cảnh báo | RK-09, BR-24 | ✅ PASS | 1,3s |
+| TC-48 | sau TC-23 | Hệ thống | Insert đơn `pending` thứ 2 cùng học viên + khóa → lỗi `23505` | RK-07, BR-34 | ✅ PASS | 0,1s |
+| TC-49 | sau TC-26 | Admin | Duyệt / Từ chối ghi `reviewed_by` = admin đang đăng nhập, `reviewed_by_name` = "Admin E2E" | BR-37, US-09.06 | ✅ PASS | (trong TC-26) |
+| TC-50 | sau TC-49 | Hệ thống | Sửa tay `reviewed_by_name`/`reviewed_at` qua API không có tác dụng; chuyển đơn về `pending` xóa thông tin xử lý | BR-37 | ✅ PASS | 0,8s |
+| TC-51 | sau TC-30 | Học viên | Bài có link không hợp lệ: không có iframe, hiện "Video bài học đang được cập nhật" | RK-09, T11 | ✅ PASS | 0,3s |
+| TC-52 | sau TC-37 | Học viên | Nhập email `<SĐT>@SDT.hv.invalid` ở trang Tài khoản → "Địa chỉ email không hợp lệ", email đăng nhập không đổi | RK-01, BR-05 | ✅ PASS | 0,9s |
+| TC-53 | sau TC-42 | Admin | Đơn chờ duyệt của khóa đang ẩn hiện "(khóa đang ẩn)", duyệt được → học viên vào được khóa | RK-05, BR-39 | ✅ PASS | 2,2s |
+| TC-54 | sau TC-53 | Hệ thống | Xóa tài khoản trong Auth → đơn còn nguyên (`user_id` null, họ tên & học phí giữ); admin thấy "(tài khoản đã xóa)", không có nút Duyệt | RK-03, BR-31 | ✅ PASS | 1,2s |
+| TC-55 | sau TC-06 | Admin | Cấp quyền admin cho tài khoản 2 trên trang Học viên (có xác nhận); `role_events` ghi người cấp; tab "Admin" hiện "Cấp quyền bởi Admin E2E"; dòng của mình không có nút; gọi API tự gỡ quyền bị database chặn | RK-13, BR-03 | ✅ PASS | ~5,0s |
+| TC-56 | sau TC-29 | Admin | 2 admin mở cùng đơn: admin 2 duyệt, admin 1 (trang cũ) từ chối → "Đơn đã thay đổi…", đơn vẫn `approved`, người xử lý = admin 2 | RK-11, RK-14, BR-36 | ✅ PASS | 2,9s |
+| TC-57 | sau TC-56 | Admin | Duyệt (admin 2) → Thu hồi kèm lý do (admin 1) → Duyệt lại: `registration_events` đủ 3 dòng đúng người & lý do; duyệt lại xóa lý do; "Lịch sử (3)" trên giao diện; admin không tự ghi/xóa được lịch sử | RK-12, BR-47 | ✅ PASS | 4,4s |
+| TC-58 | trước TC-45 | Admin | Gỡ quyền admin 2 (có xác nhận) → admin 2 vào /admin bị chuyển về /courses; nhật ký `user>admin, admin>user` | RK-13 | ✅ PASS | 2,1s |
+| TC-59 | sau TC-16 | Khách | Ô mật khẩu có `minlength=8`; bỏ qua kiểm tra trình duyệt, gửi mật khẩu 7 ký tự → server báo "Mật khẩu cần ít nhất 8 ký tự" | RV-03, BR-09 | ✅ PASS | 2,3s |
+| TC-60 | sau TC-59 | Khách | File chữ đổi tên `.png` (MIME image/png) vượt qua trình duyệt → server từ chối theo nội dung file, không tạo tài khoản | RK-08, BR-32 | ✅ PASS | 0,7s |
+| TC-61 | sau TC-44 | Admin | Đơn chờ duyệt của khóa B đã xóa: học viên 2 thấy "Khóa học đã ngừng"; admin mở tab "Khóa đã xóa – cần hoàn tiền", chỉ có đơn đúng diện; Từ chối kèm lý do "Đã hoàn tiền…" → học viên thấy lý do | RK-04, BR-49 | ✅ PASS | 3,6s |
+| TC-62 | sau TC-58 | Hệ thống | `/`, `/login`, `/register` có CSP (`frame-ancestors 'none'`, `object-src 'none'`), X-Frame-Options DENY, nosniff, Referrer-Policy; không có X-Powered-By | RV-16 | ✅ PASS | 0,1s |
+| TC-63 | sau TC-62 | Hệ thống | `hit_rate_limit`: giới hạn 2 → lần 3 bị chặn, kiểm tra không ghi đúng; khách không gọi được hàm, không đọc được `rate_limits` | RK-06 | ✅ PASS | 0,6s |
+| TC-64 | sau TC-63 | Khách | Sai mật khẩu 5 lần cho 1 SĐT (không tồn tại) từ 1 IP → lần 6 báo "Bạn đã nhập sai quá nhiều lần"; người dùng ở IP khác vẫn đăng nhập được | RK-06, BR-12 | ✅ PASS | 8,9s |
+
+Kiểm tra thủ công Đợt 4 (26/09/2026): `npm run test:e2e` trên project chưa khai báo `E2E_SUPABASE_REF` → từ chối chạy (RK-10);
+build với `NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co` (giống job `check` của CI) → thành công.
+Mỗi lần chạy E2E dùng header `x-forwarded-for: e2e-<timestamp>` để giới hạn tần suất không cộng dồn giữa các lần chạy; khóa được dọn khi kết thúc.
+Turnstile chưa kiểm thử tự động (cần khóa Cloudflare) – kiểm tra thủ công sau A-4.
+
+Các TC cũ được mở rộng ở Đợt 3: TC-01 (bảng `registration_events`, `role_events`, cột `review_note`), TC-10 (khách không đọc được 2 bảng lịch sử),
+TC-26 (từ chối kèm lý do), TC-28 (dòng "Lý do: …"), TC-30 (học viên thấy lý do), TC-43 (thu hồi qua ô lý do), TC-50 (lý do không sửa tay được).
+
 ## 4. Khoảng trống kiểm thử (cần bổ sung)
 
 | # | Kịch bản chưa được test tự động | Ưu tiên | Trạng thái |
@@ -96,7 +133,9 @@
 | G-08 | Video TikTok / Shorts hiển thị khung dọc | Thấp | 🟡 Lưu link TikTok có trong TC-09, chưa kiểm tra khung hiển thị |
 | G-09 | Ảnh HEIC từ iPhone | Thấp | ⬜ Test thủ công trên thiết bị thật |
 | G-10 | Unit test các hàm thuần trong `lib/` (`normalizePhone`, `isSupportedVideoUrl`…) | Trung bình | ⬜ |
-| G-11 | Các risk case RK-01 → RK-10 (xem project-review.md §7) | Theo mức rủi ro | ⬜ Chờ duyệt phương án |
+| G-11 | Các risk case RK-01 → RK-15 (xem project-review.md §7) | Theo mức rủi ro | 🟡 RK-01, 03, 05, 07, 09 có TC-47 → TC-54; RK-11 → RK-14 có TC-55 → TC-58; còn RK-02, 04, 06, 08, 10, 15 |
+| G-13 | Turnstile bật trên production (widget hiện, token hợp lệ / hết hạn) | Trung bình | ⬜ Thủ công sau khi có khóa (roadmap A-4) |
+| G-12 | Chặn gỡ **admin cuối cùng** (không test được trên database dùng chung vì luôn có admin thật; cần staging – RK-10) | Trung bình | ⬜ Đã kiểm tra bằng đọc code trigger |
 
 ## 5. Checklist kiểm thử thủ công trước release
 

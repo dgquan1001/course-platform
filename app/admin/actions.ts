@@ -2,11 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/auth'
+import { getCurrentUser, requireAdmin } from '@/lib/auth'
 import { isSupportedVideoUrl } from '@/lib/video'
 import type { ActionResult } from '@/lib/action-result'
 
-type DbResult = { data: unknown[] | null; error: { message: string } | null }
+type DbResult = { data: unknown[] | null; error: { message: string; code?: string } | null }
+type RunOptions = {
+  // Thông báo khi không có dòng nào bị ảnh hưởng
+  notFound?: string
+  // Thông báo riêng theo mã lỗi Postgres của từng thao tác (VD 23505: trùng dữ liệu)
+  errors?: Record<string, string>
+}
 type Parsed<T> = { value: T; error: null } | { value: null; error: string }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -14,20 +20,22 @@ const MAX_TITLE = 200
 const MAX_DESCRIPTION = 5000
 const MAX_PRICE = 1_000_000_000
 const MAX_SORT_ORDER = 100_000
+const MAX_NOTE = 500
 
 // Chạy thao tác admin: kiểm tra quyền, dừng nếu dữ liệu nhập không hợp lệ, báo lỗi nếu database lỗi
 // hoặc không có dòng nào bị ảnh hưởng (VD: dữ liệu đã bị xóa), làm mới toàn bộ trang khi thành công.
 async function run(
   message: string,
   op: () => PromiseLike<DbResult>,
-  invalid: string | null = null
+  invalid: string | null = null,
+  { notFound = 'Không tìm thấy dữ liệu, vui lòng tải lại trang.', errors = {} }: RunOptions = {}
 ): Promise<ActionResult> {
   try {
     await requireAdmin()
     if (invalid) return { ok: false, error: invalid }
     const { data, error } = await op()
-    if (error) return { ok: false, error: error.message }
-    if (!data?.length) return { ok: false, error: 'Không tìm thấy dữ liệu, vui lòng tải lại trang.' }
+    if (error) return { ok: false, error: (error.code && errors[error.code]) || error.message }
+    if (!data?.length) return { ok: false, error: notFound }
     revalidatePath('/', 'layout')
     return { ok: true, message }
   } catch (e) {
@@ -102,22 +110,57 @@ const statusMessages = {
 
 // ---------- Đơn đăng ký ----------
 
+type RegistrationStatus = keyof typeof statusMessages
+
+const isRegistrationStatus = (s: string): s is RegistrationStatus => Object.hasOwn(statusMessages, s)
+
+// `expected` là trạng thái admin đang thấy trên trang: nếu admin khác vừa xử lý đơn (trạng thái đã đổi)
+// thì không ghi đè. `note` là lý do từ chối / thu hồi (học viên thấy được).
 export async function setRegistrationStatus(
   registrationId: string,
-  status: 'approved' | 'rejected' | 'pending'
+  status: RegistrationStatus,
+  expected: RegistrationStatus,
+  formData?: FormData
 ) {
-  const invalid = checkId(registrationId, 'đơn') ?? (Object.hasOwn(statusMessages, status) ? null : 'Trạng thái đơn không hợp lệ.')
+  const note = status === 'pending' ? '' : text(formData ?? new FormData(), 'note')
+  const invalid =
+    checkId(registrationId, 'đơn') ??
+    (isRegistrationStatus(status) && isRegistrationStatus(expected) && status !== expected ? null : 'Trạng thái đơn không hợp lệ.') ??
+    (note.length > MAX_NOTE ? `Lý do tối đa ${MAX_NOTE} ký tự.` : null)
   return run(
     statusMessages[status],
     () => {
+      // Thời điểm, người xử lý và lịch sử do trigger registrations_stamp_review ghi
       let query = createClient()
         .from('registrations')
-        .update({ status, reviewed_at: status === 'pending' ? null : new Date().toISOString() })
+        .update({ status, review_note: note || null })
         .eq('id', registrationId)
-      // Khóa học đã bị xóa thì không duyệt được (đơn chỉ còn là lịch sử thanh toán)
-      if (status === 'approved') query = query.not('course_id', 'is', null)
+        .eq('status', expected)
+      // Khóa học hoặc tài khoản đã bị xóa thì không duyệt được (đơn chỉ còn là lịch sử thanh toán).
+      // Khóa đang ẩn vẫn duyệt được: khách đã chuyển khoản trước khi khóa ngừng nhận đăng ký.
+      if (status === 'approved') query = query.not('course_id', 'is', null).not('user_id', 'is', null)
       return query.select('id')
     },
+    invalid,
+    {
+      notFound: 'Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang.',
+      errors: { '23505': 'Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này.' },
+    }
+  )
+}
+
+// ---------- Phân quyền ----------
+
+// Cấp / gỡ quyền admin. Database chặn tự gỡ quyền của mình và gỡ admin cuối cùng (trigger guard_role_change).
+export async function setUserRole(userId: string, role: 'admin' | 'user') {
+  const me = await getCurrentUser()
+  const invalid =
+    checkId(userId, 'tài khoản') ??
+    (role === 'admin' || role === 'user' ? null : 'Quyền không hợp lệ.') ??
+    (userId === me?.id ? 'Bạn không thể tự thay đổi quyền của chính mình.' : null)
+  return run(
+    role === 'admin' ? 'Đã cấp quyền admin.' : 'Đã gỡ quyền admin.',
+    () => createClient().from('profiles').update({ role }).eq('id', userId).select('id'),
     invalid
   )
 }

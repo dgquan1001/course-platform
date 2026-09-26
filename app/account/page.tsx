@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
+import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import ActionForm from '@/components/ActionForm'
 import SubmitButton from '@/components/SubmitButton'
 import { ArrowRightIcon, KeyIcon, UserIcon } from '@/components/icons'
@@ -64,11 +65,11 @@ export default async function AccountPage() {
               </div>
               <div>
                 <label htmlFor="newPassword" className="label">Mật khẩu mới</label>
-                <input id="newPassword" name="newPassword" type="password" required minLength={6} placeholder="Ít nhất 6 ký tự" className="input" autoComplete="new-password" />
+                <input id="newPassword" name="newPassword" type="password" required minLength={MIN_PASSWORD_LENGTH} placeholder={passwordHint} className="input" autoComplete="new-password" />
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="label">Nhập lại mật khẩu mới</label>
-                <input id="confirmPassword" name="confirmPassword" type="password" required minLength={6} className="input" autoComplete="new-password" />
+                <input id="confirmPassword" name="confirmPassword" type="password" required minLength={MIN_PASSWORD_LENGTH} className="input" autoComplete="new-password" />
               </div>
               <SubmitButton>Đổi mật khẩu</SubmitButton>
             </ActionForm>

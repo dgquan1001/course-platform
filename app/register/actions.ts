@@ -8,16 +8,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { setFlash } from '@/lib/flash'
 import { isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail, realEmail } from '@/lib/phone'
+import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
+import { detectImageType, type ImageType } from '@/lib/image-type'
+import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
+import { verifyTurnstile } from '@/lib/turnstile'
+import { siteConfig } from '@/lib/site-config'
 
 export type RegisterState = { error: string | null }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
-const IMAGE_EXT: Record<string, string> = {
+const IMAGE_EXT: Record<ImageType, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'image/heic': 'heic',
-  'image/heif': 'heif',
 }
 
 export async function registerAction(
@@ -40,18 +44,25 @@ export async function registerAction(
   if (!fullName) return { error: 'Vui lòng nhập họ và tên.' }
   if (!sessionUser && email && !isValidEmail(email)) return { error: 'Địa chỉ email không hợp lệ.' }
   if (!phone) return { error: 'Số điện thoại không hợp lệ (VD: 0912345678).' }
-  if (!sessionUser && password.length < 6) return { error: 'Mật khẩu cần ít nhất 6 ký tự.' }
+  if (!sessionUser && password.length < MIN_PASSWORD_LENGTH) return { error: passwordTooShort() }
   if (!courseId) return { error: 'Vui lòng chọn khóa học.' }
   if (!(proof instanceof File) || proof.size === 0) {
     return { error: 'Vui lòng tải lên ảnh chụp chuyển khoản.' }
   }
-  // Một số trình duyệt gửi ảnh HEIC (iPhone) không kèm MIME type: xác định theo đuôi file
-  const nameExt = proof.name.split('.').pop()?.toLowerCase() ?? ''
-  const contentType =
-    proof.type || Object.keys(IMAGE_EXT).find((t) => IMAGE_EXT[t] === (nameExt === 'jpeg' ? 'jpg' : nameExt)) || ''
-  const ext = IMAGE_EXT[contentType]
-  if (!ext) return { error: 'Ảnh chuyển khoản phải là JPG, PNG, WEBP hoặc HEIC.' }
   if (proof.size > MAX_FILE_SIZE) return { error: 'Ảnh chuyển khoản tối đa 5MB.' }
+  // Xác định định dạng theo nội dung file, không tin MIME / đuôi file (file khác đổi đuôi .png bị từ chối)
+  const contentType = detectImageType(new Uint8Array(await proof.slice(0, 16).arrayBuffer()))
+  if (!contentType) return { error: 'Ảnh chuyển khoản phải là ảnh JPG, PNG, WEBP hoặc HEIC hợp lệ.' }
+  const ext = IMAGE_EXT[contentType]
+
+  // Chống bot (nếu đã cấu hình Turnstile) và giới hạn số lần gửi đơn theo IP
+  const ip = clientIp()
+  if (!(await verifyTurnstile(String(formData.get('cf-turnstile-response') ?? ''), ip))) {
+    return { error: 'Vui lòng xác nhận bạn không phải robot rồi bấm Đăng ký lại.' }
+  }
+  if (!(await withinLimit(`register:${ip}`, LIMITS.register))) {
+    return { error: `Bạn đã gửi quá nhiều đơn đăng ký. Vui lòng thử lại sau hoặc gọi ${siteConfig.hotline} để được hỗ trợ.` }
+  }
 
   const admin = createAdminClient()
 
@@ -143,6 +154,8 @@ export async function registerAction(
   if (insertError) {
     await admin.storage.from('payment-proofs').remove([proofPath])
     await rollbackUser()
+    // 23505: vi phạm unique index registrations_active_key (gửi 2 đơn cùng lúc cho cùng khóa)
+    if (insertError.code === '23505') return { error: 'Bạn đã đăng ký khóa này và đang chờ xác nhận.' }
     return { error: `Không gửi được đơn đăng ký: ${insertError.message}` }
   }
 

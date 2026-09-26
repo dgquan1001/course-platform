@@ -20,6 +20,20 @@ import { adminClient, loadEnv } from './env.mjs'
 const PORT = Number(process.env.E2E_PORT || 3123)
 const BASE = `http://localhost:${PORT}`
 const env = loadEnv()
+
+// E2E tạo/xóa tài khoản, khóa học, đổi quyền admin: chỉ chạy trên project Supabase đã được khai báo là
+// project kiểm thử (E2E_SUPABASE_REF = mã project), tránh chạy nhầm lên database thật.
+const projectRef = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0]
+if (env.E2E_SUPABASE_REF !== projectRef) {
+  console.error(
+    `Từ chối chạy E2E trên project Supabase "${projectRef}".\n` +
+      `E2E ghi và xóa dữ liệu thật. Dùng project Supabase riêng cho kiểm thử (staging), rồi đặt\n` +
+      `E2E_SUPABASE_REF=${projectRef} trong file env của project đó (hoặc biến môi trường của CI).\n` +
+      `Xem web design structure/09-operations/deployment-runbook.md › "Môi trường kiểm thử".`
+  )
+  process.exit(1)
+}
+
 const db = adminClient(env)
 const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
   auth: { persistSession: false },
@@ -28,6 +42,7 @@ const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE
 // ---------- Dữ liệu test ----------
 const stamp = Date.now()
 const tail = String(stamp).slice(-8)
+const TEST_IP = `e2e-${stamp}`
 const ADMIN = { email: `e2e-admin-${stamp}@example.com`, password: 'Admin#123456' }
 // Học viên 1: có email, dùng điện thoại
 const STUDENT = { email: `e2e-hocvien-${stamp}@example.com`, password: 'Hocvien#123', name: 'Học Viên Kiểm Thử', phone: `09${tail}` }
@@ -37,6 +52,12 @@ const COURSE_A = { title: `[E2E] Khóa A – Trị liệu cột sống ${stamp}`
 const COURSE_B = { title: `[E2E] Khóa B – Cổ vai gáy ${stamp}`, price: '299000', status: 'published' }
 const COURSE_HIDDEN = { title: `[E2E] Khóa C – Đang ẩn ${stamp}`, price: '99000', status: 'draft' }
 const LESSON_TITLE = 'Bài 1: Giải phẫu cột sống cơ bản'
+const LEGACY_LESSON_TITLE = 'Bài 9: Link video cũ không hợp lệ'
+const LEGACY_LESSON = {}
+const REJECT_NOTE = 'Ảnh chuyển khoản bị mờ, không đọc được số tiền'
+// Admin thứ 2 (quyền ngang nhau) được admin 1 cấp quyền trên giao diện
+const ADMIN2 = { email: `e2e-admin2-${stamp}@example.com`, password: 'Admin2#123456', name: 'Admin Hai E2E' }
+const RACE = {} // đơn dùng cho kịch bản 2 admin cùng xử lý
 
 const OUT = fileURLToPath(new URL('../test-results/', import.meta.url))
 const OUTBOX = `${OUT}mail-outbox`
@@ -49,7 +70,9 @@ const NOT_IMAGE = `${OUT}khong-phai-anh.txt`
 // ---------- Tiện ích ----------
 const results = []
 const pageErrors = []
-const created = { userIds: [], courseIds: {} }
+const thirdPartyErrors = [] // lỗi trong iframe bên thứ ba: chỉ ghi nhận, không tính là lỗi website
+let currentStep = '' // bước đang chạy, ghi kèm lỗi JavaScript để dễ tìm nguyên nhân
+const created = { userIds: [], courseIds: {}, registrationIds: [] }
 
 function phase(title) {
   console.log(`\n${title}`)
@@ -57,6 +80,7 @@ function phase(title) {
 
 async function step(name, fn) {
   const t = Date.now()
+  currentStep = name
   try {
     await fn()
     results.push({ name, ok: true })
@@ -78,12 +102,20 @@ function assert(cond, msg) {
 }
 
 function watch(page, label) {
-  page.on('pageerror', (e) => pageErrors.push(`[${label}] ${e.message}`))
+  page.on('pageerror', (e) => {
+    const stack = (e.stack ?? '').split('\n').slice(0, 4).join(' | ')
+    const detail = `[${label}] ${e.message}\n        bước: ${currentStep} · ${page.url()}\n        ${stack}`
+    // Playwright báo cả lỗi bên trong iframe khác domain (trình phát YouTube/TikTok) là lỗi của trang, với stack rỗng.
+    // Lỗi của website luôn có stack trỏ về BASE; lỗi không stack khi trang đang nhúng iframe bên thứ ba thì bỏ qua.
+    const thirdPartyFrame = page.frames().some((f) => /^https?:/.test(f.url()) && !f.url().startsWith(BASE))
+    if (!stack.includes(BASE) && thirdPartyFrame) thirdPartyErrors.push(detail)
+    else pageErrors.push(detail)
+  })
   page.on('console', (m) => {
     // Bỏ qua thông báo từ iframe bên thứ ba (YouTube/TikTok), chỉ bắt lỗi của website
     const url = m.location()?.url ?? ''
     const thirdParty = (url && !url.startsWith(BASE)) || m.text().includes('Permissions policy violation')
-    if (m.type() === 'error' && !thirdParty) pageErrors.push(`[${label}] console: ${m.text()}`)
+    if (m.type() === 'error' && !thirdParty) pageErrors.push(`[${label}] console: ${m.text()} (bước: ${currentStep})`)
   })
   return page
 }
@@ -103,7 +135,7 @@ async function login(page, identifier, password, next = '') {
 
 // Thử đăng nhập và trả về true/false (dùng cho kiểm tra mật khẩu cũ/mới)
 async function tryLogin(identifier, password) {
-  const ctx = await browser.newContext()
+  const ctx = await newContext()
   const p = await ctx.newPage()
   await p.goto(`${BASE}/login`)
   await p.fill('#identifier', identifier)
@@ -172,11 +204,33 @@ async function waitForResetCode(to, after) {
 }
 
 async function registrationsOf(userId) {
-  const { data } = await db.from('registrations').select('course_id, status, email, reviewed_at').eq('user_id', userId)
+  const { data } = await db
+    .from('registrations')
+    .select('id, course_id, status, email, reviewed_at, reviewed_by, reviewed_by_name, review_note')
+    .eq('user_id', userId)
   return data ?? []
 }
 
+// Đơn tạo thẳng vào database (service role) để dựng tình huống; ảnh chuyển khoản không có thật
+async function insertRegistration(values) {
+  const { data, error } = await db
+    .from('registrations')
+    .insert({ payment_proof_path: `e2e/${stamp}.jpg`, ...values })
+    .select('id')
+    .single()
+  assert(!error, `Không tạo được đơn test: ${error?.message}`)
+  created.registrationIds.push(data.id)
+  return data.id
+}
+
 async function cleanup() {
+  // Xóa tài khoản không còn xóa đơn (RK-03): xóa đơn của dữ liệu test trước
+  if (created.userIds.length) await db.from('registrations').delete().in('user_id', created.userIds)
+  if (created.registrationIds.length) await db.from('registrations').delete().in('id', created.registrationIds)
+  // Nhật ký phân quyền giữ lại khi xóa tài khoản: xóa phần của dữ liệu test
+  if (created.userIds.length) await db.from('role_events').delete().in('user_id', created.userIds)
+  // Bộ đếm giới hạn tần suất của lần chạy này
+  await db.from('rate_limits').delete().like('key', `%${TEST_IP}%`)
   for (const id of created.userIds) {
     const { data: files } = await db.storage.from('payment-proofs').list(id)
     if (files?.length) await db.storage.from('payment-proofs').remove(files.map((f) => `${id}/${f.name}`))
@@ -209,6 +263,10 @@ for (let i = 0; ; i++) {
 
 // ---------- Kịch bản ----------
 const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome' })
+// Mỗi lần chạy dùng một "IP" riêng (header x-forwarded-for) để giới hạn tần suất theo IP
+// không cộng dồn giữa các lần chạy; khóa giới hạn được dọn khi kết thúc.
+const newContext = (options = {}, ip = TEST_IP) =>
+  browser.newContext({ ...options, extraHTTPHeaders: { 'x-forwarded-for': ip } })
 let failed = false
 
 try {
@@ -226,7 +284,7 @@ try {
   phase('1. HỆ THỐNG – chuẩn bị')
   // =====================================================================
   await step('[Hệ thống] Database có đủ bảng và bucket lưu ảnh chuyển khoản', async () => {
-    for (const t of ['profiles', 'courses', 'lessons', 'registrations', 'password_resets']) {
+    for (const t of ['profiles', 'courses', 'lessons', 'registrations', 'password_resets', 'registration_events', 'role_events']) {
       const { error } = await db.from(t).select('*', { head: true, count: 'exact' })
       assert(!error, `Bảng ${t}: ${error?.message} (đã chạy supabase/schema.sql mới nhất chưa?)`)
     }
@@ -234,6 +292,8 @@ try {
     assert(!error, `Bucket payment-proofs: ${error?.message}`)
     const { error: colError } = await db.from('registrations').select('course_title, amount', { head: true })
     assert(!colError, `Bảng registrations thiếu cột course_title/amount: ${colError?.message} (hãy chạy lại supabase/schema.sql)`)
+    const { error: reviewerError } = await db.from('registrations').select('reviewed_by, reviewed_by_name, review_note').limit(1)
+    assert(!reviewerError, `Bảng registrations thiếu cột người xử lý: ${reviewerError?.message} (hãy chạy lại supabase/schema.sql)`)
   })
 
   await step('[Hệ thống] Database chặn học phí âm (ràng buộc courses_price_nonnegative)', async () => {
@@ -247,16 +307,19 @@ try {
     })
     assert(!error, error?.message)
     created.userIds.push(data.user.id)
+    ADMIN.id = data.user.id
     const { data: profile } = await db.from('profiles').select('role, email').eq('id', data.user.id).single()
     assert(profile?.role === 'user' && profile.email === ADMIN.email, 'Trigger không tạo profile đúng')
     await db.from('profiles').update({ role: 'admin' }).eq('id', data.user.id)
   })
 
-  const adminCtx = await browser.newContext({ viewport: { width: 1366, height: 900 } })
+  const adminCtx = await newContext({ viewport: { width: 1366, height: 900 } })
   const admin = watch(await adminCtx.newPage(), 'admin')
-  const guestCtx = await browser.newContext({ ...devices['iPhone 13'] })
+  const admin2Ctx = await newContext({ viewport: { width: 1366, height: 900 } })
+  const admin2 = watch(await admin2Ctx.newPage(), 'admin2')
+  const guestCtx = await newContext({ ...devices['iPhone 13'] })
   const guest = watch(await guestCtx.newPage(), 'khach-dt')
-  const guest2Ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } })
+  const guest2Ctx = await newContext({ viewport: { width: 1366, height: 900 } })
   const guest2 = watch(await guest2Ctx.newPage(), 'khach-mt')
 
   // =====================================================================
@@ -289,6 +352,47 @@ try {
     await link.and(admin.locator('[aria-current=page]')).waitFor()
     const bg = await link.evaluate((el) => getComputedStyle(el).backgroundColor)
     assert(bg !== 'rgba(0, 0, 0, 0)', `Nút Quản trị không đổi màu (background: ${bg})`)
+  })
+
+  await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; tab "Admin" ghi người cấp; không tự đổi quyền mình', async () => {
+    const { data, error } = await db.auth.admin.createUser({
+      email: ADMIN2.email, password: ADMIN2.password, email_confirm: true, user_metadata: { full_name: ADMIN2.name },
+    })
+    assert(!error, error?.message)
+    ADMIN2.id = data.user.id
+    created.userIds.push(ADMIN2.id)
+
+    await admin.goto(`${BASE}/admin/users?q=${encodeURIComponent(ADMIN2.email)}`)
+    const row = admin.locator('tr', { hasText: ADMIN2.email })
+    admin.once('dialog', (d) => d.accept())
+    await row.getByRole('button', { name: 'Cấp quyền admin' }).click()
+    await toast(admin, 'Đã cấp quyền admin')
+    await row.getByRole('button', { name: 'Gỡ quyền admin' }).waitFor()
+    const { data: profile } = await db.from('profiles').select('role').eq('id', ADMIN2.id).single()
+    assert(profile.role === 'admin', `Quyền chưa đổi: ${profile.role}`)
+    const { data: events } = await db.from('role_events').select('actor, actor_name, from_role, to_role').eq('user_id', ADMIN2.id)
+    assert(
+      events.length === 1 && events[0].actor === ADMIN.id && events[0].actor_name === 'Admin E2E' && events[0].to_role === 'admin',
+      `Nhật ký phân quyền sai: ${JSON.stringify(events)}`
+    )
+
+    // Tab "Admin": có cả 2 admin test, ghi "Cấp quyền bởi Admin E2E"; dòng của chính mình không có nút đổi quyền
+    await admin.goto(`${BASE}/admin/users?role=admin&q=e2e-admin`)
+    await admin.getByRole('link', { name: /^Admin \(\d+\)/ }).and(admin.locator('[aria-current=page]')).waitFor()
+    await admin.locator('tr', { hasText: ADMIN2.email }).getByText('Cấp quyền bởi Admin E2E').waitFor()
+    const me = admin.locator('tr', { hasText: ADMIN.email })
+    await me.getByText('Tài khoản của bạn').waitFor()
+    assert((await me.getByRole('button').count()) === 0, 'Dòng của chính mình vẫn có nút đổi quyền')
+
+    // Database chặn tự gỡ quyền kể cả khi gọi thẳng API bằng phiên admin
+    ADMIN.session = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+    const { error: loginError } = await ADMIN.session.auth.signInWithPassword({ email: ADMIN.email, password: ADMIN.password })
+    assert(!loginError, loginError?.message)
+    const { error: selfError } = await ADMIN.session.from('profiles').update({ role: 'user' }).eq('id', ADMIN.id)
+    assert(selfError?.message.includes('không thể tự gỡ quyền'), `Tự gỡ được quyền admin: ${selfError?.message ?? 'không lỗi'}`)
+
+    await login(admin2, ADMIN2.email, ADMIN2.password, '/admin')
+    await admin2.getByRole('heading', { name: 'Bảng quản trị' }).waitFor()
   })
 
   await step('[Admin] Tạo 2 khóa đang mở đăng ký và 1 khóa đang ẩn', async () => {
@@ -354,6 +458,26 @@ try {
     assert(lessons.length === 2 && !lessons.some((l) => l.title === 'Bài lỗi'), `Bài học: ${JSON.stringify(lessons)}`)
   })
 
+  await step('[Admin] Bài học cũ có link video không hợp lệ được cảnh báo ở danh sách khóa và trang bài học', async () => {
+    // Giả lập dữ liệu nhập trước khi có kiểm tra link (ghi thẳng vào database)
+    const { data, error } = await db
+      .from('lessons')
+      .insert({ course_id: created.courseIds.A, title: LEGACY_LESSON_TITLE, video_url: 'https://example.com/video.mp4', sort_order: 99 })
+      .select('id')
+      .single()
+    assert(!error, error?.message)
+    LEGACY_LESSON.id = data.id
+    await admin.goto(`${BASE}/admin/courses`)
+    await admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_A.title }) }).getByText('1 bài lỗi link video').waitFor()
+    await admin.goto(`${BASE}/admin/courses/${created.courseIds.A}`)
+    const card = admin.locator('.card', { hasText: LEGACY_LESSON_TITLE })
+    await card.getByRole('alert').filter({ hasText: 'Link video không hợp lệ' }).waitFor()
+    assert(
+      (await admin.locator('.card', { hasText: LESSON_TITLE }).getByText('Link video không hợp lệ').count()) === 0,
+      'Bài có link hợp lệ vẫn bị cảnh báo'
+    )
+  })
+
   await step('[Hệ thống] RLS: khách chỉ thấy khóa đang mở; không thấy khóa ẩn, bài học, đơn đăng ký', async () => {
     const { data: courses } = await anon.from('courses').select('id').in('id', Object.values(created.courseIds))
     const visible = courses.map((c) => c.id)
@@ -361,7 +485,7 @@ try {
     assert(!visible.includes(created.courseIds.hidden), 'Khách thấy khóa đang ẩn!')
     const { data: lessons } = await anon.from('lessons').select('id').eq('course_id', created.courseIds.A)
     assert(lessons?.length === 0, 'Khách xem được bài học!')
-    for (const t of ['registrations', 'password_resets']) {
+    for (const t of ['registrations', 'password_resets', 'registration_events', 'role_events']) {
       const { data } = await anon.from(t).select('id')
       assert(!data?.length, `Khách đọc được bảng ${t}!`)
     }
@@ -431,6 +555,26 @@ try {
     console.log(`      ${info}`)
   })
 
+  await step('[Khách] Mật khẩu dưới 8 ký tự bị từ chối (trình duyệt và server)', async () => {
+    assert((await guest.locator('#password').getAttribute('minlength')) === '8', 'Ô mật khẩu chưa yêu cầu tối thiểu 8 ký tự')
+    // Bỏ qua kiểm tra của trình duyệt để chắc chắn server cũng chặn
+    await guest.locator('form', { has: guest.locator('#paymentProof') }).evaluate((f) => (f.noValidate = true))
+    await fillGuestForm(guest, { ...STUDENT, password: 'Ngan#12', courseId: created.courseIds.A, image: SMALL_IMAGE })
+    await registerButton(guest).click()
+    await alertText(guest, 'Mật khẩu cần ít nhất 8 ký tự')
+  })
+
+  await step('[Khách] File không phải ảnh đổi đuôi .png (vượt qua trình duyệt) bị server từ chối theo nội dung file', async () => {
+    const fake = { name: 'chuyen-khoan.png', mimeType: 'image/png', buffer: Buffer.from('day khong phai la anh, chi doi duoi thanh png') }
+    await fillGuestForm(guest, { ...STUDENT, courseId: created.courseIds.A })
+    await guest.setInputFiles('#paymentProof', fake)
+    await guest.getByTestId('proof-size').waitFor()
+    await registerButton(guest).click()
+    await alertText(guest, 'Ảnh chuyển khoản phải là ảnh JPG, PNG, WEBP hoặc HEIC hợp lệ')
+    const { count } = await db.from('profiles').select('id', { count: 'exact', head: true }).eq('email', STUDENT.email)
+    assert(count === 0, 'Vẫn tạo tài khoản dù ảnh không hợp lệ')
+  })
+
   await step('[Khách] Số điện thoại sai: báo lỗi, không lưu gì vào database', async () => {
     await fillGuestForm(guest, { ...STUDENT, phone: '12345', courseId: created.courseIds.A, image: SMALL_IMAGE })
     await registerButton(guest).click()
@@ -486,7 +630,7 @@ try {
   })
 
   await step('[Khách] Đăng ký trùng email hoặc trùng số điện thoại bị từ chối', async () => {
-    const ctx = await browser.newContext()
+    const ctx = await newContext()
     const p = watch(await ctx.newPage(), 'khach-trung')
     await p.goto(`${BASE}/register`)
     await fillGuestForm(p, { ...STUDENT, phone: '0987000111', courseId: created.courseIds.B, image: SMALL_IMAGE })
@@ -534,12 +678,26 @@ try {
     await alertText(student, 'đang chờ xác nhận')
   })
 
+  await step('[Hệ thống] Database chặn 2 đơn cùng chờ duyệt cho cùng khóa (gửi đồng thời vượt qua kiểm tra của web)', async () => {
+    const { error } = await db.from('registrations').insert({
+      user_id: STUDENT.id, course_id: created.courseIds.A, full_name: STUDENT.name, phone: STUDENT.phone, payment_proof_path: `e2e/${stamp}.jpg`,
+    })
+    assert(error?.code === '23505', `Database vẫn nhận đơn trùng: ${error?.message ?? 'không lỗi'} (đã chạy supabase/schema.sql mới nhất chưa?)`)
+  })
+
   // =====================================================================
   phase('6. ADMIN – duyệt đơn đăng ký')
   // =====================================================================
   const regTable = () => admin.getByRole('table', { name: 'Danh sách đơn đăng ký' })
   const regCard = (who, course) => regTable().locator('tbody tr', { hasText: who }).filter({ hasText: course.title })
-  const REG_COLUMNS = ['STT', 'Ảnh chuyển khoản', 'Họ và tên', 'Email', 'Số điện thoại', 'Khóa học', 'Học phí', 'Ngày đăng ký', 'Trạng thái', 'Ngày xử lý', 'Thao tác']
+  const REG_COLUMNS = ['STT', 'Ảnh chuyển khoản', 'Họ và tên', 'Email', 'Số điện thoại', 'Khóa học', 'Học phí', 'Ngày đăng ký', 'Trạng thái', 'Ngày xử lý', 'Người xử lý', 'Thao tác']
+  // Nút "Từ chối" / "Thu hồi" mở ô nhập lý do, bấm "Xác nhận …" mới gửi
+  const rejectToggle = (row, label) => row.locator('summary', { hasText: label })
+  async function rejectVia(row, label, note = '') {
+    await rejectToggle(row, label).click()
+    if (note) await row.locator('textarea[name=note]').fill(note)
+    await row.getByRole('button', { name: `Xác nhận ${label.toLowerCase()}` }).click()
+  }
 
   await step('[Admin] Đơn đăng ký hiển thị dạng bảng với đủ cột ở cả 4 tab', async () => {
     for (const tab of ['Tất cả', 'Từ chối', 'Đã duyệt', 'Chờ duyệt']) {
@@ -554,7 +712,7 @@ try {
       const row = regCard(who, course)
       await row.getByText('Chờ duyệt', { exact: true }).waitFor()
       await row.getByRole('button', { name: 'Duyệt' }).waitFor()
-      await row.getByRole('button', { name: 'Từ chối' }).waitFor()
+      await rejectToggle(row, 'Từ chối').waitFor()
     }
   })
 
@@ -570,14 +728,40 @@ try {
     await card.waitFor({ state: 'detached' })
   })
 
-  await step('[Admin] Từ chối đơn khóa B của học viên 1', async () => {
+  await step('[Admin] Từ chối đơn khóa B của học viên 1 kèm lý do', async () => {
     const card = regCard(STUDENT.email, COURSE_B)
-    await card.getByRole('button', { name: 'Từ chối' }).click()
+    await rejectVia(card, 'Từ chối', REJECT_NOTE)
     await toast(admin, 'Từ chối')
     await card.waitFor({ state: 'detached' })
     const byCourse = Object.fromEntries((await registrationsOf(STUDENT.id)).map((r) => [r.course_id, r]))
     assert(byCourse[created.courseIds.A]?.status === 'approved' && byCourse[created.courseIds.A].reviewed_at, 'Khóa A chưa được duyệt')
     assert(byCourse[created.courseIds.B]?.status === 'rejected', 'Khóa B chưa bị từ chối')
+    assert(byCourse[created.courseIds.B].review_note === REJECT_NOTE, `Lý do từ chối: ${byCourse[created.courseIds.B].review_note}`)
+    // Database tự ghi admin đang đăng nhập là người xử lý
+    for (const r of [byCourse[created.courseIds.A], byCourse[created.courseIds.B]]) {
+      assert(r.reviewed_by === ADMIN.id && r.reviewed_by_name === 'Admin E2E', `Người xử lý sai: ${JSON.stringify(r)}`)
+    }
+  })
+
+  await step('[Hệ thống] Người xử lý không sửa tay được qua API; chuyển về "Chờ duyệt" thì xóa người xử lý', async () => {
+    const regA = (await registrationsOf(STUDENT.id)).find((r) => r.course_id === created.courseIds.A)
+    await db.from('registrations').update({ reviewed_by_name: 'Giả mạo', reviewed_at: null, review_note: 'Giả mạo' }).eq('id', regA.id)
+    const after = (await registrationsOf(STUDENT.id)).find((r) => r.id === regA.id)
+    assert(
+      after.reviewed_by_name === 'Admin E2E' && after.reviewed_at === regA.reviewed_at && after.review_note === null,
+      `Sửa tay được người xử lý / lý do: ${JSON.stringify(after)}`
+    )
+    const { data: anonEvents } = await anon.from('registration_events').select('id')
+    assert(!anonEvents?.length, 'Khách đọc được lịch sử xử lý đơn!')
+
+    const id = await insertRegistration({
+      user_id: STUDENT2.id, course_id: created.courseIds.hidden, full_name: STUDENT2.name, phone: STUDENT2.phone,
+      status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: ADMIN.id, reviewed_by_name: 'Admin E2E',
+    })
+    await db.from('registrations').update({ status: 'pending' }).eq('id', id)
+    const { data } = await db.from('registrations').select('reviewed_at, reviewed_by, reviewed_by_name').eq('id', id).single()
+    assert(!data.reviewed_at && !data.reviewed_by && !data.reviewed_by_name, `Về chờ duyệt vẫn còn người xử lý: ${JSON.stringify(data)}`)
+    await db.from('registrations').delete().eq('id', id)
   })
 
   await step('[Admin] Đơn của học viên không có email hiển thị "Không có email"', async () => {
@@ -590,14 +774,17 @@ try {
     let row = regCard(STUDENT.email, COURSE_A)
     await row.getByText('Đã duyệt', { exact: true }).waitFor()
     assert(/\d{2}\/\d{2}\/\d{4}/.test(await row.locator('td').nth(9).textContent()), 'Thiếu ngày xử lý')
-    await row.getByRole('button', { name: 'Thu hồi' }).waitFor()
+    assert((await row.locator('td').nth(10).textContent()).trim() === 'Admin E2E', 'Thiếu người xử lý')
+    await rejectToggle(row, 'Thu hồi').waitFor()
     assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Đơn đã duyệt vẫn có nút Duyệt')
 
     await admin.goto(`${BASE}/admin?status=rejected`)
     row = regCard(STUDENT.email, COURSE_B)
     await row.getByText('Từ chối', { exact: true }).waitFor()
+    // Lý do hiện dưới trạng thái (bản thứ 2 nằm trong "Lịch sử" đang thu gọn)
+    await row.getByText(`Lý do: ${REJECT_NOTE}`).first().waitFor()
     await row.getByRole('button', { name: 'Duyệt' }).waitFor()
-    assert((await row.getByRole('button', { name: 'Từ chối' }).count()) === 0, 'Đơn bị từ chối vẫn có nút Từ chối')
+    assert((await rejectToggle(row, 'Từ chối').count()) === 0, 'Đơn bị từ chối vẫn có nút Từ chối')
 
     await admin.goto(`${BASE}/admin?status=all`)
     for (const [who, course, status] of [
@@ -620,12 +807,72 @@ try {
     await admin.locator('tr', { hasText: STUDENT2.phone }).getByText('Không có email').waitFor()
   })
 
+  await step('[Admin] 2 admin cùng xử lý 1 đơn: admin 2 duyệt trước, admin 1 (trang cũ) từ chối bị chặn, không ghi đè', async () => {
+    // Đơn chờ duyệt của học viên 2 cho khóa đang ẩn (không ảnh hưởng các bước sau)
+    RACE.id = await insertRegistration({ user_id: STUDENT2.id, course_id: created.courseIds.hidden, full_name: STUDENT2.name, phone: STUDENT2.phone })
+    await Promise.all([admin.goto(`${BASE}/admin`), admin2.goto(`${BASE}/admin`)])
+    const row1 = regCard(STUDENT2.phone, COURSE_HIDDEN)
+    const row2 = admin2.getByRole('table', { name: 'Danh sách đơn đăng ký' }).locator('tbody tr', { hasText: COURSE_HIDDEN.title })
+    await row2.getByRole('button', { name: 'Duyệt' }).click()
+    await toast(admin2, 'Đã duyệt đơn')
+    await rejectVia(row1, 'Từ chối', 'Bấm từ trang cũ')
+    await alertText(admin, 'Đơn đã thay đổi (có thể admin khác vừa xử lý)')
+    const { data } = await db.from('registrations').select('status, reviewed_by, reviewed_by_name, review_note').eq('id', RACE.id).single()
+    assert(
+      data.status === 'approved' && data.reviewed_by === ADMIN2.id && data.reviewed_by_name === ADMIN2.name && !data.review_note,
+      `Đơn bị ghi đè: ${JSON.stringify(data)}`
+    )
+  })
+
+  await step('[Admin] Lịch sử xử lý đơn: Duyệt (admin 2) → Thu hồi kèm lý do (admin 1) → Duyệt lại (admin 1) đủ 3 dòng đúng người', async () => {
+    await admin.goto(`${BASE}/admin?status=approved`)
+    let row = regCard(STUDENT2.phone, COURSE_HIDDEN)
+    await rejectVia(row, 'Thu hồi', 'Chuyển khoản chưa về tài khoản')
+    await toast(admin, 'Từ chối')
+    await admin.goto(`${BASE}/admin?status=rejected`)
+    row = regCard(STUDENT2.phone, COURSE_HIDDEN)
+    await row.getByRole('button', { name: 'Duyệt' }).click()
+    await toast(admin, 'Đã duyệt đơn')
+
+    const { data: events } = await db
+      .from('registration_events')
+      .select('actor, actor_name, from_status, to_status, note')
+      .eq('registration_id', RACE.id)
+      .order('created_at')
+    const summary = events.map((e) => `${e.actor_name}:${e.from_status}>${e.to_status}:${e.note ?? ''}`)
+    assert(
+      JSON.stringify(summary) ===
+        JSON.stringify([
+          `${ADMIN2.name}:pending>approved:`,
+          'Admin E2E:approved>rejected:Chuyển khoản chưa về tài khoản',
+          'Admin E2E:rejected>approved:',
+        ]),
+      `Lịch sử sai: ${JSON.stringify(summary)}`
+    )
+    const { data: reg } = await db.from('registrations').select('review_note').eq('id', RACE.id).single()
+    assert(reg.review_note === null, `Duyệt lại vẫn còn lý do thu hồi: ${reg.review_note}`)
+
+    // Giao diện: mở "Lịch sử (3)" thấy đủ người xử lý và lý do
+    await admin.goto(`${BASE}/admin?status=approved`)
+    row = regCard(STUDENT2.phone, COURSE_HIDDEN)
+    await row.locator('summary', { hasText: 'Lịch sử (3)' }).click()
+    await row.locator('li', { hasText: 'Lý do: Chuyển khoản chưa về tài khoản' }).waitFor()
+    await row.locator('li', { hasText: ADMIN2.name }).waitFor()
+
+    // Admin cũng không tự ghi / sửa được lịch sử (chỉ trigger ghi)
+    const { error } = await ADMIN.session.from('registration_events').insert({ registration_id: RACE.id, from_status: 'pending', to_status: 'approved' })
+    assert(error, 'Admin tự ghi được lịch sử xử lý!')
+    const { data: deleted } = await ADMIN.session.from('registration_events').delete().eq('registration_id', RACE.id).select('id')
+    assert(!deleted?.length, 'Admin xóa được lịch sử xử lý!')
+  })
+
   // =====================================================================
   phase('7. HỌC VIÊN – sau khi được duyệt')
   // =====================================================================
   await step('[Học viên] Khóa A đã mở, khóa B báo chưa xác nhận; xem được video bài học', async () => {
     await student.goto(`${BASE}/courses`)
     await student.getByRole('heading', { name: 'Đơn chưa được xác nhận' }).waitFor()
+    await student.locator('.card', { hasText: COURSE_B.title }).getByText(`Lý do: ${REJECT_NOTE}`).waitFor()
     await student.getByRole('link', { name: new RegExp(escape(COURSE_A.title)) }).click()
     await student.getByRole('link', { name: 'Bắt đầu học' }).click()
     await student.getByRole('heading', { name: LESSON_TITLE }).waitFor()
@@ -633,6 +880,13 @@ try {
     assert(src?.startsWith('https://www.youtube.com/embed/dQw4w9WgXcQ'), `iframe src: ${src}`)
     await student.waitForTimeout(3000)
     await student.screenshot({ path: `${OUT}mobile-lesson.png` })
+  })
+
+  await step('[Học viên] Bài có link video không hợp lệ không nhúng link lạ, hiện "Video đang được cập nhật"', async () => {
+    await student.goto(`${BASE}/courses/${created.courseIds.A}/${LEGACY_LESSON.id}`)
+    await student.getByRole('heading', { name: LEGACY_LESSON_TITLE }).waitFor()
+    await student.getByText('Video bài học đang được cập nhật').waitFor()
+    assert((await student.locator('iframe').count()) === 0, 'Vẫn nhúng link video không hợp lệ')
   })
 
   await step('[Học viên] Điện thoại: bấm "Tài khoản" rồi Đăng xuất; đăng nhập lại bằng email', async () => {
@@ -701,7 +955,7 @@ try {
   })
 
   await step('[Học viên] Quên mật khẩu khi tài khoản chưa có email: báo liên hệ hotline, không gửi thư', async () => {
-    const ctx = await browser.newContext()
+    const ctx = await newContext()
     const p = watch(await ctx.newPage(), 'quen-mk-1')
     await p.goto(`${BASE}/login`)
     await p.getByRole('link', { name: 'Quên mật khẩu?' }).click()
@@ -711,6 +965,15 @@ try {
     await alertText(p, 'chưa có email')
     assert(readdirSync(OUTBOX).length === 0, 'Vẫn gửi email cho tài khoản không có email')
     await ctx.close()
+  })
+
+  await step('[Học viên] Không nhập được email nội bộ dạng <SĐT>@sdt.hv.invalid (chiếm SĐT người khác)', async () => {
+    await student2.goto(`${BASE}/account`)
+    await student2.fill('#email', `0399${tail.slice(0, 6)}@SDT.hv.invalid`)
+    await student2.getByRole('button', { name: 'Lưu thông tin' }).click()
+    await student2.getByRole('alert').filter({ hasText: 'Địa chỉ email không hợp lệ' }).first().waitFor()
+    const { data } = await db.auth.admin.getUserById(STUDENT2.id)
+    assert(data.user.email === `${STUDENT2.phone}@sdt.hv.invalid`, `Email đăng nhập bị đổi: ${data.user.email}`)
   })
 
   await step('[Học viên] Thêm email vào tài khoản, sau đó đăng nhập được bằng email', async () => {
@@ -725,7 +988,7 @@ try {
   })
 
   await step('[Hệ thống] Quên mật khẩu: gửi mã 6 số qua email, chặn gửi lại liên tục', async () => {
-    const ctx = await browser.newContext({ ...devices['iPhone 13'] })
+    const ctx = await newContext({ ...devices['iPhone 13'] })
     const p = watch(await ctx.newPage(), 'quen-mk-2')
     STUDENT2.resetPage = p
     STUDENT2.resetCtx = ctx
@@ -791,11 +1054,39 @@ try {
     await student2.getByRole('heading', { name: 'Không tìm thấy trang' }).waitFor()
   })
 
+  await step('[Admin] Đơn chờ duyệt của khóa đang ẩn vẫn duyệt được → học viên vào học được', async () => {
+    // Đơn gửi trước khi khóa A bị ẩn (khách đã chuyển khoản); sau khi ẩn không tạo được đơn mới
+    await insertRegistration({ user_id: STUDENT2.id, course_id: created.courseIds.A, full_name: STUDENT2.name, phone: STUDENT2.phone })
+    await admin.goto(`${BASE}/admin`)
+    const row = regCard(STUDENT2.phone, COURSE_A)
+    await row.getByText('(khóa đang ẩn)').waitFor()
+    await row.getByRole('button', { name: 'Duyệt' }).click()
+    await toast(admin, 'Đã duyệt đơn')
+    await row.waitFor({ state: 'detached' })
+    await student2.goto(`${BASE}/courses/${created.courseIds.A}`)
+    await student2.getByRole('heading', { level: 1, name: COURSE_A.title }).waitFor()
+  })
+
+  await step('[Hệ thống] Xóa tài khoản vẫn giữ đơn đăng ký; admin thấy "(tài khoản đã xóa)", không duyệt được', async () => {
+    const name = `Tài Khoản Sẽ Xóa ${tail}`
+    const { data, error } = await db.auth.admin.createUser({ email: `e2e-xoa-${stamp}@example.com`, password: 'Xoa#123456', email_confirm: true })
+    assert(!error, error?.message)
+    const id = await insertRegistration({ user_id: data.user.id, course_id: created.courseIds.A, full_name: name, phone: '0390000000', amount: 199000 })
+    const { error: deleteError } = await db.auth.admin.deleteUser(data.user.id)
+    assert(!deleteError, `Không xóa được tài khoản: ${deleteError?.message}`)
+    const { data: reg } = await db.from('registrations').select('user_id, full_name, amount').eq('id', id).maybeSingle()
+    assert(reg && reg.user_id === null && reg.full_name === name && reg.amount === 199000, `Đơn sau khi xóa tài khoản: ${JSON.stringify(reg)}`)
+
+    await admin.goto(`${BASE}/admin`)
+    const row = regTable().locator('tbody tr', { hasText: name })
+    await row.getByText('(tài khoản đã xóa)').waitFor()
+    assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Vẫn có nút Duyệt cho tài khoản đã xóa')
+  })
+
   await step('[Admin] Thu hồi quyền học khóa A → học viên không xem được nữa', async () => {
     await admin.goto(`${BASE}/admin?status=approved`)
     const card = regCard(STUDENT.email, COURSE_A)
-    admin.once('dialog', (d) => d.accept())
-    await card.getByRole('button', { name: 'Thu hồi' }).click()
+    await rejectVia(card, 'Thu hồi')
     await toast(admin, 'Từ chối')
     await card.waitFor({ state: 'detached' })
     await student.goto(`${BASE}/courses/${created.courseIds.A}/${(await db.from('lessons').select('id').eq('course_id', created.courseIds.A).eq('title', LESSON_TITLE).single()).data.id}`)
@@ -840,11 +1131,91 @@ try {
     await student.locator('.card', { hasText: COURSE_B.title }).getByText('299.000đ').waitFor()
   })
 
+  await step('[Admin] Đơn chờ duyệt của khóa đã xóa: tab "cần hoàn tiền", học viên được hướng dẫn liên hệ hoàn tiền', async () => {
+    // Học viên 2 đã chuyển khoản khóa B (đang chờ duyệt) trước khi khóa bị xóa
+    await student2.goto(`${BASE}/courses`)
+    await student2.locator('.card', { hasText: COURSE_B.title }).getByText('Khóa học đã ngừng').waitFor()
+
+    await admin.goto(`${BASE}/admin`)
+    await admin.getByRole('link', { name: /^Khóa đã xóa – cần hoàn tiền/ }).click()
+    await admin.waitForURL(/status=refund/)
+    const row = regCard(STUDENT2.phone, COURSE_B)
+    await row.getByText('(khóa học đã xóa)').waitFor()
+    assert((await regTable().locator('tbody tr', { hasText: STUDENT.email }).count()) === 0, 'Tab hoàn tiền có đơn không thuộc diện')
+    await rejectVia(row, 'Từ chối', 'Đã hoàn tiền qua chuyển khoản')
+    await toast(admin, 'Từ chối')
+    await student2.reload()
+    await student2.locator('.card', { hasText: COURSE_B.title }).getByText('Lý do: Đã hoàn tiền qua chuyển khoản').waitFor()
+  })
+
+  await step('[Admin] Gỡ quyền admin 2 → admin 2 không vào được trang quản trị nữa; nhật ký ghi lại', async () => {
+    await admin.goto(`${BASE}/admin/users?role=admin&q=${encodeURIComponent(ADMIN2.email)}`)
+    const row = admin.locator('tr', { hasText: ADMIN2.email })
+    let dialogText = ''
+    admin.once('dialog', (d) => { dialogText = d.message(); d.accept() })
+    await row.getByRole('button', { name: 'Gỡ quyền admin' }).click()
+    await toast(admin, 'Đã gỡ quyền admin')
+    assert(dialogText.includes('không vào được trang quản trị'), `Hộp xác nhận: ${dialogText}`)
+    await admin2.goto(`${BASE}/admin`)
+    assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được: ${admin2.url()}`)
+    const { data: events } = await db.from('role_events').select('from_role, to_role, actor_name').eq('user_id', ADMIN2.id).order('created_at')
+    assert(events.map((e) => `${e.from_role}>${e.to_role}`).join(',') === 'user>admin,admin>user', `Nhật ký phân quyền: ${JSON.stringify(events)}`)
+  })
+
   // =====================================================================
-  phase('10. HỆ THỐNG – tổng kết')
+  phase('10. HỆ THỐNG – bảo mật & chống lạm dụng')
+  // =====================================================================
+  await step('[Hệ thống] Header bảo mật: CSP, chống nhúng trang (clickjacking), nosniff, không lộ "X-Powered-By"', async () => {
+    for (const path of ['/', '/login', '/register']) {
+      const res = await fetch(`${BASE}${path}`)
+      const csp = res.headers.get('content-security-policy') ?? ''
+      assert(csp.includes("frame-ancestors 'none'") && csp.includes("object-src 'none'"), `${path}: CSP thiếu: ${csp}`)
+      assert(res.headers.get('x-frame-options') === 'DENY', `${path}: thiếu X-Frame-Options`)
+      assert(res.headers.get('x-content-type-options') === 'nosniff', `${path}: thiếu nosniff`)
+      assert(res.headers.get('referrer-policy') === 'strict-origin-when-cross-origin', `${path}: thiếu Referrer-Policy`)
+      assert(!res.headers.get('x-powered-by'), `${path}: vẫn lộ X-Powered-By`)
+    }
+  })
+
+  await step('[Hệ thống] Giới hạn tần suất trong database: vượt ngưỡng bị chặn; khách/học viên không gọi được hàm', async () => {
+    const key = `e2e-test:${TEST_IP}`
+    const hit = async (increment = true) =>
+      (await db.rpc('hit_rate_limit', { p_key: key, p_limit: 2, p_window_seconds: 60, p_increment: increment })).data
+    assert((await hit()) === true && (await hit()) === true, 'Chặn sớm hơn giới hạn')
+    assert((await hit(false)) === false, 'Kiểm tra (không ghi) phải báo đã hết lượt')
+    assert((await hit()) === false, 'Vượt giới hạn vẫn được cho qua')
+    const { error } = await anon.rpc('hit_rate_limit', { p_key: key, p_limit: 99, p_window_seconds: 60 })
+    assert(error, 'Khách gọi được hàm giới hạn tần suất!')
+    const { data } = await anon.from('rate_limits').select('key')
+    assert(!data?.length, 'Khách đọc được bảng rate_limits!')
+  })
+
+  await step('[Khách] Đăng nhập sai 5 lần liên tiếp → bị khóa tạm 15 phút (kể cả tài khoản không tồn tại)', async () => {
+    const ctx = await newContext({}, `${TEST_IP}-khoa`)
+    const p = watch(await ctx.newPage(), 'khoa-dang-nhap')
+    const phone = `0399${tail.slice(-6)}`
+    const attempt = async () => {
+      await p.goto(`${BASE}/login`)
+      await p.fill('#identifier', phone)
+      await p.fill('#password', 'sai-mat-khau')
+      await Promise.all([p.waitForURL(/error=/), p.click('button[type=submit]')])
+    }
+    for (let i = 0; i < 5; i++) {
+      await attempt()
+      await p.getByText('Email/số điện thoại hoặc mật khẩu không đúng.').waitFor()
+    }
+    await attempt()
+    await p.getByText('Bạn đã nhập sai quá nhiều lần').waitFor()
+    await ctx.close()
+    // IP khác (người dùng khác) không bị ảnh hưởng
+    assert(await tryLogin(STUDENT.email, STUDENT.password), 'Khóa đăng nhập ảnh hưởng người dùng khác')
+  })
+
+  // =====================================================================
+  phase('11. HỆ THỐNG – tổng kết')
   // =====================================================================
   await step('[Hệ thống] Chụp màn hình giao diện máy tính', async () => {
-    const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } })
+    const ctx = await newContext({ viewport: { width: 1366, height: 900 } })
     const p = watch(await ctx.newPage(), 'desktop')
     await p.goto(BASE)
     await p.screenshot({ path: `${OUT}desktop-home.png`, fullPage: true })
@@ -854,10 +1225,14 @@ try {
   })
 
   await step('[Hệ thống] Không có lỗi JavaScript trên mọi trình duyệt đã dùng', async () => {
-    assert(pageErrors.length === 0, pageErrors.join('\n'))
+    if (thirdPartyErrors.length) console.log(`      (bỏ qua ${thirdPartyErrors.length} lỗi trong iframe bên thứ ba, VD YouTube)`)
+    if (pageErrors.length) console.log(pageErrors.map((e) => `      ${e}`).join('\n'))
+    assert(pageErrors.length === 0, `${pageErrors.length} lỗi JavaScript (chi tiết ở trên)`)
   })
 } catch {
   failed = true
+  // Dừng giữa chừng: vẫn in các lỗi JavaScript đã ghi nhận để dễ tìm nguyên nhân
+  if (pageErrors.length) console.log(`\nLỗi JavaScript đã ghi nhận:\n${pageErrors.map((e) => `  ${e}`).join('\n')}`)
 } finally {
   await browser.close()
   await cleanup()

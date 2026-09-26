@@ -5,6 +5,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { BookIcon, UsersIcon } from '@/components/icons'
+import { isSupportedVideoUrl } from '@/lib/video'
 import { createCourse, deleteCourse, setCourseStatus, updateCourse } from '../actions'
 import { CourseFields } from './fields'
 
@@ -14,7 +15,7 @@ export default async function AdminCoursesPage() {
   const [{ data: courses, error }, { data: regs }] = await Promise.all([
     supabase
       .from('courses')
-      .select('id, title, description, price, status, sort_order, lessons(count)')
+      .select('id, title, description, price, status, sort_order, lessons(video_url)')
       .order('sort_order', { ascending: true }),
     supabase.from('registrations').select('course_id, status'),
   ])
@@ -33,6 +34,7 @@ export default async function AdminCoursesPage() {
       <section className="space-y-3">
         {courses?.map((c) => {
           const s = stats.get(c.id)
+          const brokenVideos = c.lessons.filter((l) => !isSupportedVideoUrl(l.video_url)).length
           return (
             <div key={c.id} className="card p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -44,7 +46,8 @@ export default async function AdminCoursesPage() {
                   <p className="mt-1 text-lg font-bold text-ocean-700">{formatPrice(c.price)}</p>
                   <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                     <span className="flex items-center gap-1.5">
-                      <BookIcon className="h-4 w-4" /> {c.lessons?.[0]?.count ?? 0} bài học
+                      <BookIcon className="h-4 w-4" /> {c.lessons.length} bài học
+                      {!!brokenVideos && <span className="font-semibold text-red-600">· {brokenVideos} bài lỗi link video</span>}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <UsersIcon className="h-4 w-4" /> {s?.approved ?? 0} học viên

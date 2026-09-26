@@ -24,6 +24,7 @@ export function realEmail(email: string | null | undefined) {
   return email && !isPhoneAuthEmail(email) ? email : null
 }
 
+// Email nội bộ theo SĐT không được nhập tay: tránh chiếm email đăng nhập của số điện thoại người khác
 export function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !isPhoneAuthEmail(email.toLowerCase())
 }

@@ -104,11 +104,14 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
 | FR-070 | `/admin` hiển thị bảng đơn với 4 tab: Chờ duyệt (mặc định, cũ nhất trước), Đã duyệt, Từ chối, Tất cả (mới nhất trước) kèm số lượng | M | ✅ |
-| FR-071 | Cột: STT, Ảnh chuyển khoản (thumbnail, bấm mở ảnh lớn), Họ tên, Email ("Không có email"), SĐT (link `tel:`), Khóa học (kèm "(khóa học đã xóa)" nếu có), Học phí (theo snapshot lúc đăng ký), Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác | M | ✅ |
+| FR-071 | Cột: STT, Ảnh chuyển khoản (thumbnail, bấm mở ảnh lớn), Họ tên, Email ("Không có email"), SĐT (link `tel:`), Khóa học (kèm "(khóa học đã xóa)" / "(khóa đang ẩn)" nếu có), Học phí (theo snapshot lúc đăng ký), Ngày đăng ký, Trạng thái, Ngày xử lý, Người xử lý, Thao tác. Họ tên kèm "(tài khoản đã xóa)" nếu có | M | ✅ |
 | FR-072 | Cột Thao tác cố định bên phải khi bảng cuộn ngang | S | ✅ |
 | FR-073 | Thao tác: Duyệt (khi ≠ approved), Từ chối (khi pending), Thu hồi (khi approved, có hộp xác nhận) | M | ✅ |
-| FR-074 | Duyệt/Từ chối ghi `reviewed_at`; chuyển về pending xóa `reviewed_at` | M | ✅ |
+| FR-074 | Duyệt/Từ chối/Thu hồi ghi `reviewed_at` và người xử lý (`reviewed_by`, `reviewed_by_name`) bằng trigger; chuyển về pending xóa cả ba | M | ✅ |
 | FR-075 | Ảnh chuyển khoản xem qua signed URL hiệu lực 1 giờ | M | ✅ |
+| FR-077 | Từ chối / Thu hồi mở ô nhập lý do (tùy chọn) rồi mới xác nhận; học viên thấy lý do | S | ✅ |
+| FR-078 | Mỗi đơn có "Lịch sử (n)": người xử lý, trạng thái trước → sau, lý do, thời điểm | S | ✅ |
+| FR-079 | Không ghi đè khi 2 admin xử lý cùng một đơn: thao tác từ trang cũ báo "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang." | M | ✅ |
 | FR-076 | Giới hạn 200 đơn mỗi lần tải | C | ✅ |
 
 ### 2.8. Quản trị – Học viên

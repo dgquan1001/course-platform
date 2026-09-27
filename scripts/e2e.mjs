@@ -624,15 +624,18 @@ try {
     await guest2.locator('iframe[src*="youtube.com/embed/dQw4w9WgXcQ"]').waitFor({ state: 'attached' })
     // Khóa trả phí: khách mở bài học bị chuyển tới đăng nhập
     const lessonA = (await db.from('lessons').select('id').eq('course_id', created.courseIds.A).eq('title', LESSON_TITLE).single()).data.id
-    await guest2.goto(`${BASE}/courses/${created.courseIds.A}/${lessonA}`)
-    assert(new URL(guest2.url()).pathname === '/login', `Khách mở bài của khóa trả phí: ${guest2.url()}`)
-    await guest2.goto(`${BASE}/courses/${created.courseIds.A}`)
-    assert(new URL(guest2.url()).pathname === '/login', `Khách mở khóa trả phí: ${guest2.url()}`)
+    // Trang tự chuyển hướng (redirect trong server component được thực hiện phía trình duyệt): chờ URL cuối
+    for (const path of [`/courses/${created.courseIds.A}/${lessonA}`, `/courses/${created.courseIds.A}`]) {
+      await guest2.goto(`${BASE}${path}`)
+      await guest2.waitForURL(/\/login\?next=/).catch(() => {})
+      const url = new URL(guest2.url())
+      assert(url.pathname === '/login' && url.searchParams.get('next') === path, `Khách mở khóa trả phí: ${guest2.url()}`)
+    }
   })
 
   await step('[Khách] Khóa premium: để lại họ tên + SĐT → lưu khách quan tâm và mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh', async () => {
     await guest2.goto(`${BASE}/khoa-hoc/${created.courseIds.premium}`)
-    await guest2.getByText('Lộ trình riêng').waitFor()
+    await guest2.getByText('Lộ trình riêng', { exact: true }).waitFor()
     assert((await guest2.getByRole('list', { name: 'Đề cương khóa học' }).count()) === 0, 'Khóa premium có đề cương')
     await guest2.getByRole('button', { name: 'Liên hệ Zalo nhận ưu đãi' }).click()
     const form = guest2.getByRole('form', { name: 'Liên hệ Zalo nhận ưu đãi' })

@@ -22,7 +22,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | — | Định vị lại v0.2 (tài liệu) | Yêu cầu V-01 → V-12, ADR-011 → ADR-015, FR-110 → FR-190, BR-70 → BR-107, EP-10 → EP-16, SCR-15 → SCR-28 | ✅ Tài liệu | 27/09/2026 | TC-65 → TC-94 (dự kiến) | — |
 | 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
 | 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
-| 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-68 → TC-73 | Chờ chạy |
+| 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ Xong (nội dung chính sách chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → TC-73 | 73/73 PASS |
 | 9 | Gói tháng & hạn học | — | ⬜ | — | TC-74 → TC-78 | — |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
 | 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
@@ -73,7 +73,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [ ] RV-14 `updateProfileAction` không hoàn tác khi lỗi giữa chừng
 - [ ] RV-15 Thông báo kỹ thuật khi trùng SĐT do race
 - [x] RV-16 Security headers + CSP (Đợt 5)
-- [ ] RV-17 Chính sách bảo mật / đồng ý xử lý dữ liệu (NĐ 13/2023) – 🟡 Đợt 8, chờ E2E + A-7
+- [ ] RV-17 Chính sách bảo mật / đồng ý xử lý dữ liệu (NĐ 13/2023) – 🟡 Đợt 8 xong phần kỹ thuật (E2E 73/73), nội dung chờ A-7
 - [ ] RV-18 Link video có thể bị chia sẻ ra ngoài (→ R-10)
 - [ ] RV-19 Xác nhận email liên hệ chính thức (A-6)
 - [ ] RV-20 Logging / giám sát lỗi, backup Storage
@@ -102,7 +102,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [x] R-05 Lý do từ chối + lịch sử xử lý + người xử lý
 - [ ] R-01 Thông báo email khi đơn được duyệt / từ chối
 - [ ] R-02 Admin đặt lại mật khẩu học viên → **Đợt 11** (nhân viên cấp lại mật khẩu)
-- [ ] R-03 Ảnh bìa khóa học → **Đợt 8** (🟡 chờ E2E)
+- [x] R-03 Ảnh bìa khóa học → **Đợt 8**
 - [ ] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %)
 - [ ] R-06 Phân trang, lọc, xuất Excel đơn
 - [ ] R-07 Báo cáo doanh thu → **Đợt 13** (doanh thu trên dashboard admin); xuất Excel để sau
@@ -117,7 +117,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 
 - [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
 - [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
-- [ ] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
+- [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – ✅ 27/09/2026, E2E 73/73
 - [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
 - [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)
 - [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)

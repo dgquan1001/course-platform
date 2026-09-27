@@ -30,7 +30,7 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 7 · **67/67 bước PASS** (xem §3.1). Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 8 · **73/73 bước PASS** (xem §3.1). Sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
 **63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
@@ -129,12 +129,12 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-65 | 7 | Admin / Hệ thống | ✅ PASS (bước "[Admin] Chuyển tài khoản sang vai trò Nhân viên…"): admin đổi vai trò qua UI ghi `role_events`; staff gọi API tự nâng quyền (0 dòng), cấp quyền cho học viên ("Chỉ admin…"), sửa profile admin / sửa khóa học (0 dòng) bị chặn; staff đọc được đơn | US-10.01, BR-70 → BR-73 |
 | TC-66 | 7 | Staff | ✅ PASS (2 bước): vào `/admin` → `/admin/registrations`, menu chỉ có Đơn đăng ký + Học viên, `/admin/courses` bị chuyển về, không có ô đổi vai trò; duyệt đơn trên UI → `reviewed_by` = staff | US-10.02, US-10.03 |
 | TC-67 | 7 | Hệ thống | ✅ PASS: `/admin?status=approved` chuyển sang `/admin/registrations?status=approved`, tab Đã duyệt được chọn | FR-070 |
-| TC-68 | 8 | Admin | ✍️ Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
-| TC-69 | 8 | Khách | ✍️ Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
-| TC-70 | 8 | Khách | ✍️ Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
-| TC-71 | 8 | Khách | ✍️ Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
-| TC-72 | 8 | Staff | ✍️ `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
-| TC-73 | 8 | Khách | ✍️ Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
+| TC-68 | 8 | Admin | ✅ PASS – Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
+| TC-69 | 8 | Khách | ✅ PASS – Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
+| TC-70 | 8 | Khách | ✅ PASS – Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
+| TC-71 | 8 | Khách | ✅ PASS – Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
+| TC-72 | 8 | Staff | ✅ PASS – `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
+| TC-73 | 8 | Khách | ✅ PASS – Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
 | TC-74 | 9 | Admin | Thêm gói 1 tháng / 3 tháng (số buổi mặc định 12 / 36); gói 1 tháng thứ 2 bị chặn trùng | US-12.01, BR-77 |
 | TC-75 | 9 | Khách | Chọn Vẹo lưng – 3 tháng → QR đúng số tiền; gửi form sửa giá → server lưu giá gói; đơn lưu snapshot gói | US-12.02, BR-78, BR-79 |
 | TC-76 | 9 | Staff | Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
@@ -159,6 +159,8 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
+Kết quả Đợt 8 (27/09/2026, schema mới đã chạy): **73/73 bước PASS**, dữ liệu test (khóa, bài, khách quan tâm, ảnh bìa) đã dọn. 2 lần chạy đầu đỏ do test:
+đọc URL trước khi trang khóa trả phí chuyển khách tới đăng nhập (redirect phía trình duyệt), và locator "Lộ trình riêng" khớp 2 chỗ – đã sửa test.
 Đợt 7 đã sửa các TC cũ: TC-01 (hàm `is_staff`), TC-24/25/28/56/57… (route `/admin/registrations`),
 TC-55/TC-58 (ô chọn vai trò, tab "Nhân viên & Admin"), TC-56 (thông báo "có thể người khác vừa xử lý").
 

@@ -21,7 +21,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 5 | Chống lạm dụng & dữ liệu | RK-06 / RV-04 (giới hạn tần suất + Turnstile tùy chọn), RK-08, RK-04, RV-16 | ✅ Xong (Turnstile chờ A-4) | 26/09/2026 | TC-60 → TC-64 | 63/63 PASS |
 | — | Định vị lại v0.2 (tài liệu) | Yêu cầu V-01 → V-12, ADR-011 → ADR-015, FR-110 → FR-190, BR-70 → BR-107, EP-10 → EP-16, SCR-15 → SCR-28 | ✅ Tài liệu | 27/09/2026 | TC-65 → TC-94 (dự kiến) | — |
 | 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
-| 7 | Vai trò staff | R-12 | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-65 → TC-67 | Chờ chạy |
+| 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ⬜ | — | TC-68 → TC-73 | — |
 | 9 | Gói tháng & hạn học | — | ⬜ | — | TC-74 → TC-78 | — |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
@@ -46,7 +46,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | A-2 | Thêm secrets + variable `E2E_ENABLED` trên GitHub để CI chạy E2E trên staging | RK-10, RV-10 | ⬜ |
 | A-3 | Push nhánh / mở PR để CI chạy lần đầu; bật "Require status checks" cho `main` | RV-10 | ⬜ |
 | A-4 | Tạo khóa Cloudflare Turnstile cho domain production, đặt 2 biến trên Vercel, thử đăng ký trên điện thoại | RK-06 | ⬜ |
-| A-5 | Chạy `supabase/schema.sql` mới nhất trên **production** (sau khi sao lưu) trước khi deploy code Đợt 3–5 | Tất cả | ⬜ |
+| A-5 | Chạy `supabase/schema.sql` mới nhất trên **production** (sau khi sao lưu) trước khi deploy code Đợt 3–7 (27/09: đã chạy trên project hiện tại – đang là dữ liệu test) | Tất cả | 🟡 |
 | A-6 | Xác nhận email liên hệ trong `site-config.ts` là email chính thức | RV-19 | ⬜ |
 | A-7 | Nội dung **Chính sách bảo mật** (dữ liệu sức khỏe) – dev soạn bản nháp, chủ trung tâm duyệt | RV-17, Đợt 8 | ⬜ |
 | A-8 | Ảnh bìa, mô tả, giá gói 1/3/6/12 tháng cho Vẹo lưng, Vẹo ngực; thông tin + giá 3 khóa premium; link video các bài tập | Đợt 8 → 10 | ⬜ |
@@ -110,13 +110,13 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau)
 - [ ] R-10 Video riêng tư
 - [ ] R-11 Cấu hình trung tâm trên giao diện
-- [ ] R-12 Vai trò nhân viên → **Đợt 7** (🟡 chờ E2E)
+- [x] R-12 Vai trò nhân viên → **Đợt 7**
 - [ ] R-13 Mã giảm giá / combo
 
 ### 2.4. Phiên bản 0.2 (V-01 → V-12)
 
 - [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
-- [ ] Đợt 7 – Vai trò staff (V-09) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
+- [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
 - [ ] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11)
 - [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
 - [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)

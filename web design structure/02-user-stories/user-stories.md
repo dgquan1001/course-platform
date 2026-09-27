@@ -287,21 +287,21 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-10 – Vai trò nhân viên
 
-### US-10.01 – Phân vai trò 🟡 (3 SP)
+### US-10.01 – Phân vai trò ✅ (3 SP)
 **Là** admin, **tôi muốn** chọn vai trò Bệnh nhân / Nhân viên / Admin cho một tài khoản, **để** nhân viên làm việc vận hành mà không có toàn quyền.
 - FR: FR-110, FR-113 · BR: BR-70, BR-71 · ADR-011
 - **AC1** Given tôi là admin When chọn "Nhân viên" cho tài khoản B và xác nhận Then B có `role = staff`, `role_events` ghi tôi là người đổi.
 - **AC2** Given tôi là staff When gọi API đổi vai trò của ai đó Then database từ chối.
 - **AC3** Given tôi là admin duy nhất When tự đổi vai trò Then bị chặn.
 
-### US-10.02 – Nhân viên chỉ thấy việc của mình 🟡 (3 SP)
+### US-10.02 – Nhân viên chỉ thấy việc của mình ✅ (3 SP)
 **Là** nhân viên, **tôi muốn** vào trang quản trị để xử lý đơn, bệnh nhân, phiếu tham vấn, **để** làm việc hằng ngày.
 - FR: FR-111, FR-112 · BR: BR-72, BR-73
 - **AC1** Given tôi là staff When mở `/admin` Then thấy menu Tổng quan, Đơn đăng ký, Bệnh nhân, Phiếu tham vấn, Khách quan tâm; **không** có Khóa học, Cài đặt. *(Đợt 7: menu hiện có Đơn đăng ký, Học viên; các mục khác thêm theo đợt.)*
 - **AC2** Given tôi là staff When mở `/admin/courses` Then bị chuyển về `/admin`; gọi API sửa khóa học bị RLS chặn.
 - **AC3** Given tôi là staff When xem dashboard Then không thấy doanh thu.
 
-### US-10.03 – Nhân viên duyệt đơn 🟡 (1 SP)
+### US-10.03 – Nhân viên duyệt đơn ✅ (1 SP)
 - FR: FR-114 · BR: BR-72
 - **AC1** Given tôi là staff When duyệt đơn chờ Then đơn `approved`, người xử lý là tôi, hạn học được tính.
 

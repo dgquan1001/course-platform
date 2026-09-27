@@ -1218,8 +1218,11 @@ try {
     const nav = staff.getByRole('navigation', { name: 'Menu quản trị' })
     const tabs = (await nav.getByRole('link').allTextContents()).map((t) => t.trim())
     assert(JSON.stringify(tabs) === JSON.stringify(['Đơn đăng ký', 'Học viên']), `Menu của nhân viên: ${tabs}`)
+    // Middleware chuyển về /admin, trang /admin chuyển tiếp tới /admin/registrations
     await staff.goto(`${BASE}/admin/courses`)
+    await staff.waitForURL(`${BASE}/admin/registrations`).catch(() => {})
     assert(new URL(staff.url()).pathname === '/admin/registrations', `Nhân viên vào được trang khóa học: ${staff.url()}`)
+    await staff.getByRole('table', { name: 'Danh sách đơn đăng ký' }).waitFor()
     await staff.goto(`${BASE}/admin/users?q=${encodeURIComponent(STUDENT.email)}`)
     await staff.locator('tr', { hasText: STUDENT.email }).waitFor()
     assert((await staff.locator('select[name=role]').count()) === 0, 'Nhân viên thấy ô đổi vai trò')
@@ -1239,6 +1242,7 @@ try {
 
   await step('[Hệ thống] Đường dẫn cũ /admin?status=… chuyển sang /admin/registrations?status=…', async () => {
     await admin.goto(`${BASE}/admin?status=approved`)
+    await admin.waitForURL(/\/admin\/registrations\?status=approved/).catch(() => {})
     const url = new URL(admin.url())
     assert(url.pathname === '/admin/registrations' && url.searchParams.get('status') === 'approved', `Chuyển hướng sai: ${admin.url()}`)
     await admin.getByRole('link', { name: /^Đã duyệt/ }).and(admin.locator('[aria-current=page]')).waitFor()

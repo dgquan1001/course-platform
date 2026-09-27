@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ArrowLeftIcon, ArrowRightIcon, PlayIcon, ShieldIcon } from '@/components/icons'
+import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, PlayIcon, ShieldIcon } from '@/components/icons'
+import { formatDate } from '@/lib/courses'
 
 export default async function CourseDetailPage({
   params,
@@ -29,6 +30,23 @@ export default async function CourseDetailPage({
   if (course.kind === 'premium') redirect(`/khoa-hoc/${params.courseId}`)
   const hasAccess = isFree || canAccess
 
+  // Đã từng được duyệt nhưng gói hết hạn: vẫn xem đề cương (không có video), có nút gia hạn
+  let expiredAt: string | null = null
+  let outline: { id: string; title: string; description: string | null }[] = []
+  if (!hasAccess && auth.user) {
+    const { data: approved } = await supabase
+      .from('registrations')
+      .select('access_until')
+      .eq('user_id', auth.user.id)
+      .eq('course_id', params.courseId)
+      .eq('status', 'approved')
+      .not('access_until', 'is', null)
+      .order('access_until', { ascending: false })
+      .limit(1)
+    expiredAt = approved?.[0]?.access_until ?? null
+    if (expiredAt) outline = (await supabase.rpc('course_outline', { target_course: params.courseId })).data ?? []
+  }
+
   return (
     <main>
       <section className="border-b border-ocean-100 bg-gradient-to-b from-ocean-50 to-white">
@@ -50,7 +68,32 @@ export default async function CourseDetailPage({
       </section>
 
       <section className="container-page max-w-4xl py-8 sm:py-10">
-        {!hasAccess ? (
+        {!hasAccess && expiredAt ? (
+          <>
+            <div role="status" className="card flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:text-left">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+                <ClockIcon className="h-6 w-6" />
+              </span>
+              <div className="flex-1">
+                <p className="font-semibold text-ocean-900">Gói tập đã hết hạn ngày {formatDate(expiredAt)}</p>
+                <p className="mt-1 text-sm text-slate-500">Tiến độ của bạn vẫn được giữ. Gia hạn để xem video và tập tiếp.</p>
+              </div>
+              <Link href={`/register?course=${params.courseId}`} className="btn-gold">
+                Gia hạn để tập tiếp
+              </Link>
+            </div>
+            {!!outline.length && (
+              <ol aria-label="Đề cương khóa học" className="card mt-6 divide-y divide-slate-100 overflow-hidden">
+                {outline.map((lesson, i) => (
+                  <li key={lesson.id} className="flex items-center gap-4 px-4 py-3 text-slate-500 sm:px-5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold">{i + 1}</span>
+                    <span className="min-w-0 flex-1 truncate">{lesson.title}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </>
+        ) : !hasAccess ? (
           <div className="card p-8 text-center">
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-gold-100 text-gold-700">
               <ShieldIcon className="h-6 w-6" />

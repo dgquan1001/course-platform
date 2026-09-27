@@ -40,7 +40,7 @@ nhiều tầng, phải sửa đồng bộ tất cả các tầng.
 | BR-31 | Mỗi đơn gắn với đúng 1 tài khoản và 1 khóa học lúc tạo, bắt buộc có ảnh chuyển khoản. Xóa tài khoản **giữ nguyên đơn** (`user_id` → `null`, còn snapshot họ tên/SĐT/email); đơn của tài khoản đã xóa không duyệt được, admin thấy "(tài khoản đã xóa)" (RK-03) | `registerAction`, `registrations.user_id … on delete set null`, `setRegistrationStatus` |
 | BR-32 | Ảnh chuyển khoản: JPG/PNG/WEBP/HEIC/HEIF, tối đa 5MB. Server xác định định dạng theo **nội dung file** (magic bytes), không tin MIME/đuôi file (RK-08) | Client, `lib/image-type.ts` + `registerAction`, cấu hình bucket |
 | BR-33 | Đơn mới luôn ở trạng thái `pending` | Default cột `status` |
-| BR-34 | Một học viên không thể có 2 đơn `pending`/`approved` cho cùng một khóa. Được đăng ký lại nếu đơn cũ bị `rejected`. Admin duyệt lại đơn cũ khi học viên đã có đơn khác đang hiệu lực cũng bị chặn | `registerAction` (thông báo thân thiện) + unique index một phần `registrations_active_key` (chặn gửi đồng thời, RK-07) |
+| BR-34 | ~~Một học viên không thể có 2 đơn `pending`/`approved` cho cùng một khóa~~ → thay bằng **BR-84** (Đợt 9: chỉ 1 đơn chờ duyệt; nhiều đơn đã duyệt = gia hạn). Nội dung cũ: Được đăng ký lại nếu đơn cũ bị `rejected`. Admin duyệt lại đơn cũ khi học viên đã có đơn khác đang hiệu lực cũng bị chặn | `registerAction` (thông báo thân thiện) + unique index một phần `registrations_active_key` (chặn gửi đồng thời, RK-07) |
 | BR-35 | Đơn chỉ được tạo từ server bằng service role; client không có quyền insert | Không có policy insert trên `registrations` |
 | BR-48 | Mỗi IP gửi tối đa **20 đơn / giờ** (tính các lần đã qua kiểm tra dữ liệu); nếu bật Turnstile thì phải qua xác minh chống bot. Yêu cầu mã quên mật khẩu tối đa 10 lần / giờ / IP | `registerAction`, `requestCode`, `lib/rate-limit.ts`, `lib/turnstile.ts` (RK-06) |
 | BR-49 | Đơn **chờ duyệt** của khóa **đã xóa**: học viên thấy "Khóa học đã ngừng… để được hỗ trợ hoàn tiền"; admin có tab "Khóa đã xóa – cần hoàn tiền" (chỉ hiện khi có đơn), liên hệ hoàn tiền rồi Từ chối kèm lý do | `app/courses/page.tsx`, `app/admin/page.tsx` (RK-04) |
@@ -99,20 +99,20 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | BR-74 | ✅ Khóa có 1 trong 3 loại: `free`, `program`, `premium`. Đổi loại khi đã có đơn đăng ký bị chặn | — | `courses_kind_check`, `readCourse`, `updateCourse` ("Không đổi được loại khóa khi khóa đã có đơn đăng ký.") |
 | BR-75 | ✅ Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | RLS `lessons_select` (`is_free_course()`), trang `/courses/[id]/**` (khách vào khóa khác → đăng nhập), `registerAction` (`kind = 'program'`); Đợt 10: `can_view_lesson` |
 | BR-76 | ✅ Khóa `premium`: không có buổi/bài, không có gói, không nhận đơn; hiển thị ảnh bìa, thông tin, giá (`courses.price`, `0` = "Liên hệ") và nút liên hệ Zalo | — | Trang chủ, `/khoa-hoc/[id]`, `course_outline` (bỏ premium), `registerAction`, `/courses/[id]` chuyển về trang giới thiệu |
-| BR-77 | Khóa `program` bán theo gói `months ∈ {1,3,6,12}`, mỗi chương trình tối đa 1 gói cho mỗi số tháng, giá riêng từng chương trình (0 – 1 tỷ), `sessions` = số buổi được mở, mặc định `12 × months` (1 – 500) | BR-21 | `course_plans` (unique `(course_id, months)`, `check`), action admin |
-| BR-78 | Chỉ nhận đơn cho chương trình đang hiển thị và gói đang bán; server tính lại giá theo gói, không tin client | BR-20 | `registerAction` |
-| BR-79 | Đơn lưu snapshot gói: `plan_id`, `plan_months`, `plan_sessions`, `amount`, cùng `course_title` như cũ | BR-38 | `registerAction`, `createPatientAction` |
+| BR-77 | ✅ Khóa `program` bán theo gói `months ∈ {1,3,6,12}`, mỗi chương trình tối đa 1 gói cho mỗi số tháng, giá riêng từng chương trình (0 – 1 tỷ), `sessions` = số buổi được mở, mặc định `12 × months` (1 – 500) | BR-21 | `course_plans` (unique `(course_id, months)`, `check`), `createPlan` / `updatePlan` / `deletePlan`; tạo chương trình có học phí → tự có gói 1 tháng (12 buổi) |
+| BR-78 | ✅ Chỉ nhận đơn cho chương trình đang hiển thị và gói đang bán; server tính lại giá theo gói, không tin client | BR-20 | `registerAction` |
+| BR-79 | ✅ Đơn lưu snapshot gói: `plan_id`, `plan_months`, `plan_sessions`, `amount`, cùng `course_title` như cũ | BR-38 | `registerAction`, `createPatientAction` |
 
 ### Hạn học & gia hạn (ADR-012)
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-80 | Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng bệnh nhân + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
-| BR-81 | Thu hồi (approved → rejected) xóa `access_starts_at/access_until` của đơn đó; không dời các đơn khác (có thể tạo khoảng trống – staff xử lý tay) | BR-42 | Trigger |
-| BR-82 | Bệnh nhân có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
-| BR-83 | Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
-| BR-84 | Mỗi bệnh nhân chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
-| BR-85 | Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `can_view_lesson`, UI |
+| BR-80 | ✅ Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng bệnh nhân + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
+| BR-81 | ✅ Thu hồi (approved → rejected) xóa `access_starts_at/access_until` của đơn đó; không dời các đơn khác (có thể tạo khoảng trống – staff xử lý tay) | BR-42 | Trigger |
+| BR-82 | ✅ Bệnh nhân có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
+| BR-83 | ✅ (hàm có sẵn, dùng ở Đợt 10) Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
+| BR-84 | ✅ Mỗi bệnh nhân chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
+| BR-85 | ✅ Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `has_course_access()` (RLS bài học), "Khóa học của tôi" (mục "Gói đã hết hạn"), `/courses/[id]` (đề cương + "Gia hạn để tập tiếp"); Đợt 10: `can_view_lesson` |
 
 ### Buổi, bài tập & tiến độ (ADR-013)
 

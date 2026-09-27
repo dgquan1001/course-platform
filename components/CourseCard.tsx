@@ -1,8 +1,26 @@
 import Link from 'next/link'
 import { formatPrice } from '@/lib/site-config'
-import { kindBadge } from '@/lib/courses'
+import { kindBadge, planLabel } from '@/lib/courses'
 import type { PublicCourse } from '@/lib/supabase/public'
 import CourseCover from './CourseCover'
+
+// Giá trên thẻ: chương trình lấy gói rẻ nhất ("Từ …") kèm các gói đang bán; miễn phí; premium theo giá khóa
+function PriceTag({ course }: { course: PublicCourse }) {
+  if (course.kind === 'free') return <span className="text-xl font-bold text-ocean-700">Miễn phí</span>
+  if (course.kind === 'premium' || !course.plans.length) {
+    return <span className="text-xl font-bold text-ocean-700">{formatPrice(course.kind === 'premium' ? course.price : 0)}</span>
+  }
+  const cheapest = Math.min(...course.plans.map((p) => p.price))
+  return (
+    <span>
+      <span className="block text-xl font-bold text-ocean-700">
+        <span className="text-sm font-medium text-slate-500">Từ </span>
+        {formatPrice(cheapest)}
+      </span>
+      <span className="block text-xs text-slate-500">Gói {course.plans.map((p) => planLabel(p.months)).join(' · ')}</span>
+    </span>
+  )
+}
 
 // Thẻ khóa học trên trang chủ: ảnh bìa, nhãn loại / nhóm bệnh, mô tả ngắn, giá và nút hành động
 export default function CourseCard({ course }: { course: PublicCourse }) {
@@ -22,18 +40,19 @@ export default function CourseCard({ course }: { course: PublicCourse }) {
         </h3>
         <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.summary || course.description}</p>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-          <span className="text-xl font-bold text-ocean-700">
-            {course.kind === 'free' ? 'Miễn phí' : formatPrice(course.price)}
-          </span>
+          <PriceTag course={course} />
           <div className="flex gap-2">
             {course.kind === 'program' ? (
               <>
                 <Link href={detailHref} className="btn-outline btn-sm">
                   Xem lộ trình
                 </Link>
-                <Link href={`/?course=${course.id}#dang-ky`} className="btn-gold btn-sm">
-                  Đăng ký
-                </Link>
+                {/* Chưa có gói đang bán thì chưa nhận đăng ký (giá hiện "Liên hệ") */}
+                {!!course.plans.length && (
+                  <Link href={`/?course=${course.id}#dang-ky`} className="btn-gold btn-sm">
+                    Đăng ký
+                  </Link>
+                )}
               </>
             ) : (
               <Link href={detailHref} className={course.kind === 'free' ? 'btn-primary btn-sm' : 'btn-gold btn-sm'}>

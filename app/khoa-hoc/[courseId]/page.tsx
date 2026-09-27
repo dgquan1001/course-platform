@@ -9,6 +9,7 @@ import CourseCover from '@/components/CourseCover'
 import { ArrowRightIcon, BookIcon, CheckIcon, PhoneIcon, PlayIcon } from '@/components/icons'
 import doctorPhoto from '@/public/images/bac-si-do-manh-cuong.jpg'
 import LeadDialog from '../LeadDialog'
+import PlanPicker from '../PlanPicker'
 
 // Trang tĩnh, làm mới tối đa mỗi 5 phút (admin sửa khóa học sẽ làm mới ngay)
 export const revalidate = 300
@@ -44,10 +45,10 @@ export default async function CourseLandingPage({ params }: Props) {
       ) : (
         <p className="text-center text-sm text-slate-500">Bài học đang được cập nhật.</p>
       )
+    ) : course.plans.length ? (
+      <PlanPicker courseId={course.id} plans={course.plans} />
     ) : (
-      <Link href={`/?course=${course.id}#dang-ky`} className="btn-gold w-full py-3 text-base">
-        Đăng ký chương trình <ArrowRightIcon className="h-5 w-5" />
-      </Link>
+      <p className="text-center text-sm text-slate-500">Chương trình sắp mở đăng ký. Nhắn Zalo để được tư vấn.</p>
     )
 
   return (
@@ -80,9 +81,11 @@ export default async function CourseLandingPage({ params }: Props) {
           <div className="card overflow-hidden shadow-lg shadow-ocean-900/10 lg:sticky lg:top-24">
             <CourseCover src={course.cover_image} alt={course.title} priority sizes="(min-width: 1024px) 360px, 100vw" />
             <div className="space-y-4 p-5">
-              <p className="text-3xl font-bold text-ocean-800">
-                {course.kind === 'free' ? 'Miễn phí' : formatPrice(course.price)}
-              </p>
+              {/* Chương trình: giá theo gói đã chọn (trong PlanPicker) */}
+              {course.kind !== 'program' && (
+                <p className="text-3xl font-bold text-ocean-800">{course.kind === 'free' ? 'Miễn phí' : formatPrice(course.price)}</p>
+              )}
+              {course.kind === 'program' && !course.plans.length && <p className="text-3xl font-bold text-ocean-800">Liên hệ</p>}
               {action}
               {course.kind !== 'premium' && (
                 <a href={siteConfig.zaloUrl} target="_blank" rel="noopener noreferrer" className="btn-outline w-full">

@@ -12,7 +12,7 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | Route | Quyền | Params / Query | Render | Mô tả |
 | --- | --- | --- | --- | --- |
 | `/` | Công khai | `?course=<uuid>` chọn sẵn khóa; `#dang-ky`, `#khoa-hoc`, `#bac-si`, `#lien-he` | ISR 300s | Landing + box đăng ký |
-| `/register` | Công khai | `?course=<uuid>` | ISR 300s | Trang đăng ký riêng |
+| `/register` | Công khai | `?course=<uuid>&plan=<uuid>` (Đợt 9) | ISR 300s | Trang đăng ký riêng |
 | `/login` | Công khai | `?error=<msg>&next=<path>` | Động | Đăng nhập |
 | `/forgot-password` | Công khai | — | Động | Quên mật khẩu 2 giai đoạn |
 | `/account` | Đăng nhập | — | Động | Tài khoản của tôi |
@@ -64,6 +64,7 @@ Quy ước chung:
 | (IP) | ≤ 20 đơn / giờ | "Bạn đã gửi quá nhiều đơn đăng ký. Vui lòng thử lại sau hoặc gọi … để được hỗ trợ." |
 | `password` | khách ✓ | ≥ 6 ký tự |
 | `courseId` | ✓ | tồn tại, `published` và `kind = 'program'`; lưu kèm snapshot `course_title`, `amount` vào đơn |
+| `planId` | ✓ | Gói `active` của đúng chương trình ("Gói không hợp lệ hoặc đã ngừng bán, vui lòng chọn lại."); học phí = giá gói; lưu `plan_id`, `plan_months`, `plan_sessions`, `source = web`, `payment_method = bank_transfer` (Đợt 9) |
 | `consent` | khách ✓ | `= 'yes'` → "Vui lòng đồng ý Chính sách bảo mật để tạo tài khoản."; lưu `consent_at`, `consent_version` vào profile |
 | `paymentProof` | ✓ | File, MIME/đuôi ∈ {png, jpg/jpeg, webp, heic, heif}, ≤ 5MB |
 
@@ -81,7 +82,7 @@ Quy ước chung:
 | Ảnh chuyển khoản phải là JPG, PNG, WEBP hoặc HEIC. | sai định dạng |
 | Ảnh chuyển khoản tối đa 5MB. | quá lớn |
 | Khóa học không tồn tại hoặc đã ngừng nhận đăng ký. | khóa không `published` |
-| Bạn đã sở hữu khóa học này… / Bạn đã đăng ký khóa này và đang chờ xác nhận. | đã đăng nhập, trùng đơn |
+| Bạn đã đăng ký khóa này và đang chờ xác nhận. | đã đăng nhập, đã có đơn chờ duyệt cho khóa này (đã sở hữu thì được gia hạn – Đợt 9) |
 | Số điện thoại này đã có tài khoản… | khách, SĐT trùng |
 | Email này đã có tài khoản… | khách, email trùng |
 | Không tạo được tài khoản / Không tải được ảnh / Không gửi được đơn: `<chi tiết>` | lỗi hạ tầng (đã rollback) |
@@ -143,8 +144,11 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
 | `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang."). Quyền: nhân viên hoặc admin; trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
-| `createCourse` | — | `title, description, price, sort_order, status`, `kind`, `category`, `summary`, `outcomes` (mỗi dòng 1 ý), `cover` (file) | Tải ảnh bìa lên `course-covers` (server client, RLS admin) rồi insert `courses`; lỗi thì xóa ảnh vừa tải | `Đã thêm khóa học "<title>".` |
+| `createCourse` | — | (Đợt 9: chương trình có `price` > 0 → tự tạo gói 1 tháng) `title, description, price, sort_order, status`, `kind`, `category`, `summary`, `outcomes` (mỗi dòng 1 ý), `cover` (file) | Tải ảnh bìa lên `course-covers` (server client, RLS admin) rồi insert `courses`; lỗi thì xóa ảnh vừa tải | `Đã thêm khóa học "<title>".` |
 | `updateCourse` | `courseId` | như trên + `remove_cover` | Chặn đổi loại khóa khi đã có đơn; thay ảnh bìa (xóa file cũ) | "Đã lưu thông tin khóa học." |
+| `createPlan` | `courseId` | `months` ∈ 1/3/6/12, `price`, `sessions` (trống = 12 × tháng) | insert `course_plans`; `23505` → "Chương trình đã có gói N tháng, hãy sửa gói đó." (Đợt 9) | `Đã thêm gói N tháng.` |
+| `updatePlan` | `planId`, `months` | `price`, `sessions`, `active` (checkbox) | update `course_plans` | `Đã lưu gói N tháng.` |
+| `deletePlan` | `planId` | — | delete (đơn giữ snapshot gói, `plan_id` → null) | "Đã xóa gói." |
 | `setLeadStatus` | `leadId`, `expected` (trạng thái đang thấy) | `status` ∈ new/contacted/converted/closed, `staff_note` ≤ 500 | update `leads` `.eq('status', expected)` (nhân viên, admin); 0 dòng → "Yêu cầu đã thay đổi (có thể người khác vừa xử lý)…" | "Đã ghi nhận: đã liên hệ khách."… |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
@@ -233,9 +237,9 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 | --- | --- | --- | --- |
 | `requireStaff()` | `lib/auth.ts` | — | ✅ Đợt 7: như `requireAdmin` cho `staff`/`admin`; `getCurrentUser()` trả thêm `role`, `isStaff` (`mustChangePassword`, `consentAt` ở Đợt 8, 11) |
 | `setUserRole(userId, formData)` | `app/admin/actions.ts` | Admin | ✅ Đợt 7 – `role ∈ user/staff/admin` (xem §3.6) |
-| `registerAction` | `app/register/actions.ts` | Công khai | Thêm `planId`, `consent` (khách mới); tính giá theo gói; chặn khi có đơn pending (BR-84) |
+| `registerAction` | `app/register/actions.ts` | Công khai | ✅ `consent` (Đợt 8), `planId` + giá theo gói + chỉ chặn đơn pending (Đợt 9) |
 | `createCourse` / `updateCourse` | admin | Admin | Thêm `kind`, `category`, `summary`, `outcomes`, `cover` (file ≤ 2MB, magic bytes) |
-| `upsertPlan(courseId, formData)`, `deletePlan(planId)` | admin | Admin | `months`, `sessions`, `price`, `active` |
+| `createPlan` / `updatePlan` / `deletePlan` | admin | Admin | ✅ Đợt 9 – xem §3.6 |
 | `generateSkeleton(courseId, formData)` | admin | Admin | `sessionCount` 1–200, `lessonsPerSession` 1–20; nối tiếp sau buổi cuối hiện có |
 | `createSession` / `updateSession` / `deleteSession` / `duplicateSession` / `moveSession` | admin | Admin | Quản lý buổi |
 | `createLesson` / `updateLesson` | admin | Admin | Thêm `session_id`; `video_url` không bắt buộc |

@@ -159,19 +159,20 @@ alter table public.registrations drop constraint if exists registrations_user_id
 alter table public.registrations add constraint registrations_user_id_fkey
   foreign key (user_id) references auth.users (id) on delete set null;
 
--- Mỗi học viên chỉ có 1 đơn đang chờ duyệt hoặc đã duyệt cho mỗi khóa (chặn gửi 2 đơn cùng lúc).
--- Nếu dữ liệu cũ đang có đơn trùng thì bỏ qua và cảnh báo: xử lý đơn trùng rồi chạy lại file này.
+-- Mỗi học viên chỉ có 1 đơn đang CHỜ DUYỆT cho mỗi khóa (chặn gửi 2 đơn cùng lúc). Từ v0.2 được có nhiều đơn
+-- đã duyệt cho cùng khóa (gia hạn gói, ADR-012) nên bỏ index cũ registrations_active_key (chờ duyệt + đã duyệt).
+drop index if exists public.registrations_active_key;
 do $$
 begin
   if exists (
     select 1 from public.registrations
-    where status in ('pending', 'approved') and user_id is not null and course_id is not null
+    where status = 'pending' and user_id is not null and course_id is not null
     group by user_id, course_id having count(*) > 1
   ) then
-    raise warning 'Có đơn trùng (cùng học viên, cùng khóa, đang chờ/đã duyệt): chưa tạo được registrations_active_key';
+    raise warning 'Có đơn trùng (cùng học viên, cùng khóa, đang chờ duyệt): chưa tạo được registrations_pending_key';
   else
-    create unique index if not exists registrations_active_key
-      on public.registrations (user_id, course_id) where status in ('pending', 'approved');
+    create unique index if not exists registrations_pending_key
+      on public.registrations (user_id, course_id) where status = 'pending';
   end if;
 end $$;
 
@@ -181,6 +182,52 @@ alter table public.registrations add column if not exists reviewed_by_name text;
 
 -- Lý do từ chối / thu hồi (học viên thấy ở "Đơn chưa được xác nhận")
 alter table public.registrations add column if not exists review_note text;
+
+-- ------------------------------------------------------------
+-- Gói theo thời hạn của chương trình (v0.2, ADR-012): 1 / 3 / 6 / 12 tháng, giá riêng từng chương trình,
+-- số buổi được mở (mặc định 12 × số tháng). Chỉ admin sửa; ai cũng xem gói đang bán.
+-- ------------------------------------------------------------
+create table if not exists public.course_plans (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references public.courses (id) on delete cascade,
+  months int not null check (months in (1, 3, 6, 12)),
+  sessions int not null check (sessions between 1 and 500),
+  price int not null check (price between 0 and 1000000000),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (course_id, months)
+);
+
+-- Chương trình cũ có học phí nhưng chưa có gói: tạo gói 1 tháng (12 buổi) theo học phí cũ
+insert into public.course_plans (course_id, months, sessions, price)
+select c.id, 1, 12, c.price
+from public.courses c
+where c.kind = 'program' and c.price > 0
+  and not exists (select 1 from public.course_plans p where p.course_id = c.id)
+on conflict (course_id, months) do nothing;
+
+-- Đơn đăng ký lưu ảnh chụp gói lúc đăng ký, nguồn đơn, hình thức thanh toán và hạn học.
+-- Đơn cũ (v0.1) không có gói: hạn học null = không thời hạn, mở mọi buổi.
+alter table public.registrations add column if not exists plan_id uuid references public.course_plans (id) on delete set null;
+alter table public.registrations add column if not exists plan_months int;
+alter table public.registrations add column if not exists plan_sessions int;
+-- web: khách tự đăng ký (bắt buộc ảnh chuyển khoản) · staff: nhân viên cấp gói (ảnh không bắt buộc – Đợt 11)
+alter table public.registrations add column if not exists source text not null default 'web';
+alter table public.registrations drop constraint if exists registrations_source_check;
+alter table public.registrations add constraint registrations_source_check check (source in ('web', 'staff'));
+alter table public.registrations add column if not exists payment_method text not null default 'bank_transfer';
+alter table public.registrations drop constraint if exists registrations_payment_method_check;
+alter table public.registrations add constraint registrations_payment_method_check
+  check (payment_method in ('bank_transfer', 'cash', 'other'));
+alter table public.registrations add column if not exists payment_note text;
+alter table public.registrations add column if not exists created_by uuid references public.profiles (id) on delete set null;
+alter table public.registrations add column if not exists access_starts_at timestamptz;
+alter table public.registrations add column if not exists access_until timestamptz;
+alter table public.registrations alter column payment_proof_path drop not null;
+alter table public.registrations drop constraint if exists registrations_proof_check;
+alter table public.registrations add constraint registrations_proof_check
+  check (source = 'staff' or payment_proof_path is not null);
+create index if not exists registrations_access_idx on public.registrations (user_id, course_id, status, access_until);
 
 -- Lịch sử xử lý đơn: mỗi lần đổi trạng thái ghi 1 dòng. Chỉ trigger ghi; admin chỉ đọc, không ai sửa/xóa qua API.
 create table if not exists public.registration_events (
@@ -208,7 +255,23 @@ declare
   actor_name text := (
     select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid()
   );
+  current_until timestamptz;
 begin
+  -- Người dùng đăng nhập (nhân viên, admin) chỉ đổi trạng thái và lý do: gói, học phí, nguồn, thanh toán, hạn học
+  -- giữ nguyên. Service role (server, script) được sửa trực tiếp.
+  if auth.uid() is not null then
+    new.plan_id := old.plan_id;
+    new.plan_months := old.plan_months;
+    new.plan_sessions := old.plan_sessions;
+    new.amount := old.amount;
+    new.source := old.source;
+    new.payment_method := old.payment_method;
+    new.payment_note := old.payment_note;
+    new.created_by := old.created_by;
+    new.access_starts_at := old.access_starts_at;
+    new.access_until := old.access_until;
+  end if;
+
   if new.status is distinct from old.status then
     new.review_note := nullif(btrim(new.review_note), '');
     if new.status = 'pending' then
@@ -221,6 +284,27 @@ begin
       new.reviewed_by := auth.uid();
       new.reviewed_by_name := actor_name;
     end if;
+
+    -- Hạn học (ADR-012): duyệt → tính từ max(bây giờ, hạn cuối hiện tại của học viên cho khóa này) + số tháng của gói
+    -- (gia hạn khi còn hạn thì cộng dồn). Đơn không có gói (v0.1) = không thời hạn. Rời trạng thái duyệt → xóa hạn.
+    if new.status = 'approved' then
+      if new.plan_months is null or new.user_id is null or new.course_id is null then
+        new.access_starts_at := null;
+        new.access_until := null;
+      else
+        -- Xếp hàng các lần duyệt của cùng học viên + khóa để không cộng dồn sai khi duyệt đồng thời
+        perform pg_advisory_xact_lock(hashtext('registration_access:' || new.user_id || ':' || new.course_id));
+        select max(access_until) into current_until
+        from public.registrations
+        where user_id = new.user_id and course_id = new.course_id and status = 'approved' and id <> new.id;
+        new.access_starts_at := greatest(now(), coalesce(current_until, now()));
+        new.access_until := new.access_starts_at + make_interval(months => new.plan_months);
+      end if;
+    elsif old.status = 'approved' then
+      new.access_starts_at := null;
+      new.access_until := null;
+    end if;
+
     insert into public.registration_events (registration_id, actor, actor_name, from_status, to_status, note)
     values (new.id, auth.uid(), actor_name, old.status, new.status, new.review_note);
   else
@@ -445,7 +529,8 @@ as $$
   );
 $$;
 
--- User được xem bài học của khóa khi có đơn đăng ký đã duyệt (nhân viên, admin xem tất cả)
+-- User được xem bài học của khóa khi có đơn đăng ký đã duyệt CÒN HẠN (nhân viên, admin xem tất cả).
+-- Đơn cũ không có gói (access_until null) = không thời hạn. Hết hạn: mất quyền xem bài, vẫn thấy đơn / tiến độ.
 create or replace function public.has_course_access(target_course uuid)
 returns boolean
 language sql
@@ -456,7 +541,25 @@ as $$
   select public.is_staff() or exists (
     select 1 from public.registrations
     where user_id = auth.uid() and course_id = target_course and status = 'approved'
+      and (access_until is null or access_until > now())
   );
+$$;
+
+-- Số buổi đã mua của người đang đăng nhập cho một chương trình: tổng số buổi các gói đã duyệt (kể cả đã hết hạn,
+-- để gia hạn thì học tiếp). null = không giới hạn (có đơn cũ không có gói). Dùng cho mở buổi tuần tự (Đợt 10).
+create or replace function public.purchased_sessions(target_course uuid)
+returns int
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select case
+    when bool_or(plan_sessions is null) then null
+    else sum(plan_sessions)::int
+  end
+  from public.registrations
+  where user_id = auth.uid() and course_id = target_course and status = 'approved';
 $$;
 
 -- Khóa miễn phí đang hiển thị: ai cũng xem được bài học, không cần đăng nhập
@@ -526,6 +629,21 @@ create policy "courses_admin_update" on public.courses for update
   using (public.is_admin());
 drop policy if exists "courses_admin_delete" on public.courses;
 create policy "courses_admin_delete" on public.courses for delete
+  using (public.is_admin());
+
+-- course_plans: ai cũng xem gói đang bán (trang giới thiệu, box đăng ký); chỉ admin thêm / sửa / xóa và xem gói đã tắt
+alter table public.course_plans enable row level security;
+drop policy if exists "course_plans_select" on public.course_plans;
+create policy "course_plans_select" on public.course_plans for select
+  using (active or public.is_admin());
+drop policy if exists "course_plans_admin_insert" on public.course_plans;
+create policy "course_plans_admin_insert" on public.course_plans for insert
+  with check (public.is_admin());
+drop policy if exists "course_plans_admin_update" on public.course_plans;
+create policy "course_plans_admin_update" on public.course_plans for update
+  using (public.is_admin());
+drop policy if exists "course_plans_admin_delete" on public.course_plans;
+create policy "course_plans_admin_delete" on public.course_plans for delete
   using (public.is_admin());
 
 -- lessons: khóa miễn phí đang hiển thị thì ai cũng xem; khóa khác chỉ học viên đã được duyệt khóa đó

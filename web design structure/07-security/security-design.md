@@ -50,6 +50,7 @@
 
 ### 3.1. Ma trận phân quyền phiên bản 0.2 (ADR-011)
 
+> Đợt 9: chỉ admin quản lý gói; nhân viên / admin không sửa tay được gói, học phí, hạn học của đơn (trigger); bài học theo hạn học.
 > Đợt 7 đã triển khai: vai trò staff, duyệt đơn, đọc đơn / lịch sử / ảnh chuyển khoản / học viên, xem trước khóa học, sửa profile `role = user`
 > ở database, chặn đổi vai trò & sửa khóa học. Các dòng khác áp dụng khi đợt tương ứng hoàn thành.
 
@@ -113,11 +114,13 @@
 | T22 | Clickjacking, nhúng script lạ, lộ công nghệ | Tampering / Info disclosure | ✅ CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn script/frame/ảnh giới hạn), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS, tắt `X-Powered-By` (RV-16) | Thấp. `script-src` còn `'unsafe-inline'` (Next.js); nâng cấp dùng nonce khi cần |
 | T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
 | T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | ✅ Đợt 7: trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` (E2E TC-65) | Thấp |
-| T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (đơn approved không ảnh) | Repudiation / Fraud | Bắt buộc số tiền + hình thức; `created_by`, người xử lý, lịch sử do trigger ghi; admin xem doanh thu theo nhân viên | Trung bình – quy trình đối soát định kỳ |
+| T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (Đợt 9: staff không sửa được học phí / hạn học của đơn có sẵn – TC-76) (đơn approved không ảnh) | Repudiation / Fraud | Bắt buộc số tiền + hình thức; `created_by`, người xử lý, lịch sử do trigger ghi; admin xem doanh thu theo nhân viên | Trung bình – quy trình đối soát định kỳ |
 | T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | Hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
 | T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | `video_url` không cấp `select` cho client; chỉ `get_lesson_video` + `can_view_lesson`; RLS `lesson_progress` | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |
 | T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | RLS chỉ chủ phiếu / staff / admin; không có trang công khai; đồng ý xử lý dữ liệu | Thấp–Trung bình |
 | T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | ✅ Đợt 8: rate limit 20 lead/giờ/IP (`lead:<IP>`); phiếu tham vấn: 5 phiếu/ngày/bệnh nhân; Turnstile nếu bật | Thấp |
+| T31 *(v0.2)* | Bệnh nhân sửa giá gói ở trình duyệt / gửi gói của chương trình khác | Tampering | ✅ Đợt 9: server lấy giá từ `course_plans` đúng chương trình, gói phải đang bán (TC-75) | Thấp |
+| T32 *(v0.2)* | Kéo dài hạn học trái phép | Elevation | ✅ Đợt 9: hạn học chỉ do trigger tính khi duyệt; người có phiên đăng nhập không ghi được `access_*` (TC-76) | Thấp |
 | T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | ✅ Đợt 8: chỉ admin (RLS storage, E2E khách / nhân viên bị chặn); kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)

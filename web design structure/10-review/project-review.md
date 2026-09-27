@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 9, xem §7.5)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng.
   Chưa chạy lại `build`/`test:e2e` trong lần review này.
 
@@ -214,6 +214,31 @@ Còn mở: chặn gỡ **admin cuối cùng** mới kiểm tra bằng đọc cod
 Xác minh: schema Đợt 4–5 đã chạy trên Supabase; E2E **63/63 PASS** (26/09/2026), dữ liệu test dọn sạch.
 Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadmap.md](roadmap.md) §2–3.
 
+### 7.5. Review phiên bản 0.2 – Đợt 7 → 9 (cập nhật 27/09/2026)
+
+Định vị lại sản phẩm (chương trình phục hồi chức năng cho bệnh nhân) – yêu cầu ở [project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026),
+kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự-thực-hiện).
+
+| Đợt | Nội dung | Trạng thái | Kiểm thử |
+| --- | --- | --- | --- |
+| 7 | Vai trò `staff` (ADR-011): `is_staff()`, RLS, trigger chỉ admin đổi vai trò, `/admin/registrations`, ô chọn vai trò, menu theo quyền | ✅ `c3d08a5` | E2E 67/67 (TC-65 → TC-67) |
+| 8 | Loại khóa, nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý (RV-17) | ✅ `1251587` (nội dung chính sách chờ A-7) | E2E 73/73 (TC-68 → TC-73) |
+| 9 | Gói 1/3/6/12 tháng (`course_plans`), chọn gói khi đăng ký, snapshot gói trên đơn, hạn học cộng dồn do trigger tính, chỉ 1 đơn chờ duyệt / khóa, "Gói đã hết hạn" + gia hạn, cột Gói / Hạn học ở bảng đơn | 🟡 Code xong, chờ chạy schema + E2E | TC-74 → TC-78 |
+
+**Risk case mới phát hiện khi làm v0.2**
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
+| --- | --- | --- | --- | --- | --- |
+| RK-16 | 🟡 | Thu hồi một đơn nằm giữa chuỗi gia hạn không dời hạn của các đơn sau → có "khoảng trống" | 📖 trigger tính hạn theo `max(access_until)` lúc duyệt | Bệnh nhân có thể mất vài ngày / tháng hạn học nếu nhân viên thu hồi nhầm rồi duyệt lại | Chấp nhận theo ADR-012; khi cần, nhân viên cấp gói bù (Đợt 11). Ghi vào hướng dẫn vận hành |
+| RK-17 | 🔵 | Chuyển hướng trong server component (`redirect()` ở trang khóa khi khách chưa đăng nhập, `/admin` → `/admin/registrations`) được thực hiện **phía trình duyệt** sau khi trang bắt đầu trả về | 👁 E2E Đợt 7, 8 phải chờ URL cuối | Không lộ dữ liệu (nội dung trả phí không render), chỉ thêm 1 bước tải | Chấp nhận. Có thể chuyển các kiểm tra này vào middleware nếu cần mã 307 thật (VD SEO) |
+| RK-18 | 🟡 | `courses.price` của chương trình chỉ dùng để tạo sẵn gói 1 tháng khi tạo khóa; sửa ô "Giá" sau đó **không** đổi giá gói | 📖 `createCourse`, `PlanTable` | Admin có thể nhầm tưởng đã đổi học phí | Nhãn ô Giá đã ghi rõ; Đợt 10: ẩn ô Giá khi sửa chương trình, chỉ sửa ở bảng gói |
+| RK-19 | 🟡 | Chương trình tắt / xóa hết gói → không nhận đăng ký, bệnh nhân không tự gia hạn được trên web | 📖 `getRegistrableCourses` | Mất doanh thu gia hạn nếu admin tắt nhầm | Bảng gói cảnh báo đỏ "chưa có gói"; nhân viên cấp gói qua Zalo (Đợt 11) |
+| RK-20 | 🟠 | Nội dung Chính sách bảo mật do đội phát triển soạn, có cam kết (thời hạn lưu, phản hồi 72 giờ) chưa được trung tâm / pháp lý duyệt | 📖 `app/chinh-sach-bao-mat/page.tsx` | Rủi ro pháp lý khi thu thập dữ liệu sức khỏe | Chủ dự án duyệt trước khi quảng bá (roadmap A-7) |
+| RK-21 | 🟡 | Tính hạn "+ N tháng" theo lịch UTC của Postgres: duyệt ngày 31 → tháng sau không có ngày 31 thì về ngày cuối tháng | 📖 `make_interval(months => n)` | Chênh 1–3 ngày ở cuối tháng, hiển thị theo giờ Việt Nam | Chấp nhận; ghi chú trong BR-80 |
+
+Xác minh Đợt 7, 8: schema đã chạy trên Supabase, E2E PASS, dữ liệu test dọn sạch. Đợt 9: chờ chạy schema + E2E.
+Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
+
 ### Đã kiểm tra – **không** phải rủi ro
 
 | Nghi vấn | Kết quả |
@@ -234,7 +259,10 @@ Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadm
 | ~~Đợt 3 – Nhiều admin~~ | ~~RK-11, RK-14, RK-12 + R-05, RK-13~~ – ✅ xong 26/09/2026, E2E 57/57 (xem §7.3) | — |
 | ~~Đợt 4 – Vận hành an toàn~~ | ~~RK-10 (rào chặn + hướng dẫn staging), CI, RV-13, RV-03~~ – ✅ 26/09/2026, chờ chủ dự án tạo staging (xem §7.4) | — |
 | ~~Đợt 5 – Chống lạm dụng & dữ liệu~~ | ~~RK-06 / RV-04, RK-08, RK-04, RV-16~~ – ✅ 26/09/2026 (xem §7.4) | — |
-| **Tiếp theo** | ~~Đợt 6 hạ tầng → Đợt 7 tài khoản & thông báo → …~~ (bản 26/09). Từ 27/09/2026 theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3: Đợt 7 vai trò staff → 8 danh mục & premium → 9 gói & hạn học → 10 buổi – bài & trình học → 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
+| ~~Đợt 7 – Vai trò staff~~ | ✅ 27/09/2026, E2E 67/67 (xem §7.5) | — |
+| ~~Đợt 8 – Danh mục, premium, chính sách~~ | ✅ 27/09/2026, E2E 73/73 (xem §7.5) | — |
+| Đợt 9 – Gói tháng & hạn học | 🟡 Code xong 27/09/2026, chờ schema + E2E (xem §7.5) | — |
+| **Tiếp theo** | Theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3: Đợt 10 buổi – bài & trình học → 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;
 có staging mới test được "admin cuối cùng" (G-12). Sau đó Đợt 5 (chống lạm dụng) trước khi quảng bá rộng.

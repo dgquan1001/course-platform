@@ -74,6 +74,8 @@ app/
 ├─ chinh-sach-bao-mat/page.tsx        # ✅ Chính sách bảo mật                      – Đợt 8
 ├─ admin/courses/CoverInput.tsx       # ✅ 'use client' chọn / nén ảnh bìa         – Đợt 8
 ├─ admin/leads/page.tsx               # ✅ Khách quan tâm (setLeadStatus trong admin/actions.ts) – Đợt 8
+├─ admin/courses/PlanTable.tsx        # ✅ Bảng gói theo thời hạn (createPlan / updatePlan / deletePlan) – Đợt 9
+├─ khoa-hoc/PlanPicker.tsx            # ✅ 'use client' chọn gói ở trang giới thiệu – Đợt 9
 ├─ courses/
 │  ├─ actions.ts                      # toggleLessonProgress, submitConsultationAction – Đợt 10, 12
 │  ├─ consultation/page.tsx           # Phiếu tham vấn                             – Đợt 12
@@ -94,7 +96,7 @@ components/
 lib/
 ├─ auth.ts                            # + role, requireStaff
 ├─ password.ts                        # + generatePassword (CSPRNG, bảng chữ dễ đọc)
-├─ ✅ courses.ts                      # Loại khóa, nhóm bệnh, nhãn (Đợt 8); formatPlan ở Đợt 9
+├─ ✅ courses.ts                      # Loại khóa, nhóm bệnh, nhãn (Đợt 8); PLAN_MONTHS, planLabel, sortPlans, daysLeft, formatDate (Đợt 9)
 ├─ ✅ consent.ts, compress-image.ts    # Phiên bản chính sách; nén ảnh dùng chung (Đợt 8)
 ├─ ✅ supabase/public.ts               # getPublishedCourses, getRegistrableCourses, getPublicCourse, getCourseOutline
 └─ progress.ts                        # Gọi RPC course_progress, gom tiến độ nhiều khóa

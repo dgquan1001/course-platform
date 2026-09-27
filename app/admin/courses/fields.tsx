@@ -57,7 +57,7 @@ export function CourseFields({ values = {} }: { values?: CourseValues }) {
         <textarea name="description" rows={3} defaultValue={values.description ?? ''} className="input" />
       </div>
       <div>
-        <label className="label">Giá (VNĐ, 0 = Liên hệ; khóa miễn phí bỏ qua)</label>
+        <label className="label">Giá (VNĐ) – chương trình: giá gói 1 tháng khi tạo mới; premium: giá hiển thị</label>
         <input name="price" type="number" min={0} step={1000} defaultValue={values.price ?? 0} className="input" />
       </div>
       <div>

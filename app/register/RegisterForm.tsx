@@ -11,6 +11,7 @@ import type { PublicCourse } from '@/lib/supabase/public'
 import { realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import { compressImage, formatSize } from '@/lib/compress-image'
+import { formatDate, planLabel } from '@/lib/courses'
 import { CheckIcon, CopyIcon, SpinnerIcon, UploadIcon } from '@/components/icons'
 import { registerAction, type RegisterState } from './actions'
 
@@ -84,8 +85,12 @@ type Proof = { url: string; original: number; final: number }
 export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   const searchParams = useSearchParams()
   const requestedCourse = searchParams.get('course')
+  const requestedPlan = searchParams.get('plan')
   const [state, formAction] = useFormState<RegisterState, FormData>(registerAction, { error: null })
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '')
+  const [planId, setPlanId] = useState(courses[0]?.plans[0]?.id ?? '')
+  // Hạn học hiện tại của tài khoản đang đăng nhập theo từng chương trình (để báo gói mới được cộng dồn)
+  const [accessUntil, setAccessUntil] = useState<Record<string, string>>({})
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -106,10 +111,18 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   }
   useEffect(renderCaptcha, [])
 
-  // Nút "Đăng ký" của từng khóa học (?course=...) chọn sẵn khóa đó
+  // Nút "Đăng ký" / "Gia hạn" (?course=...&plan=...) chọn sẵn chương trình và gói
   useEffect(() => {
-    if (requestedCourse && courses.some((c) => c.id === requestedCourse)) setCourseId(requestedCourse)
-  }, [requestedCourse, courses])
+    const course = courses.find((c) => c.id === requestedCourse)
+    if (!course) return
+    setCourseId(course.id)
+    setPlanId(course.plans.find((p) => p.id === requestedPlan)?.id ?? course.plans[0]?.id ?? '')
+  }, [requestedCourse, requestedPlan, courses])
+
+  function chooseCourse(id: string) {
+    setCourseId(id)
+    setPlanId(courses.find((c) => c.id === id)?.plans[0]?.id ?? '')
+  }
 
   // Đã đăng nhập: điền sẵn thông tin, không cần tạo mật khẩu
   useEffect(() => {
@@ -124,6 +137,17 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
       setAccount(realEmail(session.user.email) ?? profile?.phone ?? '')
       setFullName((v) => v || profile?.full_name || '')
       setPhone((v) => v || profile?.phone || '')
+      const { data: approved } = await supabase
+        .from('registrations')
+        .select('course_id, access_until')
+        .eq('user_id', session.user.id)
+        .eq('status', 'approved')
+        .gt('access_until', new Date().toISOString())
+      const until: Record<string, string> = {}
+      for (const r of approved ?? []) {
+        if (r.course_id && r.access_until && (!until[r.course_id] || r.access_until > until[r.course_id])) until[r.course_id] = r.access_until
+      }
+      setAccessUntil(until)
     })
   }, [])
 
@@ -174,7 +198,9 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   }
 
   const course = courses.find((c) => c.id === courseId)
-  const amount = course?.price ?? 0
+  const plan = course?.plans.find((p) => p.id === planId)
+  const amount = plan?.price ?? 0
+  const currentUntil = course ? accessUntil[course.id] : undefined
   const transferContent = phone.replace(/\D/g, '') || 'SDT cua ban'
   const noCourses = courses.length === 0
 
@@ -215,7 +241,7 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Số tiền và mã QR tự cập nhật theo khóa học bạn chọn ở Bước 3.
+              Số tiền và mã QR tự cập nhật theo chương trình và gói bạn chọn ở Bước 3.
             </p>
           </section>
 
@@ -322,14 +348,14 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
             )}
 
             <div>
-              <label htmlFor="courseId" className="label">Chọn khóa học *</label>
+              <label htmlFor="courseId" className="label">Chọn chương trình *</label>
               <select
                 id="courseId"
                 name="courseId"
                 required
                 disabled={noCourses}
                 value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
+                onChange={(e) => chooseCourse(e.target.value)}
                 className="input disabled:bg-slate-50"
               >
                 {noCourses ? (
@@ -337,7 +363,7 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
                 ) : (
                   courses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} – {formatPrice(c.price)}
+                      {c.title} – từ {formatPrice(Math.min(...c.plans.map((p) => p.price)))}
                     </option>
                   ))
                 )}
@@ -348,6 +374,44 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
                 </p>
               )}
             </div>
+
+            {!!course?.plans.length && (
+              <fieldset>
+                <legend className="label">Chọn gói *</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {course.plans.map((p) => (
+                    <label
+                      key={p.id}
+                      className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border-2 px-3 py-2.5 transition ${
+                        p.id === planId ? 'border-ocean-500 bg-ocean-50' : 'border-slate-200 bg-white hover:border-ocean-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="planId"
+                          value={p.id}
+                          checked={p.id === planId}
+                          onChange={() => setPlanId(p.id)}
+                          className="accent-ocean-600"
+                        />
+                        <span>
+                          <span className="block font-semibold text-ocean-900">Gói {planLabel(p.months)}</span>
+                          <span className="block text-xs text-slate-500">{p.sessions} buổi tập</span>
+                        </span>
+                      </span>
+                      <span className="font-bold text-ocean-700">{formatPrice(p.price)}</span>
+                    </label>
+                  ))}
+                </div>
+                {currentUntil && (
+                  <p className="mt-2 text-sm text-ocean-800">
+                    Bạn đang học chương trình này tới <strong>{formatDate(currentUntil)}</strong>. Gói mới sẽ được{' '}
+                    <strong>cộng thêm</strong> vào hạn học sau khi trung tâm xác nhận.
+                  </p>
+                )}
+              </fieldset>
+            )}
 
             <div>
               <span className="label">Ảnh chụp chuyển khoản *</span>
@@ -397,7 +461,8 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               <span className="min-w-0 text-sm text-slate-700">
                 {course ? (
                   <>
-                    Khóa học: <span className="font-semibold text-ocean-900">{course.title}</span>
+                    <span className="font-semibold text-ocean-900">{course.title}</span>
+                    {plan && <> · Gói {planLabel(plan.months)}</>}
                   </>
                 ) : (
                   'Chưa chọn khóa học'

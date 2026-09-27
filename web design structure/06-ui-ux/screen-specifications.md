@@ -241,6 +241,7 @@ Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc k
 Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân viên], không có tab Khóa học
  Đơn đăng ký | Học viên | Khóa học
 [Chờ duyệt (3)] [Đã duyệt (40)] [Từ chối (2)] [Tất cả (45)]
+Đợt 9 thêm cột **Gói** (sau Khóa học: "1 tháng · 12 buổi" + "Web · Chuyển khoản") và **Hạn học** (sau Trạng thái: ngày hết hạn, "Đã hết hạn", "Không thời hạn" với đơn cũ).
 ┌────┬──────┬──────────┬─────────┬──────────┬────────┬─────────┬──────────┬─────────┬──────────┬───────────┬────────────────┐
 │STT │Ảnh CK│Họ và tên │Email    │SĐT       │Khóa học│Học phí  │Ngày ĐK   │Trạng thái│Ngày xử lý│Người xử lý│ Thao tác (sticky)│
 ├────┼──────┼──────────┼─────────┼──────────┼────────┼─────────┼──────────┼─────────┼──────────┼───────────┼────────────────┤
@@ -335,7 +336,7 @@ thanh tiến độ nhỏ, nút hành động rõ ràng. Giữ màu ocean/gold v�
 
 ## SCR-16 – Giới thiệu khóa `/khoa-hoc/:id`
 
-> ✅ Đợt 8: dải tiêu đề, "Bạn sẽ đạt được", đề cương phẳng (tên bài, không có video), giới thiệu, bác sĩ; khung hành động dính bên phải (điện thoại: ngay dưới tiêu đề) với học phí khóa. Chọn gói ở Đợt 9, đề cương theo buổi ở Đợt 10.
+> ✅ Đợt 8: dải tiêu đề, "Bạn sẽ đạt được", đề cương phẳng (tên bài, không có video), giới thiệu, bác sĩ; khung hành động dính bên phải (điện thoại: ngay dưới tiêu đề) với học phí khóa. Chọn gói ✅ Đợt 9 (`PlanPicker`: gói, số buổi, "tiết kiệm …" so với gói 1 tháng, nút "Đăng ký gói N tháng" → `/?course=&plan=#dang-ky`); đề cương theo buổi ở Đợt 10.
 
 ```text
 ┌─ Dải tiêu đề (nền ocean-900, chữ trắng) ───────────────────────┐ ┌ Khung giá (sticky lg) ────┐
@@ -363,7 +364,7 @@ Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đ�
 
 ## SCR-17 – Box đăng ký có chọn gói (sửa SCR-03)
 
-> ✅ Đợt 8: ô đồng ý Chính sách bảo mật (chỉ khách tạo tài khoản mới); ô chọn khóa chỉ có chương trình. Chọn gói ở Đợt 9.
+> ✅ Đợt 8: ô đồng ý Chính sách bảo mật (chỉ khách tạo tài khoản mới); ô chọn khóa chỉ có chương trình. ✅ Đợt 9: "Chọn chương trình" + nút chọn gói (radio `planId`), QR theo giá gói, dòng "Bạn đang học chương trình này tới … – gói mới sẽ cộng thêm".
 
 - Bước 3: "Chọn chương trình *" rồi các nút chọn **gói** (1/3/6/12 tháng kèm giá, số buổi); QR và dòng "Số tiền" cập nhật theo gói.
 - Ô tick bắt buộc (khách mới): "Tôi đồng ý với [Chính sách bảo mật] và cho phép trung tâm lưu thông tin sức khỏe để hướng dẫn tập luyện."
@@ -371,6 +372,8 @@ Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đ�
 - Có đơn chờ duyệt cho chương trình: báo ngay trên form, không cho gửi.
 
 ## SCR-18 – Khóa học của tôi (sửa SCR-07)
+
+> ✅ Đợt 9: thẻ khóa có nhãn "Còn N ngày" (vàng khi ≤ 7 ngày), nút "Gia hạn" (chương trình có gói) và "Vào học"; mục riêng **"Gói đã hết hạn"** (nhãn đỏ, "Xem khóa học", "Gia hạn để tập tiếp"). Trang khóa khi hết hạn: "Gói tập đã hết hạn ngày …", đề cương không có video, nút gia hạn. Thanh tiến độ ở Đợt 10.
 
 ```text
 Xin chào, Mai / Khóa học của tôi                           [📝 Gửi phiếu tham vấn]
@@ -477,7 +480,7 @@ hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (than
 
 ## SCR-26 – Admin: Khóa học (sửa SCR-12)
 
-> ✅ Đợt 8: loại, nhóm bệnh, ảnh bìa (nén trên trình duyệt, xem trước, "Xóa ảnh bìa hiện tại"), mô tả ngắn, "Bạn sẽ đạt được"; thẻ khóa có ảnh nhỏ, nhãn loại, nút "Xem trang giới thiệu"; khóa premium không có "Quản lý bài học". Bảng gói ở Đợt 9, số buổi × số bài ở Đợt 10.
+> ✅ Đợt 8: loại, nhóm bệnh, ảnh bìa (nén trên trình duyệt, xem trước, "Xóa ảnh bìa hiện tại"), mô tả ngắn, "Bạn sẽ đạt được"; thẻ khóa có ảnh nhỏ, nhãn loại, nút "Xem trang giới thiệu"; khóa premium không có "Quản lý bài học". ✅ Đợt 9: bảng **Gói theo thời hạn** trong thẻ chương trình (sửa giá / số buổi / đang bán, xóa có xác nhận, thêm gói còn thiếu; cảnh báo đỏ khi chưa có gói); tạo chương trình có học phí → tự có gói 1 tháng. Số buổi × số bài ở Đợt 10.
 Form khóa thêm: Loại (Miễn phí / Chương trình / Premium), Nhóm (Vẹo lưng / Vẹo ngực / Không), Ảnh bìa (xem trước 16:9), Mô tả ngắn,
 "Bạn sẽ đạt được" (mỗi dòng một ý), Giá (chỉ premium). Khi tạo chương trình: ô **Số buổi** và **Số bài mỗi buổi** (mặc định 12 × 6).
 Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổi · Đang bán / Tắt · [Sửa] [Xóa].

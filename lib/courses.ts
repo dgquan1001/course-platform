@@ -26,3 +26,25 @@ export function kindBadge(kind: string, category: string | null) {
   if (kind === 'premium') return { label: 'Premium', className: 'bg-gold-200 text-ocean-950' }
   return { label: categoryLabel(category) ?? 'Chương trình', className: 'bg-ocean-100 text-ocean-700' }
 }
+
+// ---------- Gói theo thời hạn (ADR-012) ----------
+
+export const PLAN_MONTHS = [1, 3, 6, 12] as const
+export const SESSIONS_PER_MONTH = 12
+
+export type Plan = { id: string; months: number; sessions: number; price: number; active?: boolean }
+
+export const planLabel = (months: number) => `${months} tháng`
+
+// Gói đang bán, sắp theo số tháng tăng dần
+export const sortPlans = <T extends { months: number }>(plans: T[] | null | undefined) =>
+  [...(plans ?? [])].sort((a, b) => a.months - b.months)
+
+// Hạn học còn bao nhiêu ngày (làm tròn lên); null = không thời hạn
+export function daysLeft(accessUntil: string | null) {
+  if (!accessUntil) return null
+  return Math.ceil((new Date(accessUntil).getTime() - Date.now()) / 86_400_000)
+}
+
+export const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' })

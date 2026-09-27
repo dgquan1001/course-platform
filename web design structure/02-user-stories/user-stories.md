@@ -317,7 +317,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 - **AC1** Given admin chọn ảnh 5MB When lưu Then ảnh được nén, lưu vào `course-covers`, trang chủ hiển thị ảnh mới.
 - **AC2** Given staff/khách gọi API upload vào `course-covers` Then bị chặn.
 
-### US-11.03 – Trang giới thiệu khóa kiểu Udemy 🟡 (AC1 ✅ đề cương phẳng; AC2 chọn gói ở Đợt 9) (5 SP)
+### US-11.03 – Trang giới thiệu khóa kiểu Udemy ✅ (Đợt 8–9; đề cương theo buổi ở Đợt 10) (5 SP)
 **Là** khách, **tôi muốn** xem đề cương, lợi ích, giá các gói trước khi mua, **để** yên tâm đăng ký.
 - FR: FR-123, FR-157
 - **AC1** Given chương trình có 36 buổi When mở `/khoa-hoc/<id>` Then thấy các buổi (thu gọn), mở ra thấy tên bài; không có link video trong HTML.
@@ -342,29 +342,29 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-12 – Gói tháng, hạn học, gia hạn
 
-### US-12.01 – Admin đặt giá gói ⬜ (3 SP)
+### US-12.01 – Admin đặt giá gói ✅ (3 SP)
 - FR: FR-130 · BR: BR-77
 - **AC1** Given chương trình Vẹo lưng When admin thêm gói 1 tháng 990.000đ, 3 tháng 2.500.000đ Then số buổi mặc định 12, 36; trang giới thiệu hiện 2 gói.
 - **AC2** Given thêm gói 1 tháng lần thứ 2 cho cùng chương trình Then báo trùng.
 
-### US-12.02 – Đăng ký chọn gói ⬜ (3 SP)
+### US-12.02 – Đăng ký chọn gói ✅ (3 SP)
 - FR: FR-131, FR-133 · BR: BR-78, BR-79
 - **AC1** Given tôi chọn Vẹo lưng – 3 tháng Then QR có số tiền 2.500.000đ; đơn lưu `plan_months = 3`, `plan_sessions = 36`, `amount = 2500000`.
 - **AC2** Given ai đó sửa form gửi giá 1.000đ Then server vẫn lưu giá theo gói.
 
-### US-12.03 – Hạn học tính từ lúc duyệt, cộng dồn ⬜ (5 SP)
+### US-12.03 – Hạn học tính từ lúc duyệt, cộng dồn ✅ (5 SP)
 - FR: FR-134, FR-135 · BR: BR-80, BR-84
 - **AC1** Given đơn gói 1 tháng được duyệt lúc T Then `access_until = T + 1 tháng`.
 - **AC2** Given tôi còn hạn tới H và gia hạn gói 3 tháng, được duyệt Then hạn mới = H + 3 tháng.
 - **AC3** Given đã hết hạn và gia hạn Then hạn mới = lúc duyệt + số tháng; tôi học tiếp từ buổi đang dở.
 - **AC4** Given tôi đã có 1 đơn chờ duyệt cho chương trình Then không gửi được đơn thứ 2.
 
-### US-12.04 – Thấy hạn học và gia hạn ⬜ (3 SP)
+### US-12.04 – Thấy hạn học và gia hạn ✅ (3 SP)
 - FR: FR-136
 - **AC1** Given còn 5 ngày Then thẻ khóa hiện "Còn 5 ngày" màu vàng và nút "Gia hạn".
 - **AC2** Given bấm "Gia hạn" Then box đăng ký chọn sẵn chương trình, tôi chọn gói.
 
-### US-12.05 – Hết hạn vẫn giữ tiến độ ⬜ (2 SP)
+### US-12.05 – Hết hạn vẫn giữ tiến độ ✅ (2 SP)
 - FR: FR-137 · BR: BR-85
 - **AC1** Given đã hết hạn When mở chương trình Then thấy đề cương, bài đã tick, 40%; video không phát, hiện "Gói đã hết hạn – Gia hạn để tập tiếp".
 

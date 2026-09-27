@@ -1,6 +1,6 @@
 # ADR-012: Loại khóa học và gói theo thời hạn (có cộng dồn)
 
-- **Trạng thái**: Accepted (thiết kế v0.2, chưa triển khai)
+- **Trạng thái**: Accepted – triển khai Đợt 8 (loại khóa) và Đợt 9 (gói, hạn học) · 27/09/2026
 - **Ngày**: 27/09/2026
 - **Người quyết định**: Chủ dự án
 

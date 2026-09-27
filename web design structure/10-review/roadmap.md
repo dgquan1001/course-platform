@@ -23,7 +23,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
 | 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ Xong (nội dung chính sách chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → TC-73 | 73/73 PASS |
-| 9 | Gói tháng & hạn học | — | ⬜ | — | TC-74 → TC-78 | — |
+| 9 | Gói tháng & hạn học | — | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-74 → TC-78 | Chờ chạy |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
 | 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
 | 12 | Phiếu tham vấn | — | ⬜ | — | TC-89 → TC-92 | — |
@@ -49,7 +49,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | A-5 | Chạy `supabase/schema.sql` mới nhất trên **production** (sau khi sao lưu) trước khi deploy code Đợt 3–7 (27/09: đã chạy trên project hiện tại – đang là dữ liệu test) | Tất cả | 🟡 |
 | A-6 | Xác nhận email liên hệ trong `site-config.ts` là email chính thức | RV-19 | ⬜ |
 | A-7 | Nội dung **Chính sách bảo mật** (dữ liệu sức khỏe) – ✅ dev đã soạn (`/chinh-sach-bao-mat`, 27/09/2026); chủ trung tâm cần duyệt: thời hạn lưu (24 tháng / 12 tháng), cam kết phản hồi 72 giờ, danh sách nhà cung cấp, email liên hệ | RV-17, Đợt 8 | 🟡 |
-| A-8 | Ảnh bìa, mô tả, giá gói 1/3/6/12 tháng cho Vẹo lưng, Vẹo ngực; thông tin + giá 3 khóa premium; link video các bài tập | Đợt 8 → 10 | ⬜ |
+| A-8 | (Đợt 9: admin đã tự nhập được giá gói trên giao diện) Ảnh bìa, mô tả, giá gói 1/3/6/12 tháng cho Vẹo lưng, Vẹo ngực; thông tin + giá 3 khóa premium; link video các bài tập | Đợt 8 → 10 | ⬜ |
 | A-9 | Danh sách nhân viên cần cấp vai trò `staff` | Đợt 7 | ⬜ |
 | A-10 | Duyệt câu hỏi mẫu phiếu tham vấn (database-design §10.8) | Đợt 12 | ⬜ |
 
@@ -118,7 +118,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
 - [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
 - [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – ✅ 27/09/2026, E2E 73/73
-- [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
+- [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
 - [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)
 - [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
 - [ ] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)

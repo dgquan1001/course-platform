@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser, requireAdmin, requireStaff, type Role } from '@/lib/auth'
 import { isSupportedVideoUrl } from '@/lib/video'
 import { detectImageType, type ImageType } from '@/lib/image-type'
-import { isCourseCategory, isCourseKind } from '@/lib/courses'
+import { isCourseCategory, isCourseKind, PLAN_MONTHS, SESSIONS_PER_MONTH } from '@/lib/courses'
 import type { ActionResult } from '@/lib/action-result'
 
 type DbResult = { data: unknown[] | null; error: { message: string; code?: string } | null }
@@ -290,8 +290,19 @@ export async function createCourse(formData: FormData) {
         if (uploaded.error) return { data: null, error: uploaded.error }
         cover_image = uploaded.url
       }
-      const result = await createClient().from('courses').insert({ ...value!, cover_image }).select('id')
-      if (result.error) await removeCover(cover_image)
+      const supabase = createClient()
+      const result = await supabase.from('courses').insert({ ...value!, cover_image }).select('id')
+      if (result.error) {
+        await removeCover(cover_image)
+        return result
+      }
+      // Chương trình có học phí: tạo sẵn gói 1 tháng (12 buổi) theo học phí nhập, thêm gói khác ở bảng gói
+      if (value!.kind === 'program' && value!.price > 0) {
+        const { error: planError } = await supabase
+          .from('course_plans')
+          .insert({ course_id: result.data[0].id, months: 1, sessions: SESSIONS_PER_MONTH, price: value!.price })
+        if (planError) return { data: null, error: { message: `Đã tạo khóa nhưng chưa tạo được gói 1 tháng: ${planError.message}` } }
+      }
       return result
     },
     error ?? cover.error
@@ -348,6 +359,53 @@ export async function deleteCourse(courseId: string) {
       return result
     },
     checkId(courseId, 'khóa học')
+  )
+}
+
+// ---------- Gói theo thời hạn của chương trình (ADR-012) ----------
+
+type PlanInput = { sessions: number; price: number; active: boolean }
+
+function readPlan(formData: FormData, months: number): Parsed<PlanInput> {
+  const price = readInt(formData, 'price', 'Giá gói', 0, MAX_PRICE)
+  if (typeof price === 'string') return { value: null, error: price }
+  // Để trống số buổi = 12 buổi mỗi tháng
+  const sessions = text(formData, 'sessions') ? readInt(formData, 'sessions', 'Số buổi', 1, 500) : months * SESSIONS_PER_MONTH
+  if (typeof sessions === 'string') return { value: null, error: sessions }
+  return { value: { sessions, price, active: formData.get('active') === 'on' }, error: null }
+}
+
+export async function createPlan(courseId: string, formData: FormData) {
+  const months = Number(text(formData, 'months'))
+  const monthsError = (PLAN_MONTHS as readonly number[]).includes(months) ? null : 'Gói phải là 1, 3, 6 hoặc 12 tháng.'
+  const { value, error } = readPlan(formData, months)
+  return run(
+    `Đã thêm gói ${months} tháng.`,
+    () =>
+      createClient()
+        .from('course_plans')
+        .insert({ ...value!, active: true, months, course_id: courseId })
+        .select('id'),
+    checkId(courseId, 'khóa học') ?? monthsError ?? error,
+    { errors: { '23505': `Chương trình đã có gói ${months} tháng, hãy sửa gói đó.` } }
+  )
+}
+
+export async function updatePlan(planId: string, months: number, formData: FormData) {
+  const { value, error } = readPlan(formData, months)
+  return run(
+    `Đã lưu gói ${months} tháng.`,
+    () => createClient().from('course_plans').update(value!).eq('id', planId).select('id'),
+    checkId(planId, 'gói') ?? error
+  )
+}
+
+// Đơn đã đăng ký gói vẫn giữ ảnh chụp gói (plan_months, plan_sessions, amount); plan_id về null
+export async function deletePlan(planId: string) {
+  return run(
+    'Đã xóa gói.',
+    () => createClient().from('course_plans').delete().eq('id', planId).select('id'),
+    checkId(planId, 'gói')
   )
 }
 

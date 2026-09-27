@@ -25,9 +25,13 @@ const columns = [
   { label: 'Email' },
   { label: 'Số điện thoại', className: 'w-28' },
   { label: 'Khóa học' },
+  // Gói lúc đăng ký + nguồn đơn (web / nhân viên) + hình thức thanh toán
+  { label: 'Gói' },
   { label: 'Học phí', className: 'text-right' },
   { label: 'Ngày đăng ký', className: 'w-28' },
   { label: 'Trạng thái' },
+  // Hạn học tính khi duyệt (cộng dồn khi gia hạn); đơn cũ không có gói = không thời hạn
+  { label: 'Hạn học', className: 'w-28' },
   { label: 'Ngày xử lý', className: 'w-28' },
   // Nhân viên / admin đã duyệt / từ chối / thu hồi đơn (nhiều người cùng xử lý nên cần biết ai xử lý)
   { label: 'Người xử lý' },
@@ -57,7 +61,9 @@ type RegistrationEvent = {
   created_at: string
 }
 
-const statusLabels: Record<string, string> = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' }
+const statusLabels: Record<string, string> = { new: 'Tạo mới', pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' }
+const sourceLabels: Record<string, string> = { web: 'Web', staff: 'Nhân viên' }
+const paymentLabels: Record<string, string> = { bank_transfer: 'Chuyển khoản', cash: 'Tiền mặt', other: 'Khác' }
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString('vi-VN', {
@@ -120,7 +126,7 @@ export default async function AdminRegistrationsPage({
   let query = supabase
     .from('registrations')
     .select(
-      'id, user_id, full_name, email, phone, status, payment_proof_path, created_at, reviewed_at, reviewed_by_name, review_note, course_title, amount, courses(title, price, status)'
+      'id, user_id, full_name, email, phone, status, payment_proof_path, created_at, reviewed_at, reviewed_by_name, review_note, course_title, amount, plan_months, plan_sessions, source, payment_method, access_until, courses(title, price, status)'
     )
     .order('created_at', { ascending: filter === 'pending' })
     .limit(200)
@@ -153,7 +159,10 @@ export default async function AdminRegistrationsPage({
   const eventsByRegistration = new Map<string, RegistrationEvent[]>()
   if (registrations?.length) {
     const [{ data: signed }, { data: events }] = await Promise.all([
-      supabase.storage.from('payment-proofs').createSignedUrls(registrations.map((r) => r.payment_proof_path), 3600),
+      supabase.storage.from('payment-proofs').createSignedUrls(
+        registrations.map((r) => r.payment_proof_path).filter((path): path is string => !!path),
+        3600
+      ),
       supabase
         .from('registration_events')
         .select('registration_id, actor_name, from_status, to_status, note, created_at')
@@ -191,7 +200,7 @@ export default async function AdminRegistrationsPage({
 
       {/* Bảng cuộn ngang trên màn hình hẹp */}
       <div className="card overflow-x-auto">
-        <table aria-label="Danh sách đơn đăng ký" className="w-full min-w-[1080px] text-left text-sm">
+        <table aria-label="Danh sách đơn đăng ký" className="w-full min-w-[1260px] text-left text-sm">
           <thead className="border-b border-slate-200 bg-ocean-50/70 text-xs font-semibold uppercase tracking-wide text-ocean-800">
             <tr>
               {columns.map((c) => (
@@ -207,7 +216,7 @@ export default async function AdminRegistrationsPage({
               // Tên khóa & học phí lưu lúc đăng ký (vẫn còn khi khóa đã bị xóa)
               const courseTitle = course?.title ?? r.course_title
               const amount = r.amount ?? course?.price
-              const proofUrl = proofUrls.get(r.payment_proof_path)
+              const proofUrl = r.payment_proof_path ? proofUrls.get(r.payment_proof_path) : undefined
               return (
                 <tr key={r.id} className="group align-middle transition hover:bg-ocean-50/40">
                   <td className="px-3 py-3 text-center text-slate-400">{i + 1}</td>
@@ -245,6 +254,18 @@ export default async function AdminRegistrationsPage({
                     {!course && <span className="block text-xs italic text-slate-400">(khóa học đã xóa)</span>}
                     {course?.status === 'draft' && <span className="block text-xs italic text-slate-400">(khóa đang ẩn)</span>}
                   </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-700">
+                    {r.plan_months ? (
+                      <span className="block font-medium">
+                        {r.plan_months} tháng <span className="text-xs text-slate-400">· {r.plan_sessions} buổi</span>
+                      </span>
+                    ) : (
+                      <span className="block text-slate-300">—</span>
+                    )}
+                    <span className="block text-xs text-slate-400">
+                      {sourceLabels[r.source] ?? r.source} · {paymentLabels[r.payment_method] ?? r.payment_method}
+                    </span>
+                  </td>
                   <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-gold-700">
                     {amount != null ? formatPrice(amount) : '—'}
                   </td>
@@ -257,6 +278,18 @@ export default async function AdminRegistrationsPage({
                       </span>
                     )}
                     <History events={eventsByRegistration.get(r.id) ?? []} />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-slate-600">
+                    {r.status !== 'approved' ? (
+                      <span className="text-slate-300">—</span>
+                    ) : r.access_until ? (
+                      <>
+                        <DateTime value={r.access_until} />
+                        {new Date(r.access_until) < new Date() && <span className="block text-xs font-semibold text-red-600">Đã hết hạn</span>}
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-500">Không thời hạn</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-slate-600">
                     <DateTime value={r.reviewed_at} />

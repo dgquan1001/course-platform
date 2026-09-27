@@ -20,6 +20,9 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 - Trang giới thiệu từng khóa (`/khoa-hoc/<id>`): "Bạn sẽ đạt được", đề cương (không lộ link video), bác sĩ hướng dẫn
 - Khóa **miễn phí** xem ngay, không cần tài khoản. Khóa **premium**: để lại họ tên + SĐT hoặc bấm "Mở Zalo ngay" →
   website lưu khách quan tâm và mở Zalo của trung tâm
+- **Chương trình bán theo gói** 1 / 3 / 6 / 12 tháng (giá riêng từng chương trình): chọn gói ở trang giới thiệu hoặc box đăng ký,
+  QR theo giá gói. Hạn học tính từ lúc duyệt; **gia hạn cộng dồn** vào hạn cũ. "Khóa học của tôi" hiện "Còn N ngày", nút Gia hạn;
+  hết hạn thì không xem được video nhưng vẫn thấy khóa và danh sách bài
 - **Chính sách bảo mật** (`/chinh-sach-bao-mat`); khách tạo tài khoản phải tick đồng ý, tài khoản cũ được hỏi một lần khi đăng nhập
 - Box đăng ký 3 bước (dùng chung cho trang chủ `#dang-ky` và trang riêng `/register`):
   1. Chuyển khoản: mã QR VietQR tự điền số tiền theo khóa đã chọn + nội dung là SĐT
@@ -47,6 +50,8 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   (Học viên / Nhân viên / Admin), tab "Nhân viên & Admin" để rà soát ai có quyền vào trang quản trị
 - Khóa học, bài học: **chỉ admin**. Khóa có loại (miễn phí / chương trình / premium), nhóm bệnh, ảnh bìa
   (nén trên trình duyệt, bucket công khai `course-covers`), mô tả ngắn, "Bạn sẽ đạt được"
+- Gói theo thời hạn của từng chương trình (admin): thêm / sửa giá, số buổi, đang bán / xóa; tạo chương trình có học phí tự có gói 1 tháng.
+  Bảng đơn có cột **Gói** (kèm nguồn, hình thức thanh toán) và **Hạn học**
 - Khách quan tâm (`/admin/leads`, nhân viên và admin): khách để lại SĐT ở khóa premium, gọi / nhắn Zalo, cập nhật trạng thái kèm ghi chú
 - Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên.
   **Ẩn** = ngừng nhận đăng ký (học viên đã được duyệt vẫn học bình thường).

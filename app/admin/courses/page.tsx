@@ -6,7 +6,8 @@ import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { BookIcon, UsersIcon } from '@/components/icons'
 import { isSupportedVideoUrl } from '@/lib/video'
-import { kindBadge } from '@/lib/courses'
+import { kindBadge, sortPlans, type Plan } from '@/lib/courses'
+import PlanTable from './PlanTable'
 import CourseCover from '@/components/CourseCover'
 import { createCourse, deleteCourse, setCourseStatus, updateCourse } from '../actions'
 import { CourseFields } from './fields'
@@ -17,7 +18,7 @@ export default async function AdminCoursesPage() {
   const [{ data: courses, error }, { data: regs }] = await Promise.all([
     supabase
       .from('courses')
-      .select('id, title, description, price, status, sort_order, kind, category, summary, outcomes, cover_image, lessons(video_url)')
+      .select('id, title, description, price, status, sort_order, kind, category, summary, outcomes, cover_image, lessons(video_url), course_plans(id, months, sessions, price, active)')
       .order('sort_order', { ascending: true }),
     supabase.from('registrations').select('course_id, status'),
   ])
@@ -49,7 +50,9 @@ export default async function AdminCoursesPage() {
                       <span className={`badge ${badge.className}`}>{badge.label}</span>
                       <StatusBadge status={c.status} />
                     </div>
-                    <p className="mt-1 text-lg font-bold text-ocean-700">{c.kind === 'free' ? 'Miễn phí' : formatPrice(c.price)}</p>
+                    {c.kind !== 'program' && (
+                      <p className="mt-1 text-lg font-bold text-ocean-700">{c.kind === 'free' ? 'Miễn phí' : formatPrice(c.price)}</p>
+                    )}
                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                       {c.kind === 'premium' ? (
                         <span>Khóa premium: chỉ có thông tin và nút liên hệ Zalo, không có bài học</span>
@@ -84,6 +87,8 @@ export default async function AdminCoursesPage() {
                   </ActionForm>
                 </div>
               </div>
+
+              {c.kind === 'program' && <PlanTable courseId={c.id} plans={sortPlans(c.course_plans as Plan[])} />}
 
               <details className="group mt-3 border-t border-slate-100 pt-3">
                 <summary className="cursor-pointer list-none text-sm font-semibold text-ocean-700 hover:underline [&::-webkit-details-marker]:hidden">

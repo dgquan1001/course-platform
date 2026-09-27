@@ -62,7 +62,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | FR-029 | Server kiểm tra lại toàn bộ dữ liệu (không tin client), khóa học phải tồn tại và `published` | M | ✅ |
 | FR-030 | Khách mới: tạo tài khoản Supabase **đã xác nhận email**; không có email thì dùng email nội bộ theo SĐT | M | ✅ |
 | FR-031 | Chặn SĐT đã có tài khoản và email đã có tài khoản → hướng dẫn đăng nhập trước | M | ✅ |
-| FR-032 | Học viên đã đăng nhập: chặn đăng ký lại khóa đang `pending` hoặc đã `approved` | M | ✅ |
+| FR-032 | Học viên đã đăng nhập: chặn đăng ký lại khóa đang `pending`; khóa đã `approved` được đăng ký **gia hạn** (Đợt 9, BR-84) | M | ✅ |
 | FR-033 | Lưu ảnh vào bucket `payment-proofs` với đường dẫn `<userId>/<uuid>.<ext>` | M | ✅ |
 | FR-034 | Tạo đơn `registrations` trạng thái `pending` | M | ✅ |
 | FR-035 | Nếu một bước lỗi: xóa ảnh đã upload và tài khoản vừa tạo (rollback) | M | ✅ |
@@ -172,8 +172,8 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | --- | --- | --- | --- | --- |
 | FR-120 | Khóa có loại `free` / `program` / `premium`, nhóm bệnh (vẹo lưng / vẹo ngực / không), đối tượng (mặc định bệnh nhân), ảnh bìa, mô tả ngắn, mô tả chi tiết, "Bạn sẽ đạt được" (danh sách) | M | 8 | ✅ |
 | FR-121 | Admin tải ảnh bìa (JPG/PNG/WEBP ≤ 2MB, nén ở trình duyệt) vào bucket công khai `course-covers` | M | 8 | ✅ |
-| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | 🟡 Đợt 8: 3 nhóm, lọc, ảnh bìa, nhãn; giá theo gói + số buổi ở Đợt 9, 10 |
-| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | 🟡 Đợt 8: trang, đề cương phẳng qua `course_outline` (không có link video), khung giá theo học phí khóa; chọn gói ở Đợt 9, đề cương theo buổi ở Đợt 10 |
+| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | 🟡 Đợt 8: 3 nhóm, lọc, ảnh bìa, nhãn · ✅ Đợt 9: "Từ …đ" theo gói rẻ nhất + danh sách gói; số buổi / tiến độ ở Đợt 10 |
+| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | 🟡 Đợt 8: trang, đề cương phẳng qua `course_outline` (không có link video), khung giá theo học phí khóa · ✅ Đợt 9: chọn gói (`PlanPicker`, mức tiết kiệm so với gói 1 tháng); đề cương theo buổi ở Đợt 10 |
 | FR-124 | Khóa miễn phí: ai cũng xem được video, không cần đăng nhập; đăng nhập thì lưu tiến độ | M | 8 | 🟡 Đợt 8: xem không cần đăng nhập; lưu tiến độ ở Đợt 10 |
 | FR-125 | Khóa premium: không có đề cương, không nhận đơn; nút "Liên hệ Zalo nhận ưu đãi" (xem §2.17) | M | 8 | ✅ |
 | FR-126 | Trang `/chinh-sach-bao-mat`; link ở footer và ở mọi ô đồng ý | M | 8 | ✅ |
@@ -182,15 +182,15 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-130 | Admin quản lý gói cho từng chương trình: 1 / 3 / 6 / 12 tháng, giá, số buổi mở (mặc định 12 × số tháng), bật/tắt bán | M | 9 | ⬜ |
-| FR-131 | Box đăng ký: chọn **chương trình** rồi **gói**; QR tự điền số tiền theo giá gói; chỉ liệt kê chương trình đang hiển thị có ít nhất 1 gói đang bán | M | 9 | ⬜ |
+| FR-130 | Admin quản lý gói cho từng chương trình: 1 / 3 / 6 / 12 tháng, giá, số buổi mở (mặc định 12 × số tháng), bật/tắt bán | M | 9 | ✅ |
+| FR-131 | Box đăng ký: chọn **chương trình** rồi **gói**; QR tự điền số tiền theo giá gói; chỉ liệt kê chương trình đang hiển thị có ít nhất 1 gói đang bán | M | 9 | ✅ |
 | FR-132 | Ô đồng ý "Tôi đồng ý với Chính sách bảo mật và việc trung tâm xử lý thông tin sức khỏe…" bắt buộc khi khách tạo tài khoản; lưu `consent_at` | M | 8 | ✅ |
-| FR-133 | Đơn lưu snapshot gói (`plan_months`, `plan_sessions`, `amount`), `source = web`, `payment_method = bank_transfer` | M | 9 | ⬜ |
-| FR-134 | Khi duyệt: `access_until` = max(bây giờ, hạn cuối hiện tại) + số tháng của gói (cộng dồn) | M | 9 | ⬜ |
-| FR-135 | Mỗi bệnh nhân chỉ có 1 đơn **chờ duyệt** cho mỗi chương trình; được đăng ký gia hạn khi đang còn hạn | M | 9 | ⬜ |
-| FR-136 | "Khóa học của tôi" hiển thị hạn học ("Còn N ngày", cảnh báo vàng ≤ 7 ngày, đỏ khi hết hạn) và nút **Gia hạn** (mở box đăng ký chọn sẵn chương trình) | M | 9 | ⬜ |
-| FR-137 | Hết hạn: không xem được video, vẫn thấy đề cương, bài đã tick, % tiến độ, nút Gia hạn | M | 9 | ⬜ |
-| FR-138 | Bảng đơn admin thêm cột Gói, Nguồn (Web / Nhân viên), Hình thức thanh toán, Hạn học | M | 9 | ⬜ |
+| FR-133 | Đơn lưu snapshot gói (`plan_months`, `plan_sessions`, `amount`), `source = web`, `payment_method = bank_transfer` | M | 9 | ✅ |
+| FR-134 | Khi duyệt: `access_until` = max(bây giờ, hạn cuối hiện tại) + số tháng của gói (cộng dồn) | M | 9 | ✅ |
+| FR-135 | Mỗi bệnh nhân chỉ có 1 đơn **chờ duyệt** cho mỗi chương trình; được đăng ký gia hạn khi đang còn hạn | M | 9 | ✅ |
+| FR-136 | "Khóa học của tôi" hiển thị hạn học ("Còn N ngày", cảnh báo vàng ≤ 7 ngày, đỏ khi hết hạn) và nút **Gia hạn** (mở box đăng ký chọn sẵn chương trình) | M | 9 | ✅ |
+| FR-137 | Hết hạn: không xem được video, vẫn thấy đề cương, bài đã tick, % tiến độ, nút Gia hạn | M | 9 | ✅ |
+| FR-138 | Bảng đơn admin thêm cột Gói, Nguồn (Web / Nhân viên), Hình thức thanh toán, Hạn học | M | 9 | ✅ |
 
 ### 2.14. Nội dung buổi – bài tập (quản trị) (ADR-013)
 
@@ -259,8 +259,8 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | --- | --- | --- |
 | FR-002, FR-003, FR-004 | Danh sách khóa theo 3 nhóm; giá theo gói; "Đăng ký" dẫn tới trang giới thiệu khóa / box đăng ký chọn sẵn chương trình + gói | 8, 9 |
 | FR-015, FR-016 | `/courses/[id]/**` không còn bắt đăng nhập ở middleware (khóa miễn phí công khai – Đợt 8); ✅ `/admin` cho cả staff (Đợt 7) | 7, 8 |
-| FR-023, FR-025 | Thêm chọn gói và ô đồng ý | 8, 9 |
-| FR-032 | Chặn khi có đơn **chờ duyệt**; đã sở hữu thì được gia hạn | 9 |
+| FR-023, FR-025 | ✅ Thêm ô đồng ý (Đợt 8) và chọn gói (Đợt 9) | 8, 9 |
+| FR-032 | ✅ Chặn khi có đơn **chờ duyệt**; đã sở hữu thì được gia hạn | 9 |
 | FR-061 | ✅ Staff/admin thấy mọi khóa ở "Khóa học của tôi" (xem trước) – làm sớm ở Đợt 7 | 7 |
 | FR-063, FR-064 | Thay bằng FR-150 → FR-154 | 10 |
 | FR-066 | Quyền xem theo `can_view_lesson` (hạn học + mở tuần tự + khóa miễn phí) | 10 |

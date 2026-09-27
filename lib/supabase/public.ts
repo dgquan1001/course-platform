@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { CourseKind } from '@/lib/courses'
+import { sortPlans, type CourseKind, type Plan } from '@/lib/courses'
 
 // Client ẩn danh không đọc cookie: dùng cho trang công khai để Next.js
 // có thể cache (ISR) thay vì render lại mỗi request.
@@ -20,13 +20,15 @@ export type PublicCourse = {
   category: string | null
   summary: string | null
   cover_image: string | null
+  // Gói đang bán (chỉ chương trình), sắp theo số tháng
+  plans: Plan[]
 }
 
 export type PublicCourseDetail = PublicCourse & { outcomes: string[] }
 
 export type OutlineLesson = { id: string; title: string; description: string | null }
 
-const PUBLIC_FIELDS = 'id, title, description, price, kind, category, summary, cover_image'
+const PUBLIC_FIELDS = 'id, title, description, price, kind, category, summary, cover_image, plans:course_plans(id, months, sessions, price)'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Mọi khóa đang hiển thị (cả 3 loại) cho trang chủ
@@ -36,12 +38,12 @@ export async function getPublishedCourses(): Promise<PublicCourse[]> {
     .select(PUBLIC_FIELDS)
     .eq('status', 'published')
     .order('sort_order', { ascending: true })
-  return (data as PublicCourse[]) ?? []
+  return ((data as PublicCourse[]) ?? []).map((c) => ({ ...c, plans: sortPlans(c.plans) }))
 }
 
-// Khóa nhận đơn đăng ký (chương trình trả phí) cho box đăng ký
+// Khóa nhận đơn đăng ký cho box đăng ký: chương trình trả phí có ít nhất 1 gói đang bán
 export async function getRegistrableCourses(): Promise<PublicCourse[]> {
-  return (await getPublishedCourses()).filter((c) => c.kind === 'program')
+  return (await getPublishedCourses()).filter((c) => c.kind === 'program' && c.plans.length > 0)
 }
 
 export async function getPublicCourse(id: string): Promise<PublicCourseDetail | null> {
@@ -52,7 +54,8 @@ export async function getPublicCourse(id: string): Promise<PublicCourseDetail | 
     .eq('id', id)
     .eq('status', 'published')
     .maybeSingle()
-  return (data as PublicCourseDetail | null) ?? null
+  const course = data as PublicCourseDetail | null
+  return course ? { ...course, plans: sortPlans(course.plans) } : null
 }
 
 // Đề cương công khai: tên và mô tả bài, không có link video (hàm course_outline trong database)

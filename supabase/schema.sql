@@ -669,7 +669,8 @@ as $$
   where l.course_id = target_course
     and c.kind <> 'premium'
     and (c.status = 'published' or public.has_course_access(c.id))
-  order by s.pos nulls first, l.sort_order, l.created_at;
+  -- Bài chưa thuộc buổi nào (hiếm: dữ liệu nhập tay) xếp cuối
+  order by s.pos nulls last, l.sort_order, l.created_at;
 $$;
 grant execute on function public.course_outline(uuid) to anon, authenticated;
 
@@ -765,12 +766,12 @@ as $$
     where cs.course_id = target_course
   ),
   included as (
-    select l.id, coalesce(s.pos, 0) as pos, l.sort_order, l.created_at,
+    select l.id, coalesce(s.pos, 1000000) as pos, l.sort_order, l.created_at,
            exists (select 1 from public.lesson_progress p where p.user_id = auth.uid() and p.lesson_id = l.id) as is_done
     from public.lessons l
     left join s on s.id = l.session_id
     where l.course_id = target_course
-      and ((select value from purchased) is null or coalesce(s.pos, 0) <= (select value from purchased))
+      and ((select value from purchased) is null or s.pos is null or s.pos <= (select value from purchased))
   )
   select
     (select count(*) from included where is_done)::int,

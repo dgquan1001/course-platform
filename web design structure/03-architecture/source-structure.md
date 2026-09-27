@@ -63,6 +63,38 @@ course-platform/
 └─ .env.local(.example)              # Biến môi trường
 ```
 
+### 1.1. File dự kiến thêm / đổi ở phiên bản 0.2 (chưa triển khai)
+
+```text
+app/
+├─ khoa-hoc/[courseId]/page.tsx       # Giới thiệu khóa kiểu Udemy (ISR)          – Đợt 8
+├─ khoa-hoc/actions.ts                # createLeadAction                           – Đợt 8
+├─ khoa-hoc/LeadDialog.tsx            # 'use client' hộp lead premium + mở Zalo    – Đợt 8
+├─ chinh-sach-bao-mat/page.tsx        # Chính sách bảo mật                         – Đợt 8
+├─ courses/
+│  ├─ actions.ts                      # toggleLessonProgress, submitConsultationAction – Đợt 10, 12
+│  ├─ consultation/page.tsx           # Phiếu tham vấn                             – Đợt 12
+│  └─ [courseId]/[lessonId]/
+│     ├─ page.tsx                     # Trình học mới (buổi, checklist)            – Đợt 10
+│     └─ LessonPlayer.tsx             # 'use client' tick + chuyển bài             – Đợt 10
+├─ admin/
+│  ├─ page.tsx                        # Tổng quan (dashboard)                      – Đợt 13
+│  ├─ registrations/page.tsx          # Bảng đơn (chuyển từ admin/page.tsx)        – Đợt 7
+│  ├─ patients/{page, new/page, [id]/page, actions}.tsx|ts # thay users/     – Đợt 11
+│  ├─ consultations/{page.tsx, actions.ts}                                         – Đợt 12
+│  ├─ leads/{page.tsx, actions.ts}                                                 – Đợt 8
+│  ├─ courses/[courseId]/page.tsx     # Gói + buổi – bài                           – Đợt 9, 10
+│  └─ settings/consultation/page.tsx  # Mẫu phiếu tham vấn                         – Đợt 12
+components/
+├─ ProgressBar.tsx, CourseCover.tsx, CourseCard.tsx, SessionAccordion.tsx
+├─ ConsentCheckbox.tsx, OneTimeSecret.tsx, StatCard.tsx, LoginReminders.tsx
+lib/
+├─ auth.ts                            # + role, requireStaff
+├─ password.ts                        # + generatePassword (CSPRNG, bảng chữ dễ đọc)
+├─ courses.ts                         # Kiểu dữ liệu, nhãn loại/nhóm, formatPlan, getPublicCatalog
+└─ progress.ts                        # Gọi RPC course_progress, gom tiến độ nhiều khóa
+```
+
 ## 2. Quy tắc phân tầng
 
 ```mermaid

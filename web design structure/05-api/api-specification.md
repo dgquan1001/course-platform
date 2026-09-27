@@ -185,7 +185,71 @@ Kiểm tra ở server (RV-05):
 | `sb-<project>-auth-token*` | @supabase/ssr | Theo phiên Supabase | Access/refresh token |
 | `flash` | `setFlash()` | 60 giây | `{"message","type"}`; Toaster đọc rồi xóa |
 
-## 7. Hướng dẫn thêm API mới
+## 7. Phiên bản 0.2 – route & action dự kiến (chưa triển khai)
+
+Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng lên §1 / §3 và ghi chi tiết kiểm tra dữ liệu như §3.6.
+
+### 7.1. Routes
+
+| Route | Quyền | Mô tả | Đợt |
+| --- | --- | --- | --- |
+| `/khoa-hoc/[courseId]` | Công khai | Trang giới thiệu khóa kiểu Udemy (đề cương, gói, premium CTA); ISR, làm mới khi admin sửa | 8 |
+| `/chinh-sach-bao-mat` | Công khai | Chính sách bảo mật (tĩnh) | 8 |
+| `/courses` | Đăng nhập | Khóa học của tôi: thẻ có % tiến độ, hạn học, Tiếp tục, Gia hạn; mục "Phiếu tham vấn của tôi" | 9–12 |
+| `/courses/[courseId]` | Công khai (khóa free) / đăng nhập | Trang khóa của bệnh nhân: tiến độ + đề cương có trạng thái 🔒/✓ | 10 |
+| `/courses/[courseId]/[lessonId]` | Công khai (khóa free) / theo `can_view_lesson` | Trình học; bài bị khóa hiện lý do | 10 |
+| `/courses/consultation` | Đăng nhập | Form phiếu tham vấn (`?course=` tùy chọn) | 12 |
+| `/admin` | Staff, admin | **Tổng quan** (dashboard) | 13 |
+| `/admin/registrations` | Staff, admin | Đơn đăng ký (chuyển từ `/admin`; `/admin?status=` chuyển hướng sang đây) | 7 |
+| `/admin/patients` (thay `/admin/users`) | Staff, admin | Bệnh nhân: lọc nguồn, trạng thái gói; admin có tab Nhân viên & Admin | 11 |
+| `/admin/patients/new` | Staff, admin | Tạo bệnh nhân + cấp gói | 11 |
+| `/admin/patients/[id]` | Staff, admin | Chi tiết bệnh nhân | 11 |
+| `/admin/consultations` | Staff, admin | Phiếu tham vấn | 12 |
+| `/admin/leads` | Staff, admin | Khách quan tâm premium | 8 |
+| `/admin/courses`, `/admin/courses/[courseId]` | Admin | Khóa học: loại, ảnh bìa, gói; nội dung buổi – bài | 8–10 |
+| `/admin/settings/consultation` | Admin | Mẫu phiếu tham vấn | 12 |
+
+### 7.2. Middleware
+
+- Matcher: `/courses` (đúng path), `/courses/consultation`, `/account/:path*`, `/admin/:path*`.
+  `/courses/[id]/**` **không** còn chặn ở middleware: trang tự kiểm tra (khóa free công khai; khóa khác → `/login?next=`).
+- `/admin/**`: `role ∈ {staff, admin}`, ngược lại → `/courses`. `/admin/courses/**`, `/admin/settings/**`: chỉ admin, staff → `/admin`.
+
+### 7.3. Server actions mới / thay đổi
+
+| Action | File | Quyền | Tóm tắt |
+| --- | --- | --- | --- |
+| `requireStaff()` | `lib/auth.ts` | — | Như `requireAdmin` cho `staff`/`admin`; `getCurrentUser()` trả thêm `role`, `mustChangePassword`, `consentAt` |
+| `setUserRole(userId, role)` | `app/admin/actions.ts` | Admin | `role ∈ user/staff/admin` |
+| `registerAction` | `app/register/actions.ts` | Công khai | Thêm `planId`, `consent` (khách mới); tính giá theo gói; chặn khi có đơn pending (BR-84) |
+| `createCourse` / `updateCourse` | admin | Admin | Thêm `kind`, `category`, `summary`, `outcomes`, `cover` (file ≤ 2MB, magic bytes) |
+| `upsertPlan(courseId, formData)`, `deletePlan(planId)` | admin | Admin | `months`, `sessions`, `price`, `active` |
+| `generateSkeleton(courseId, formData)` | admin | Admin | `sessionCount` 1–200, `lessonsPerSession` 1–20; nối tiếp sau buổi cuối hiện có |
+| `createSession` / `updateSession` / `deleteSession` / `duplicateSession` / `moveSession` | admin | Admin | Quản lý buổi |
+| `createLesson` / `updateLesson` | admin | Admin | Thêm `session_id`; `video_url` không bắt buộc |
+| `toggleLessonProgress(lessonId, done)` | `app/courses/actions.ts` | Bệnh nhân | Insert/delete `lesson_progress` bằng server client (RLS kiểm tra `can_view_lesson`); trả tiến độ mới + bài tiếp theo |
+| `acceptConsent()` | `app/account/actions.ts` | Đăng nhập | Ghi `consent_at`, `consent_version` |
+| `dismissPasswordReminder()` | `app/account/actions.ts` | Đăng nhập | Ẩn hộp nhắc trong phiên (cookie), không đổi cờ |
+| `changePasswordAction` | `app/account/actions.ts` | Đăng nhập | Thêm: thành công → `must_change_password = false`. Vẫn bắt nhập mật khẩu hiện tại (mật khẩu nhân viên cấp) |
+| `createPatientAction(formData)` | `app/admin/patients/actions.ts` | Staff | Tạo tài khoản (service role) + tùy chọn cấp gói; trả `{ ok, message, password, patientId }` |
+| `grantPlanAction(userId, formData)` | như trên | Staff | `planId`, `amount`, `paymentMethod`, `paymentNote`, `proof?` → insert đơn approved (server client) |
+| `updatePatientAction(userId, formData)` | như trên | Staff | Họ tên, SĐT, email, ghi chú nội bộ; chỉ tài khoản `role = user` |
+| `resetPatientPasswordAction(userId)` | như trên | Staff | Sinh mật khẩu mới, `must_change_password = true`, ghi `account_events` |
+| `submitConsultationAction(formData)` | `app/courses/actions.ts` | Bệnh nhân | Đọc câu hỏi đang bật, kiểm tra từng câu, giới hạn 5/ngày, insert (service role) |
+| `setConsultationStatus(id, status, expected, formData)` | `app/admin/consultations/actions.ts` | Staff | Như `setRegistrationStatus` (không ghi đè), `staff_note` ≤ 1000 |
+| `upsertConsultQuestion` / `deleteConsultQuestion` / `moveConsultQuestion` | `app/admin/settings/actions.ts` | Admin | Mẫu phiếu |
+| `createLeadAction(courseId, formData)` | `app/khoa-hoc/actions.ts` | Công khai | Họ tên, SĐT (tùy chọn – trống = ẩn danh), rate limit 20/giờ/IP; trả `zaloUrl` để client mở |
+| `setLeadStatus(id, status, expected, formData)` | `app/admin/leads/actions.ts` | Staff | |
+
+### 7.4. RPC gọi từ trang
+
+| Nơi gọi | RPC | Mục đích |
+| --- | --- | --- |
+| Trình học | `get_lesson_video(lesson_id)` | Link video nếu được xem |
+| Khóa học của tôi, trang khóa, trình học | `course_progress(course_id)` | % tiến độ, bài tiếp theo, hạn học |
+| `/admin` | `dashboard_stats()`, `revenue_report(from, to)` (admin) | Dashboard |
+
+## 8. Hướng dẫn thêm API mới
 
 - Form trong trang → **Server Action** trả `ActionResult`, dùng `ActionForm` + `SubmitButton`.
 - Webhook/tích hợp bên ngoài/app di động cần service role → **Route Handler** `app/api/<tên>/route.ts`,

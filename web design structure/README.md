@@ -7,6 +7,11 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 
 > Tài liệu được viết dựa trên mã nguồn thực tế (phiên bản `0.1.0`, cập nhật 26/09/2026).
 > Khi code thay đổi, **cập nhật tài liệu trong cùng một lần commit** (xem mục "Quy tắc cập nhật").
+>
+> **27/09/2026 – Định vị lại v0.2** (chương trình phục hồi chức năng cho bệnh nhân, gói tháng, buổi – bài, checklist, phiếu tham vấn,
+> premium, vai trò staff, luồng web ⇄ Zalo): yêu cầu đã chốt và **đã được đưa vào tài liệu nhưng chưa triển khai code**. Các phần v0.2
+> được đánh dấu *(v0.2)*, "chưa triển khai" hoặc ⬜. Bắt đầu đọc từ [project-overview §9](00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)
+> và [roadmap §3](10-review/roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự-thực-hiện).
 
 ## Mục lục
 
@@ -55,6 +60,8 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | `ADR-xxx` | Quyết định kiến trúc | ADR-003 Email nội bộ cho tài khoản SĐT | 03-architecture/adr |
 | `TC-xx` | Test case | TC-17 Đăng ký không email | test-plan.md |
 | `RV-xx` | Phát hiện khi review | RV-01 Ẩn khóa học khóa luôn học viên cũ | project-review.md |
+| `V-xx` | Yêu cầu định vị lại v0.2 | V-02 Gói 1/3/6/12 tháng cộng dồn | project-overview.md §9 |
+| `UF-xx` | Luồng người dùng | UF-10 Khách từ Zalo | user-flows.md |
 
 ## Quy tắc cập nhật tài liệu
 
@@ -72,4 +79,5 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | 26/09/2026 | 1.1 | Cập nhật theo bản sửa RV-01, RV-02, RV-05, RV-09, git init; bảng 46 test case E2E (PASS); risk case RK-01 → RK-10 | Claude (AI) |
 | 26/09/2026 | 1.2 | Xử lý RK-01, RK-03, RK-05 (chốt), RK-07, RK-09; thêm người xử lý đơn (`reviewed_by`); TC-47 → TC-54 | Claude (AI) |
 | 26/09/2026 | 1.3 | Đợt 3 – nhiều admin: RK-11 (không ghi đè), RK-12 + R-05 (lịch sử xử lý, lý do từ chối), RK-13 (cấp/gỡ quyền admin), RK-14; TC-55 → TC-58 | Claude (AI) |
+| 27/09/2026 | 2.0 | **Định vị lại v0.2** (thiết kế, chưa code): V-01 → V-12; ADR-011 → ADR-015; FR-110 → FR-190, NFR-14 → 16; BR-70 → BR-107; persona P6, P7; EP-10 → EP-16; UF-09 → UF-13; database §10; API §7; sitemap §6; SCR-15 → SCR-28; ma trận quyền 3 vai trò, T24 → T30; TC-65 → TC-94 (dự kiến); runbook §10; roadmap Đợt 7 → 13 kèm kế hoạch code | Claude (AI) |
 | 26/09/2026 | 1.4 | Đợt 4 (rào chặn E2E/staging, CI GitHub Actions, index email, mật khẩu ≥ 8) + Đợt 5 (giới hạn tần suất, Turnstile tùy chọn, kiểm tra ảnh theo nội dung, đơn của khóa đã xóa, security headers/CSP); roadmap có báo cáo, checklist, lộ trình theo thứ tự; TC-59 → TC-64 | Claude (AI) |

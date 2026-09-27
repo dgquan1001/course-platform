@@ -275,7 +275,217 @@ Nếu muốn admin tự sửa trên giao diện → tạo bảng `settings` (roa
 ## 9. Đề xuất cải tiến schema (chưa áp dụng)
 
 Đã áp dụng 26/09/2026: unique index chặn trùng đơn (`registrations_active_key`), người xử lý (`reviewed_by`, `reviewed_by_name`);
-Đợt 3: `review_note`, `registration_events`, `role_events`.
+Đợt 3: `review_note`, `registration_events`, `role_events`. Các đề xuất tiếp theo nằm ở §10.
 
-```sql
+## 10. Thiết kế phiên bản 0.2 (chốt 27/09/2026 – chưa áp dụng vào `schema.sql`)
+
+Nguồn: ADR-011 → ADR-015, business-rules BR-70 → BR-107. Mỗi đợt triển khai đưa phần tương ứng vào `supabase/schema.sql`
+(idempotent, ADR-010) và chuyển mục ở đây sang §2 / §3 / §4.
+
+### 10.1. ERD bổ sung
+
+```mermaid
+erDiagram
+  PROFILES ||--o{ REGISTRATIONS : "đặt / được cấp"
+  PROFILES ||--o{ LESSON_PROGRESS : "tick"
+  PROFILES ||--o{ CONSULTATIONS : "gửi phiếu"
+  PROFILES |o--o{ LEADS : "bấm liên hệ (có thể ẩn danh)"
+  PROFILES ||--o{ ACCOUNT_EVENTS : "được tạo / cấp lại MK"
+  COURSES ||--o{ COURSE_PLANS : "gói"
+  COURSES ||--o{ COURSE_SESSIONS : "buổi"
+  COURSE_SESSIONS ||--o{ LESSONS : "bài tập"
+  LESSONS ||--o{ LESSON_PROGRESS : ""
+  COURSE_PLANS |o--o{ REGISTRATIONS : "snapshot gói"
+  COURSES |o--o{ CONSULTATIONS : "đang học (tùy chọn)"
+  COURSES |o--o{ LEADS : "khóa premium"
+
+  PROFILES {
+    text role "user | staff | admin"
+    text source "web | zalo"
+    uuid created_by "nhân viên tạo"
+    bool must_change_password
+    timestamptz consent_at
+    text consent_version
+    text staff_note "ghi chú nội bộ"
+  }
+  COURSES {
+    text kind "free | program | premium"
+    text category "veo_lung | veo_nguc | null"
+    text audience "patient | expert"
+    text cover_image "URL public course-covers"
+    text summary "mô tả ngắn"
+    text[] outcomes "Bạn sẽ đạt được"
+  }
+  COURSE_PLANS {
+    uuid id PK
+    uuid course_id FK
+    int months "1 | 3 | 6 | 12"
+    int sessions "mặc định 12 × months"
+    int price
+    bool active
+  }
+  COURSE_SESSIONS {
+    uuid id PK
+    uuid course_id FK
+    text title
+    text description
+    int sort_order
+  }
+  LESSONS {
+    uuid session_id FK "mới"
+    text video_url "nullable, không cấp select cho client"
+  }
+  LESSON_PROGRESS {
+    uuid user_id PK
+    uuid lesson_id PK
+    uuid course_id "denormalize để đếm nhanh"
+    timestamptz completed_at
+  }
+  REGISTRATIONS {
+    uuid plan_id FK "set null"
+    int plan_months "snapshot"
+    int plan_sessions "snapshot"
+    text source "web | staff"
+    text payment_method "bank_transfer | cash | other"
+    text payment_note
+    uuid created_by "nhân viên tạo đơn"
+    timestamptz access_starts_at
+    timestamptz access_until
+  }
+  CONSULT_QUESTIONS {
+    uuid id PK
+    text label
+    text kind "check | scale | text"
+    int sort_order
+    bool active
+  }
+  CONSULTATIONS {
+    uuid id PK
+    uuid user_id FK
+    uuid course_id FK "nullable"
+    text course_title "snapshot"
+    jsonb answers "[{label, kind, value}]"
+    text note
+    text trigger "manual | course_end | expiring"
+    text status "new | contacted | done | cancelled"
+    uuid handled_by
+    text handled_by_name
+    text staff_note
+    timestamptz handled_at
+  }
+  LEADS {
+    uuid id PK
+    uuid course_id FK
+    text course_title
+    uuid user_id "nullable"
+    text full_name
+    text phone "null = lượt bấm ẩn danh"
+    text status "new | contacted | converted | closed"
+    uuid handled_by
+    text staff_note
+  }
+  ACCOUNT_EVENTS {
+    uuid id PK
+    uuid user_id
+    uuid actor
+    text actor_name
+    text action "created | password_reset | profile_updated"
+  }
 ```
+
+### 10.2. Thay đổi bảng hiện có
+
+| Bảng | Thay đổi | Đợt |
+| --- | --- | --- |
+| `profiles` | `role` check thêm `staff`; thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
+| `courses` | thêm `kind text not null default 'program' check in ('free','program','premium')`, `category text check in ('veo_lung','veo_nguc')`, `audience text not null default 'patient' check in ('patient','expert')`, `summary text`, `outcomes text[] not null default '{}'`; dùng `cover_image` | 8 |
+| `lessons` | thêm `session_id uuid → course_sessions on delete cascade`; `video_url` **bỏ `not null`**; `revoke select (video_url)` khỏi `anon`, `authenticated` | 10 |
+| `registrations` | thêm `plan_id → course_plans on delete set null`, `plan_months int`, `plan_sessions int`, `source text not null default 'web' check in ('web','staff')`, `payment_method text not null default 'bank_transfer' check in (...)`, `payment_note text`, `created_by uuid → profiles on delete set null`, `access_starts_at`, `access_until timestamptz`; `payment_proof_path` bỏ `not null` + `check (source = 'staff' or payment_proof_path is not null)`; unique index `registrations_active_key` **thay bằng** `registrations_pending_key (user_id, course_id) where status = 'pending'` | 9, 11 |
+| `registration_events` | `from_status` nhận thêm giá trị `'new'` (đơn tạo thẳng `approved` bởi nhân viên) | 11 |
+
+### 10.3. Bảng mới
+
+| Bảng | Khóa / ràng buộc | Ghi chú |
+| --- | --- | --- |
+| `course_plans` | PK `id`; unique `(course_id, months)`; `months in (1,3,6,12)`; `sessions between 1 and 500`; `price between 0 and 1000000000`; FK `course_id` cascade | Chỉ dùng cho `kind = 'program'` |
+| `course_sessions` | PK `id`; FK `course_id` cascade; index `(course_id, sort_order)` | |
+| `lesson_progress` | PK `(user_id, lesson_id)`; FK `user_id → auth.users` cascade, `lesson_id` cascade; `course_id` (điền bởi trigger từ bài học); index `(user_id, course_id)` | |
+| `consult_questions` | PK `id`; `kind in ('check','scale','text')`; `label` ≤ 300 ký tự | Seed sẵn ~6 câu mẫu (xem §10.8) |
+| `consultations` | PK `id`; FK `user_id → auth.users on delete set null`; `status` check; index `(status, created_at)`, `(user_id, created_at desc)` | Dữ liệu sức khỏe |
+| `leads` | PK `id`; FK `course_id on delete set null`; `status` check; index `(status, created_at)` | |
+| `account_events` | PK `id`; `user_id`, `actor` → profiles on delete set null; `action` check | Chỉ server ghi |
+
+### 10.4. Hàm
+
+| Hàm | Mô tả |
+| --- | --- |
+| `is_staff()` | `exists(profiles where id = auth.uid() and role in ('staff','admin'))`, `security definer`, `stable` |
+| `has_course_access(course)` | **Sửa**: `is_staff() or exists(registrations approved của mình cho course với access_until is null or access_until > now())` |
+| `purchased_sessions(course)` | Tổng `plan_sessions` của đơn approved (đơn không có gói → `null` = không giới hạn) |
+| `session_position(session)` | Thứ tự 1-based của buổi trong khóa (`row_number() over (order by sort_order, created_at)`) |
+| `session_completed(user, session)` | Mọi bài của buổi đã có trong `lesson_progress` của user (buổi rỗng = true) |
+| `can_view_lesson(lesson)` | `is_staff()` ∨ (khóa `free` và `published`) ∨ (khóa `program` ∧ `has_course_access` ∧ vị trí buổi ≤ `purchased_sessions` ∧ (vị trí = 1 ∨ buổi liền trước `session_completed`)) |
+| `get_lesson_video(lesson)` | `security definer`; trả `video_url` nếu `can_view_lesson`, ngược lại `null`; `grant execute` cho `anon`, `authenticated` |
+| `course_progress(course)` | Trả `(done, total, percent, next_lesson_id, access_until, purchased_sessions)` cho người gọi – dùng cho thẻ khóa, trình học |
+| `revenue_report(from, to)` | Chỉ `is_admin()`; tổng `amount` đơn approved theo chương trình, hình thức, nguồn, nhân viên |
+| `dashboard_stats()` | `is_staff()`; đếm các chỉ số FR-181 trong 1 lần gọi |
+
+### 10.5. Trigger
+
+| Trigger | Thay đổi |
+| --- | --- |
+| `registrations_stamp_review` | Chạy cả `before insert` (đơn tạo thẳng `approved`: ghi người xử lý, lịch sử `new → approved`) và `before update`. Khi chuyển sang `approved`: tính `access_starts_at`, `access_until` theo BR-80 (khóa `pg_advisory_xact_lock` theo `user_id + course_id` để 2 lần duyệt đồng thời không cộng sai); rời `approved` → xóa 2 cột này. Đơn không có `plan_months` (v0.1) → `access_until = null` |
+| `guard_role_change` | Chặn nếu người đổi không phải `is_admin()` (trừ service role/script); giữ các luật cũ; nhận `staff` |
+| `lesson_progress_fill` (mới) | `before insert`: điền `course_id` từ bài học |
+| `consultations_stamp` (mới) | Khi đổi `status`: ghi `handled_by`, `handled_by_name`, `handled_at` theo phiên (như BR-37) |
+| `leads_stamp` (mới) | Như trên cho `leads` |
+
+### 10.6. RLS (thêm / sửa)
+
+| Bảng | Thao tác | Điều kiện |
+| --- | --- | --- |
+| profiles | SELECT | `auth.uid() = id or is_staff()` |
+| profiles | UPDATE | `is_admin()` (mọi dòng) **hoặc** `is_staff() and role = 'user'` (chỉ tài khoản bệnh nhân); đổi `role` do trigger kiểm tra thêm |
+| courses | SELECT | `status = 'published' or has_course_access(id)` (đã gồm staff) |
+| courses, course_plans, course_sessions, lessons | INSERT/UPDATE/DELETE | `is_admin()` |
+| course_plans | SELECT | gói `active` của khóa đọc được, hoặc `is_admin()` |
+| course_sessions | SELECT | khóa đọc được (đề cương công khai) |
+| lessons | SELECT (trừ cột `video_url`) | khóa đọc được và `kind <> 'premium'`; `video_url` chỉ qua `get_lesson_video` (staff/admin đọc qua RPC hoặc service role ở trang admin) |
+| lesson_progress | SELECT | `auth.uid() = user_id or is_staff()` |
+| lesson_progress | INSERT | `auth.uid() = user_id and can_view_lesson(lesson_id)` |
+| lesson_progress | DELETE | `auth.uid() = user_id and can_view_lesson(lesson_id)` |
+| registrations | SELECT | `auth.uid() = user_id or is_staff()` |
+| registrations | UPDATE | `is_staff()` |
+| registrations | INSERT | Chỉ service role (web: `registerAction`; nhân viên: action kiểm tra `requireStaff` rồi insert bằng **server client** qua policy `registrations_staff_insert with check (is_staff() and source = 'staff' and created_by = auth.uid())` để trigger ghi đúng người xử lý) |
+| registration_events, role_events | SELECT | `is_staff()` / `is_admin()` |
+| consult_questions | SELECT | `active or is_admin()` (ai đăng nhập cũng đọc câu hỏi đang bật) |
+| consult_questions | INSERT/UPDATE/DELETE | `is_admin()` |
+| consultations | SELECT | `auth.uid() = user_id or is_staff()` |
+| consultations | UPDATE | `is_staff()` (chỉ `status`, `staff_note`; trigger giữ nguyên các cột khác) |
+| consultations | INSERT | Chỉ service role (`submitConsultationAction` – kiểm tra giới hạn, dựng snapshot) |
+| leads | SELECT / UPDATE | `is_staff()` |
+| leads | INSERT | Chỉ service role (`createLeadAction`) |
+| account_events | SELECT | `is_staff()`; ghi chỉ service role |
+| storage `course-covers` (public) | INSERT/UPDATE/DELETE | `is_admin()`; đọc công khai |
+| storage `payment-proofs` | SELECT | `is_staff()` (nhân viên xem ảnh chuyển khoản) |
+
+### 10.7. Chuyển đổi dữ liệu (FR-190)
+
+Dữ liệu hiện tại là dữ liệu test (27/09/2026). Script chuyển đổi trong `schema.sql` vẫn phải chạy an toàn trên database có dữ liệu:
+
+1. `courses.kind` mặc định `program` → mọi khóa cũ thành chương trình.
+2. Khóa có bài học mà chưa có buổi → tạo "Buổi 1", gán mọi bài học vào buổi đó.
+3. Khóa `program` chưa có gói và `price > 0` → tạo gói 1 tháng, `price` cũ, 12 buổi, `active = true`.
+4. Đơn cũ: `source = 'web'`, `payment_method = 'bank_transfer'`, `plan_months`/`access_until` = `null` (không thời hạn, mở mọi buổi).
+5. Trước go-live: xóa dữ liệu test theo checklist ở deployment-runbook §10 (bước 5).
+
+### 10.8. Câu hỏi mẫu phiếu tham vấn (seed, admin sửa được)
+
+| # | Câu hỏi | Loại |
+| --- | --- | --- |
+| 1 | Mức đau lưng / lưng ngực hiện tại | `scale` 0–10 |
+| 2 | Đau tăng lên khi tập hoặc sau khi tập | `check` |
+| 3 | Có tê bì tay chân | `check` |
+| 4 | Đã tập đều theo lịch (≥ 3 buổi/tuần) | `check` |
+| 5 | Động tác khó thực hiện hoặc chưa chắc tập đúng | `text` |
+| 6 | Thời gian thuận tiện để bác sĩ / nhân viên liên hệ | `text` |

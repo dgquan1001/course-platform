@@ -48,6 +48,33 @@
 | Storage payment-proofs – ghi | ❌ | ❌ | ❌ | ✅ |
 | Đổi `role` | ❌ | ❌ | ✅ (qua SQL, chưa có UI) | ✅ |
 
+### 3.1. Ma trận phân quyền phiên bản 0.2 (chốt 27/09/2026, chưa triển khai – ADR-011)
+
+| Tài nguyên / thao tác | Khách | Bệnh nhân | Staff | Admin |
+| --- | --- | --- | --- | --- |
+| Khóa đang hiển thị, gói đang bán, đề cương (buổi, tên bài) | ✅ | ✅ | ✅ | ✅ |
+| Video bài khóa **free** (`get_lesson_video`) | ✅ | ✅ | ✅ | ✅ |
+| Video bài khóa **program** | ❌ | 🔸 còn hạn + buổi đã mở | ✅ xem trước | ✅ |
+| Khóa / gói / buổi / bài / ảnh bìa – thêm, sửa, xóa | ❌ | ❌ | ❌ | ✅ |
+| `lesson_progress` – đọc | ❌ | 🔸 | ✅ | ✅ |
+| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ | ❌ |
+| profiles – đọc | ❌ | 🔸 | ✅ | ✅ |
+| profiles – sửa | ❌ | 🔸 qua action | ✅ chỉ `role = user` | ✅ |
+| Đổi `role` | ❌ | ❌ | ❌ | ✅ |
+| Tạo tài khoản bệnh nhân, cấp lại mật khẩu | ❌ | ❌ | ✅ (tài khoản `user`) | ✅ |
+| registrations – đọc | ❌ | 🔸 | ✅ | ✅ |
+| registrations – duyệt / từ chối / thu hồi | ❌ | ❌ | ✅ | ✅ |
+| registrations – tạo đơn đã duyệt (cấp gói) | ❌ | ❌ | ✅ `source = staff` | ✅ |
+| Ảnh chuyển khoản – xem | ❌ | ❌ | ✅ | ✅ |
+| consultations – gửi | ❌ | ✅ qua action | ❌ | ❌ |
+| consultations – đọc | ❌ | 🔸 | ✅ | ✅ |
+| consultations – đổi trạng thái | ❌ | ❌ | ✅ | ✅ |
+| Mẫu phiếu tham vấn – sửa | ❌ | ❌ | ❌ | ✅ |
+| leads – tạo | ✅ qua action | ✅ qua action | — | — |
+| leads – đọc / xử lý | ❌ | ❌ | ✅ | ✅ |
+| Dashboard | ❌ | ❌ | ✅ không có doanh thu | ✅ |
+| `revenue_report()` | ❌ | ❌ | ❌ | ✅ |
+
 ## 4. Nguyên tắc về service role
 
 1. Chỉ khởi tạo trong `lib/supabase/admin.ts`; chỉ import ở file `'use server'` hoặc `scripts/`.
@@ -82,12 +109,20 @@
 | T21 | File giả dạng ảnh (đổi đuôi) | Tampering | ✅ Kiểm tra magic bytes, lưu MIME theo nội dung (RK-08) | Thấp |
 | T22 | Clickjacking, nhúng script lạ, lộ công nghệ | Tampering / Info disclosure | ✅ CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn script/frame/ảnh giới hạn), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS, tắt `X-Powered-By` (RV-16) | Thấp. `script-src` còn `'unsafe-inline'` (Next.js); nâng cấp dùng nonce khi cần |
 | T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
+| T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | Trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` | Thấp |
+| T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (đơn approved không ảnh) | Repudiation / Fraud | Bắt buộc số tiền + hình thức; `created_by`, người xử lý, lịch sử do trigger ghi; admin xem doanh thu theo nhân viên | Trung bình – quy trình đối soát định kỳ |
+| T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | Hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
+| T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | `video_url` không cấp `select` cho client; chỉ `get_lesson_video` + `can_view_lesson`; RLS `lesson_progress` | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |
+| T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | RLS chỉ chủ phiếu / staff / admin; không có trang công khai; đồng ý xử lý dữ liệu | Thấp–Trung bình |
+| T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | Rate limit 20 lead/giờ/IP, 5 phiếu/ngày/bệnh nhân; Turnstile nếu bật | Thấp |
+| T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | Chỉ admin; kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
 
 | Yêu cầu | Hiện trạng | Việc cần làm |
 | --- | --- | --- |
-| Thông báo/đồng ý xử lý dữ liệu | Chưa có | Thêm ô đồng ý + trang Chính sách bảo mật |
+| Thông báo/đồng ý xử lý dữ liệu | Chưa có | **v0.2 bắt buộc (Đợt 8)**: trang `/chinh-sach-bao-mat`, ô đồng ý ở box đăng ký, nhân viên xác nhận khi tạo tài khoản, hộp đồng ý cho tài khoản cũ; lưu `consent_at`, `consent_version` |
+| Dữ liệu sức khỏe (nhạy cảm) | Chưa thu thập | **v0.2**: phiếu tham vấn, tiến độ tập → chính sách nêu rõ mục đích (hướng dẫn tập, tham vấn bác sĩ), người được xem (nhân viên, bác sĩ, admin), thời hạn lưu |
 | Tối thiểu hóa | Chỉ thu tên, SĐT, email (tùy chọn), ảnh CK | Đạt |
 | Quyền truy cập/sửa | Học viên tự sửa ở `/account` | Đạt |
 | Quyền xóa | Chưa có chức năng | Quy trình xóa theo yêu cầu (xóa user + ảnh) |

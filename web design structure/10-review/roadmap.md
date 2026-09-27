@@ -5,7 +5,8 @@ Mỗi hạng mục có thiết kế sơ bộ để khi triển khai chỉ cần 
 Nguồn gốc các mã: **RV-xx** (review vòng 1), **RK-xx** (risk case vòng 2–3) trong [project-review.md](project-review.md);
 **R-xx** là tính năng mở rộng (chi tiết thiết kế ở cuối file); **G-xx** là khoảng trống kiểm thử trong [test-plan](../08-testing/test-plan.md).
 
-Cập nhật: 26/09/2026.
+Cập nhật: 27/09/2026 – **định vị lại v0.2** (chương trình phục hồi chức năng cho bệnh nhân, gói tháng, vai trò staff, luồng web ⇄ Zalo).
+Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026). Lộ trình cũ (Đợt 6 → 12 bản 26/09) được thay bằng §3 bên dưới.
 
 ## 1. Báo cáo tiến độ (report)
 
@@ -18,6 +19,15 @@ Cập nhật: 26/09/2026.
 | 3 | Nhiều admin | RK-11, RK-12 + R-05, RK-13, RK-14 | ✅ Xong | 26/09/2026 | TC-55 → TC-58 | 57/57 PASS |
 | 4 | Vận hành an toàn | RK-10 (rào chặn E2E + hướng dẫn staging), CI GitHub Actions, RV-13, RV-03 | ✅ Xong (staging chờ A-1) | 26/09/2026 | TC-59; rào chặn E2E và build CI kiểm tra thủ công | 63/63 PASS |
 | 5 | Chống lạm dụng & dữ liệu | RK-06 / RV-04 (giới hạn tần suất + Turnstile tùy chọn), RK-08, RK-04, RV-16 | ✅ Xong (Turnstile chờ A-4) | 26/09/2026 | TC-60 → TC-64 | 63/63 PASS |
+| — | Định vị lại v0.2 (tài liệu) | Yêu cầu V-01 → V-12, ADR-011 → ADR-015, FR-110 → FR-190, BR-70 → BR-107, EP-10 → EP-16, SCR-15 → SCR-28 | ✅ Tài liệu | 27/09/2026 | TC-65 → TC-94 (dự kiến) | — |
+| 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
+| 7 | Vai trò staff | R-12 | ⬜ | — | TC-65 → TC-67 | — |
+| 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ⬜ | — | TC-68 → TC-73 | — |
+| 9 | Gói tháng & hạn học | — | ⬜ | — | TC-74 → TC-78 | — |
+| 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
+| 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
+| 12 | Phiếu tham vấn | — | ⬜ | — | TC-89 → TC-92 | — |
+| 13 | Dashboard tập trung | R-07 (một phần) | ⬜ | — | TC-93 → TC-94 | — |
 
 ### 1.2. Tổng hợp theo nguồn
 
@@ -38,6 +48,10 @@ Cập nhật: 26/09/2026.
 | A-4 | Tạo khóa Cloudflare Turnstile cho domain production, đặt 2 biến trên Vercel, thử đăng ký trên điện thoại | RK-06 | ⬜ |
 | A-5 | Chạy `supabase/schema.sql` mới nhất trên **production** (sau khi sao lưu) trước khi deploy code Đợt 3–5 | Tất cả | ⬜ |
 | A-6 | Xác nhận email liên hệ trong `site-config.ts` là email chính thức | RV-19 | ⬜ |
+| A-7 | Nội dung **Chính sách bảo mật** (dữ liệu sức khỏe) – dev soạn bản nháp, chủ trung tâm duyệt | RV-17, Đợt 8 | ⬜ |
+| A-8 | Ảnh bìa, mô tả, giá gói 1/3/6/12 tháng cho Vẹo lưng, Vẹo ngực; thông tin + giá 3 khóa premium; link video các bài tập | Đợt 8 → 10 | ⬜ |
+| A-9 | Danh sách nhân viên cần cấp vai trò `staff` | Đợt 7 | ⬜ |
+| A-10 | Duyệt câu hỏi mẫu phiếu tham vấn (database-design §10.8) | Đợt 12 | ⬜ |
 
 ## 2. Checklist hoàn thành
 
@@ -87,49 +101,144 @@ Cập nhật: 26/09/2026.
 - [x] R-00 Xử lý kết quả review (Đợt 1 → 5)
 - [x] R-05 Lý do từ chối + lịch sử xử lý + người xử lý
 - [ ] R-01 Thông báo email khi đơn được duyệt / từ chối
-- [ ] R-02 Admin đặt lại mật khẩu học viên
-- [ ] R-03 Ảnh bìa khóa học
-- [ ] R-04 Tiến độ học
+- [ ] R-02 Admin đặt lại mật khẩu học viên → **Đợt 11** (nhân viên cấp lại mật khẩu)
+- [ ] R-03 Ảnh bìa khóa học → **Đợt 8**
+- [ ] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %)
 - [ ] R-06 Phân trang, lọc, xuất Excel đơn
-- [ ] R-07 Báo cáo doanh thu
+- [ ] R-07 Báo cáo doanh thu → **Đợt 13** (doanh thu trên dashboard admin); xuất Excel để sau
 - [ ] R-08 Xác nhận thanh toán tự động
-- [ ] R-09 Kéo thả bài học, chia chương
+- [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau)
 - [ ] R-10 Video riêng tư
 - [ ] R-11 Cấu hình trung tâm trên giao diện
-- [ ] R-12 Vai trò nhân viên
+- [ ] R-12 Vai trò nhân viên → **Đợt 7**
 - [ ] R-13 Mã giảm giá / combo
+
+### 2.4. Phiên bản 0.2 (V-01 → V-12)
+
+- [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
+- [ ] Đợt 7 – Vai trò staff (V-09)
+- [ ] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11)
+- [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
+- [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)
+- [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
+- [ ] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)
+- [ ] Đợt 13 – Dashboard quản trị tập trung (V-06)
+- [ ] Chuyển đổi dữ liệu & dọn dữ liệu test trước go-live (V-12)
 
 ## 3. Lộ trình gợi ý (theo thứ tự thực hiện)
 
-| Thứ tự | Đợt | Hạng mục | Vì sao làm ở thứ tự này | Phụ thuộc | Công sức |
-| --- | --- | --- | --- | --- | --- |
-| 1 | **Đợt 6 – Hoàn tất hạ tầng** | A-1 → A-5; test G-12 (gỡ admin cuối cùng) trên staging; backup Storage định kỳ (một phần RV-20) | Mọi thay đổi sau cần E2E trên staging và CI chặn lỗi trước khi merge | Chủ dự án tạo tài khoản / khóa | XS–S |
-| 2 | **Đợt 7 – Tài khoản & thông báo** | R-01 (email báo duyệt/từ chối, kèm lý do), R-02 (admin đặt lại mật khẩu cho học viên không có email), RK-02 (xác minh email bằng mã 6 số), RV-15, RV-14 | Giảm cuộc gọi hỗ trợ ngay khi có nhiều admin; tái dùng `lib/mailer.ts`, `password_resets` | Đợt 6 (test email trên staging) | S–M |
-| 3 | **Đợt 8 – Quy mô dữ liệu** | RV-12 + R-06 (phân trang, lọc theo khóa/ngày, xuất CSV), R-07 (báo cáo doanh thu theo `amount`), RV-08 (dọn ảnh mồ côi), RV-06 (HEIC → JPEG) | Danh sách admin đang giới hạn 200 đơn / 500 tài khoản | — | M |
-| 4 | **Đợt 9 – Pháp lý & giám sát** | RV-17 (chính sách bảo mật, ô đồng ý ở form đăng ký), RV-20 (Sentry / log drain, cảnh báo đơn chờ > 24h), RV-19 | Bắt buộc trước khi quảng bá rộng, thu thập dữ liệu cá nhân | — | S |
-| 5 | **Đợt 10 – Trải nghiệm học** | R-04 (tiến độ học), R-03 (ảnh bìa), R-09 (chia chương) | Tăng tỷ lệ học xong, hình ảnh chuyên nghiệp hơn | — | M |
-| 6 | **Đợt 11 – Vận hành mở rộng** | R-12 (vai trò nhân viên – nền đã có ở Đợt 3), R-11 (cấu hình trên giao diện), R-13 (mã giảm giá) | Khi có nhân viên không cần toàn quyền | Đợt 3 | M |
-| 7 | **Đợt 12 – Tự động hóa & bảo vệ nội dung** | R-08 (webhook ngân hàng) + RK-15, R-10 (video riêng tư) + RV-18 | Giá trị cao nhưng tốn chi phí dịch vụ, cần số liệu thật trước khi đầu tư | Đợt 7, 8 | L |
+Mỗi đợt là **một PR**: `schema.sql` (idempotent) + code + tài liệu (chuyển mục v0.2 từ ⬜ sang ✅, dời từ "dự kiến" vào phần chính)
++ bước E2E. Xong đợt nào thì hệ thống vẫn chạy được đầy đủ (không để trạng thái nửa vời trên `main`).
 
-Công sức: XS < 0,5 ngày · S 1–2 ngày · M 3–5 ngày · L > 1 tuần.
+| Thứ tự | Đợt | Hạng mục | Vì sao ở thứ tự này | Phụ thuộc | Công sức |
+| --- | --- | --- | --- | --- | --- |
+| 0 | **Đợt 6 – Hạ tầng** (song song) | A-1 → A-5: staging, secrets CI, chạy schema production | v0.2 thay schema nhiều lần; nên có staging để E2E không chạm dữ liệu thật | Chủ dự án | XS–S |
+| 1 | **Đợt 7 – Vai trò staff** | `is_staff`, `requireStaff`, middleware, RLS, chọn vai trò, `/admin/registrations`, menu theo quyền | Mọi màn hình quản trị sau đều phân biệt staff/admin | — | S |
+| 2 | **Đợt 8 – Danh mục & công khai** | `kind/category/audience/summary/outcomes`, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]` (chưa có gói – hiện giá khóa), khóa free công khai (bài phẳng như cũ), premium + lead + `/admin/leads`, chính sách bảo mật + đồng ý | Có mặt tiền bán hàng mới sớm; premium/lead độc lập với gói | 7 | M |
+| 3 | **Đợt 9 – Gói & hạn học** | `course_plans`, chọn gói ở box đăng ký, snapshot gói, `access_until` cộng dồn, unique pending, hết hạn / gia hạn, cột gói/nguồn ở bảng đơn | Nền kinh doanh; cần trước buổi–bài (số buổi đã mua) | 8 | M |
+| 4 | **Đợt 10 – Buổi – bài & trình học** | `course_sessions`, `session_id`, tạo khung N × M, sao chép buổi, `lesson_progress`, `can_view_lesson`, `get_lesson_video`, trình học kiểu Udemy, % tiến độ, CTA | Phần lớn nhất; dựa trên số buổi đã mua (Đợt 9) | 9 | L |
+| 5 | **Đợt 11 – Bệnh nhân từ Zalo** | `/admin/patients` (+ new, [id]), tạo tài khoản + cấp gói + mật khẩu tự sinh, nhắc đổi mật khẩu, cấp lại mật khẩu, lọc nguồn/hạn | Cần gói (9) để cấp; nên có trình học (10) để bệnh nhân Zalo học ngay | 7, 9 | M |
+| 6 | **Đợt 12 – Phiếu tham vấn** | Mẫu câu hỏi, form phiếu, nhắc khi xong khóa, `/admin/consultations` | Cần tiến độ (10) để nhắc cuối khóa | 10 | S–M |
+| 7 | **Đợt 13 – Dashboard** | `/admin` tổng quan, `dashboard_stats`, `revenue_report`, việc cần làm, tiến độ theo chương trình | Tổng hợp dữ liệu của mọi đợt trước | 8 → 12 | M |
+| 8 | Sau v0.2 | R-01 (email/Zalo khi duyệt), RK-02, RV-12 + R-06 (phân trang, xuất Excel), RV-20 (giám sát), RV-06, RV-08, RV-14, RV-15, R-08, R-10, R-11, R-13, khóa cho đội chuyên gia | Theo số liệu vận hành thật | — | — |
+
+Công sức: XS < 0,5 ngày · S 1–2 ngày · M 3–5 ngày · L > 1 tuần. Tổng v0.2 (Đợt 7 → 13): khoảng 4–5 tuần làm việc.
+
+### 3.1. Chi tiết kế hoạch code từng đợt v0.2
+
+#### Đợt 7 – Vai trò staff (ADR-011)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | `role` check thêm `staff`; `is_staff()`; policy `registrations_select/update`, `registration_events_select`, `profiles_select` → `is_staff()`; `profiles_staff_update` (chỉ dòng `role = 'user'`); storage `payment-proofs` select → `is_staff()`; `guard_role_change` chặn người không phải admin |
+| `lib/auth.ts` | `getCurrentUser()` trả `role`, `isStaff`; thêm `requireStaff()` |
+| `middleware.ts` | `/admin/**` cho staff/admin; `/admin/courses/**`, `/admin/settings/**` chỉ admin |
+| `app/admin/` | Chuyển bảng đơn `page.tsx` → `registrations/page.tsx` (`/admin` tạm redirect sang đây tới Đợt 13); `AdminNav` theo vai trò; `setRegistrationStatus` dùng `requireStaff`; `setUserRole(userId, 'user'\|'staff'\|'admin')` + ô chọn vai trò ở trang Học viên (tab "Nhân viên & Admin") |
+| UI chung | Header: "Quản trị" cho staff; `StatusBadge` `staff` |
+| E2E | TC-65 → TC-67; sửa TC-24, TC-28, TC-55, TC-58 theo route/nút mới |
+
+#### Đợt 8 – Danh mục, khóa miễn phí, premium & lead, chính sách bảo mật (ADR-012, ADR-015)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | Cột `courses.kind/category/audience/summary/outcomes`; bucket public `course-covers` + policy admin; `profiles.consent_at/consent_version`; bảng `leads` + trigger stamp + RLS; `lessons_select` cho khóa `free` đang hiển thị (tạm thời, trước khi có `can_view_lesson` ở Đợt 10) |
+| Admin | Form khóa: loại, nhóm, ảnh bìa (nén client như ảnh chuyển khoản, magic bytes ở server), mô tả ngắn, "Bạn sẽ đạt được"; khóa premium ẩn phần bài học |
+| Công khai | Trang chủ 3 nhóm (SCR-15), `/khoa-hoc/[id]` (SCR-16 – giá khóa, đề cương phẳng), footer + menu neo mới; `next.config.mjs` thêm domain Storage vào `images.remotePatterns` + CSP `img-src` |
+| Khóa free | `/courses/[id]/**` bỏ khỏi middleware; trang tự chuyển `/login?next=` nếu khóa không phải free và chưa đăng nhập |
+| Premium | `LeadDialog` + `createLeadAction` (rate limit `lead:<IP>`), mở `siteConfig.zaloUrl`; `/admin/leads` + `setLeadStatus` |
+| Chính sách | `/chinh-sach-bao-mat`; `ConsentCheckbox` ở box đăng ký (server kiểm tra); hộp đồng ý cho tài khoản cũ (SCR-21) + `acceptConsent` |
+| Dữ liệu | Khóa cũ → `program` |
+| E2E | TC-68 → TC-73; sửa TC-11, TC-18/19 (ô đồng ý) |
+
+#### Đợt 9 – Gói tháng & hạn học (ADR-012)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | Bảng `course_plans` + RLS; cột gói / `source` / `payment_method` / `payment_note` / `created_by` / `access_*` ở `registrations`; `payment_proof_path` nullable + check theo `source`; thay `registrations_active_key` bằng `registrations_pending_key`; trigger tính hạn (advisory lock), `has_course_access` theo hạn, `purchased_sessions()`; tạo gói 1 tháng từ giá cũ |
+| Admin | Bảng gói trong thẻ chương trình (`upsertPlan`, `deletePlan`); bảng đơn thêm cột Gói, Nguồn, Hình thức, Hạn học |
+| Đăng ký | `RegisterForm`: chọn chương trình → gói, QR theo giá gói, `?plan=`; `registerAction`: `planId`, giá theo gói, BR-84; thông báo cộng dồn khi đang còn hạn |
+| Bệnh nhân | "Khóa học của tôi": hạn học, cảnh báo ≤ 7 ngày, Gia hạn; hết hạn chặn xem bài (qua `has_course_access`) nhưng vẫn hiện khóa |
+| Trang giới thiệu | Khung giá chọn gói (SCR-16) |
+| E2E | TC-74 → TC-78; sửa TC-13/14, TC-23, TC-48 (unique pending), TC-42/43 |
+
+#### Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (ADR-013)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | `course_sessions`, `lessons.session_id`, `video_url` nullable + `revoke select (video_url)`; `lesson_progress` + trigger điền `course_id`; hàm `session_position`, `session_completed`, `can_view_lesson`, `get_lesson_video`, `course_progress`; RLS `lesson_progress` (insert/delete khi `can_view_lesson`); đề cương đọc công khai; bài cũ → "Buổi 1" |
+| Admin | Trang nội dung (SCR-27): tạo khung N × M (`generateSkeleton`), thêm/sửa/xóa/↑↓/sao chép buổi, bài thuộc buổi, video không bắt buộc, cảnh báo thiếu video/thiếu buổi; form tạo chương trình có ô số buổi × số bài; admin đọc `video_url` bằng service role ở trang admin (đã `requireAdmin`) |
+| Trình học | `page.tsx` (server: đề cương + trạng thái khóa + `get_lesson_video`), `LessonPlayer.tsx` (client: tick, "Hoàn thành & bài tiếp theo", xác nhận bỏ tick, thẻ xong buổi), `SessionAccordion`, `ProgressBar`, mobile 2 tab + nút cố định đáy; staff xem trước |
+| Trang khóa / Khóa học của tôi | Thanh tiến độ, "Tiếp tục Buổi X – Bài Y" (từ `course_progress`) |
+| `app/courses/actions.ts` | `toggleLessonProgress` (server client, RLS quyết định) |
+| E2E | TC-79 → TC-84; sửa TC-08, TC-10, TC-21, TC-30, TC-47, TC-51 |
+
+#### Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo (ADR-014)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | `profiles.source/created_by/must_change_password/staff_note`; bảng `account_events`; policy `registrations_staff_insert`; trigger `stamp_registration_review` chạy cả `before insert` (lịch sử `new → approved`) |
+| `lib/password.ts` | `generatePassword()` (CSPRNG, bảng chữ dễ đọc, 8 ký tự) |
+| `app/admin/patients/` | Danh sách (thay `/admin/users`, lọc nguồn/hạn, tab Nhân viên & Admin cho admin), `new` (SCR-23), `[id]` (SCR-24); actions `createPatientAction` (rollback), `grantPlanAction`, `updatePatientAction`, `resetPatientPasswordAction`; `OneTimeSecret` + tin nhắn mẫu Zalo |
+| Đăng nhập | `LoginReminders` (SCR-21): nhắc đổi mật khẩu (cookie "để sau" theo phiên); `changePasswordAction` tắt cờ |
+| E2E | TC-85 → TC-88; sửa TC-29 |
+
+#### Đợt 12 – Phiếu tham vấn (ADR-015)
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | `consult_questions` (+ seed 6 câu), `consultations` + trigger stamp + RLS |
+| Admin | `/admin/settings/consultation` (mẫu câu hỏi), `/admin/consultations` (SCR-25) + `setConsultationStatus` (không ghi đè) |
+| Bệnh nhân | `/courses/consultation` (SCR-20), nút ở trình học / Khóa học của tôi, thẻ chúc mừng cuối khóa + khi còn ≤ 7 ngày; "Phiếu tham vấn của tôi"; `submitConsultationAction` (rate limit 5/ngày) |
+| E2E | TC-89 → TC-92 |
+
+#### Đợt 13 – Dashboard tập trung
+| Lớp | Thay đổi |
+| --- | --- |
+| Schema | `dashboard_stats()` (`is_staff`), `revenue_report(from, to)` (`is_admin`), index phục vụ (`registrations (status, access_until)`, `lesson_progress (course_id, completed_at)`) |
+| Admin | `/admin` = Tổng quan (SCR-22): `StatCard` link tới danh sách lọc sẵn, việc cần làm, tiến độ theo chương trình, bệnh nhân không tập > 7 ngày; khối doanh thu chỉ admin (theo `dataviz`/design system) |
+| E2E | TC-93, TC-94 |
+
+### 3.2. Rủi ro kế hoạch v0.2
+
+| Rủi ro | Ảnh hưởng | Giảm thiểu |
+| --- | --- | --- |
+| Thay đổi RLS `lessons` (ẩn `video_url`) làm hỏng trang cũ | Bệnh nhân không xem được video | Làm trọn trong Đợt 10 cùng trình học mới; E2E RLS cho anon / bệnh nhân / staff |
+| Tính hạn cộng dồn sai khi duyệt đồng thời | Sai hạn học | Advisory lock trong trigger; TC-76 duyệt song song |
+| Nhân viên cấp gói không có chứng từ | Thất thoát | Bắt buộc số tiền + hình thức, ghi người tạo, doanh thu theo nhân viên (Đợt 13) |
+| Bỏ tick làm khóa lại buổi sau, bệnh nhân bối rối | Hỗ trợ tăng | Hộp xác nhận trước khi bỏ tick; nêu rõ lý do khóa |
+| E2E vẫn chạy trên database thật (chưa có staging) | Dữ liệu test lẫn dữ liệu thật | Hiện toàn bộ là dữ liệu test; vẫn khuyến nghị A-1 trước Đợt 9 |
 
 ## 4. Danh mục tính năng mở rộng
 
 | ID | Hạng mục | Story | Giá trị | Công sức | Đợt gợi ý |
 | --- | --- | --- | --- | --- | --- |
-| R-01 | Thông báo khi đơn được duyệt / từ chối | US-09.01 | Cao | S | 7 |
-| R-02 | Admin đặt lại mật khẩu học viên | US-09.02 | Cao | XS | 7 |
+| R-01 | Thông báo khi đơn được duyệt / từ chối | US-09.01 | Cao | S | Sau v0.2 |
+| R-02 | Nhân viên cấp lại mật khẩu bệnh nhân | US-14.04 | Cao | XS | 11 |
 | R-05 | ✅ Lý do từ chối + lịch sử xử lý đơn + người xử lý | ~~US-09.05~~, ~~09.06~~ | Cao | S | ✅ Đợt 3 |
-| R-06 | Phân trang, lọc, xuất Excel đơn | US-09.07 | Trung bình | S | 8 |
-| R-07 | Báo cáo doanh thu | US-09.08 | Trung bình | S | 8 |
-| R-03 | Ảnh bìa khóa học | US-09.03 | Trung bình | S | 10 |
-| R-04 | Tiến độ học | US-09.04 | Cao | M | 10 |
-| R-09 | Sắp xếp bài học kéo thả, chia chương | US-09.10 | Thấp | M | 10 |
-| R-12 | Vai trò nhân viên (nền: quản lý admin RK-13) | — | Trung bình | S | 11 |
-| R-11 | Cấu hình trung tâm trên giao diện | — | Thấp | S | 11 |
-| R-13 | Mã giảm giá / combo khóa học | — | Trung bình | M | 11 |
-| R-08 | Xác nhận thanh toán tự động (webhook ngân hàng) | US-09.09 | Rất cao | L | 12 |
-| R-10 | Video riêng tư (chống chia sẻ) | — | Cao | L | 12 |
+| R-06 | Phân trang, lọc, xuất Excel đơn | US-09.07 | Trung bình | S | Sau v0.2 |
+| R-07 | Báo cáo doanh thu | US-16.03 | Trung bình | S | 13 (dashboard) |
+| R-03 | Ảnh bìa khóa học | US-11.02 | Cao | S | 8 |
+| R-04 | Tiến độ học (checklist buổi, %) | EP-13 | Cao | M | 10 |
+| R-09 | Chia chương (= buổi), sắp xếp bằng ↑↓ | US-13.02 | Cao | M | 10 |
+| R-12 | Vai trò nhân viên | EP-10 | Cao | S | 7 |
+| R-11 | Cấu hình trung tâm trên giao diện | — | Thấp | S | Sau v0.2 |
+| R-13 | Mã giảm giá / combo khóa học | — | Trung bình | M | Sau v0.2 |
+| R-08 | Xác nhận thanh toán tự động (webhook ngân hàng) | US-09.09 | Rất cao | L | Sau v0.2 |
+| R-10 | Video riêng tư (chống chia sẻ) | — | Cao | L | Sau v0.2 |
 
 ---
 
@@ -207,9 +316,9 @@ where r.status = 'approved' group by 1, 2;
 - Chuyển hotline, Zalo, ngân hàng, thông tin bác sĩ từ `site-config.ts` sang bảng; cache bằng `unstable_cache` + `revalidateTag('settings')`.
 
 ## R-12 – Vai trò nhân viên
-- `role in ('user', 'staff', 'admin')`; hàm `has_role(variadic roles text[])`.
-- Staff: đọc/duyệt đơn, xem học viên; không sửa khóa học/bài học. Cập nhật middleware, `requireAdmin` → `requireRole`.
-- Nền đã có (Đợt 3): nút cấp/gỡ quyền ở `/admin/users`, trigger `profiles_guard_role`, `role_events` → chỉ cần thêm giá trị `staff` và nút chọn vai trò.
+- ➜ Thiết kế chốt ở **ADR-011** (Đợt 7): `is_staff()` thay cho `has_role(...)`; `requireStaff()` bên cạnh `requireAdmin()`.
+- Staff: duyệt đơn, tạo/sửa bệnh nhân, cấp gói, cấp lại mật khẩu, phiếu tham vấn, lead, dashboard không doanh thu; không sửa khóa học, không phân quyền.
+- Nền đã có (Đợt 3): nút cấp/gỡ quyền ở `/admin/users`, trigger `profiles_guard_role`, `role_events` → thay bằng ô chọn vai trò.
 
 ## R-13 – Mã giảm giá / combo
 - Bảng `coupons(code, percent|amount, valid_from, valid_to, max_uses, course_ids uuid[])`.

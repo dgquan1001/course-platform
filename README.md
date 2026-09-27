@@ -6,6 +6,12 @@ Bác sĩ Đỗ Mạnh Cường. Video bài học được nhúng từ YouTube ho
 
 Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tailwind CSS.
 
+> **Định hướng phiên bản 0.2 (chốt 27/09/2026, đang triển khai theo đợt)**: nền tảng chương trình tập luyện, phục hồi chức năng
+> cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng; khóa miễn phí công khai; khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo;
+> lộ trình theo **buổi → bài tập** mở lần lượt, checklist, % tiến độ; phiếu tham vấn bác sĩ; vai trò **user / staff / admin**;
+> nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Phần "Tính năng" bên dưới mô tả mã nguồn **hiện tại (0.1.0)**.
+> Thiết kế và kế hoạch: [`web design structure/10-review/roadmap.md`](web%20design%20structure/10-review/roadmap.md) §3.
+
 ## Tính năng
 
 **Học viên**

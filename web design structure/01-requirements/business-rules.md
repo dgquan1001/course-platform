@@ -78,6 +78,84 @@ stateDiagram-v2
 > Đã chốt (RV-01, 26/09/2026): **Ẩn = chỉ ngừng nhận đăng ký**, học viên đã mua vẫn học được.
 > Đã chốt (RK-05, 26/09/2026): đơn đang chờ của khóa ẩn vẫn duyệt được; không nhận đơn mới cho khóa ẩn (BR-39).
 
+## Quy tắc phiên bản 0.2 (chốt 27/09/2026, chưa triển khai)
+
+Các quy tắc dưới đây **thay thế hoặc mở rộng** quy tắc cũ khi đợt tương ứng hoàn thành (cột "Thay"). Khi triển khai, cập nhật
+cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
+
+### Vai trò (ADR-011)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-70 | Vai trò gồm `user` (bệnh nhân, mặc định), `staff`, `admin`. Admin là quyền cao nhất | BR-02 | `check (role in ('user','staff','admin'))` |
+| BR-71 | Chỉ **admin** đổi vai trò của tài khoản khác; không tự đổi quyền mình; luôn còn ≥ 1 admin; mỗi lần đổi ghi `role_events` | BR-03 | `setUserRole`, trigger `guard_role_change` |
+| BR-72 | Staff được: duyệt/từ chối/thu hồi đơn; tạo, sửa thông tin, cấp gói, cấp lại mật khẩu cho tài khoản `role = 'user'`; xử lý phiếu tham vấn, lead; xem dashboard không có doanh thu; xem trước nội dung khóa | BR-25, BR-36, BR-41 | `requireStaff`, `is_staff()`, policy `*_staff_*` |
+| BR-73 | Chỉ admin được: thêm/sửa/xóa khóa, buổi, bài, gói, ảnh bìa; sửa mẫu phiếu tham vấn; xem doanh thu; sửa tài khoản staff/admin | BR-25 | `requireAdmin`, `is_admin()` |
+
+### Loại khóa & gói (ADR-012)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-74 | Khóa có 1 trong 3 loại: `free`, `program`, `premium`. Đổi loại khi đã có đơn đăng ký bị chặn | — | `check`, `updateCourse` |
+| BR-75 | Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | `can_view_lesson`, `registerAction` |
+| BR-76 | Khóa `premium`: không có buổi/bài, không có gói, không nhận đơn; hiển thị ảnh bìa, thông tin, giá (`courses.price`, `0` = "Liên hệ") và nút liên hệ Zalo | — | UI, `registerAction` |
+| BR-77 | Khóa `program` bán theo gói `months ∈ {1,3,6,12}`, mỗi chương trình tối đa 1 gói cho mỗi số tháng, giá riêng từng chương trình (0 – 1 tỷ), `sessions` = số buổi được mở, mặc định `12 × months` (1 – 500) | BR-21 | `course_plans` (unique `(course_id, months)`, `check`), action admin |
+| BR-78 | Chỉ nhận đơn cho chương trình đang hiển thị và gói đang bán; server tính lại giá theo gói, không tin client | BR-20 | `registerAction` |
+| BR-79 | Đơn lưu snapshot gói: `plan_id`, `plan_months`, `plan_sessions`, `amount`, cùng `course_title` như cũ | BR-38 | `registerAction`, `createPatientAction` |
+
+### Hạn học & gia hạn (ADR-012)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-80 | Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng bệnh nhân + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
+| BR-81 | Thu hồi (approved → rejected) xóa `access_starts_at/access_until` của đơn đó; không dời các đơn khác (có thể tạo khoảng trống – staff xử lý tay) | BR-42 | Trigger |
+| BR-82 | Bệnh nhân có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
+| BR-83 | Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
+| BR-84 | Mỗi bệnh nhân chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
+| BR-85 | Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `can_view_lesson`, UI |
+
+### Buổi, bài tập & tiến độ (ADR-013)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-86 | Chương trình gồm các **buổi** theo `sort_order`; mỗi buổi gồm các **bài tập** theo `sort_order`. Tạo khung nhanh: 1 – 200 buổi × 1 – 20 bài/buổi | BR-22 | `course_sessions`, `generateSkeleton` |
+| BR-87 | Link video không bắt buộc; nếu có phải hợp lệ như BR-24. Bài chưa có video: bệnh nhân thấy "Video đang được cập nhật" và vẫn tick được | BR-24 | `readLesson`, trình học |
+| BR-88 | Checklist buổi dùng **mẫu chung**: mỗi bài tập là 1 mục "Đã tập"; bệnh nhân tick / bỏ tick bài của mình | — | `lesson_progress`, RLS |
+| BR-89 | Buổi thứ k (k ≥ 2) của chương trình mở khi: còn hạn **và** k ≤ số buổi đã mua **và** mọi bài của buổi k-1 đã tick. Buổi không có bài nào coi như đã hoàn thành | — | `can_view_lesson()` (database) |
+| BR-90 | Chỉ tick được bài đang xem được (không tick trước buổi bị khóa); đã hết hạn thì không tick / bỏ tick được nhưng không mất tick cũ. Luật mở buổi luôn tính theo **trạng thái tick hiện tại**: bỏ tick 1 bài của buổi trước thì buổi sau khóa lại cho tới khi tick lại (giao diện hỏi xác nhận trước khi bỏ tick) | — | RLS `lesson_progress` |
+| BR-91 | Tiến độ % = số bài đã tick / tổng bài trong các buổi đã mua (khóa miễn phí: toàn khóa), làm tròn xuống; hiển thị "x/y bài · z%" | — | `course_progress()` |
+| BR-92 | Staff, admin xem mọi bài không bị khóa, không ghi tiến độ | BR-41 | `can_view_lesson()` |
+| BR-93 | Link video chỉ trả về qua `get_lesson_video(lesson_id)` khi `can_view_lesson` đúng; đề cương công khai không chứa link | BR-40 | Column privilege + RPC |
+
+### Tài khoản do nhân viên tạo (ADR-014)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-94 | Nhân viên tạo tài khoản bệnh nhân với SĐT (bắt buộc, không trùng) và email (tùy chọn, không trùng); `source = 'zalo'`, `created_by` = nhân viên; bắt buộc xác nhận bệnh nhân đã đồng ý chính sách bảo mật | BR-07, BR-08 | `createPatientAction` |
+| BR-95 | Mật khẩu do hệ thống sinh: 8 ký tự từ bảng chữ/số dễ đọc (bỏ `0 O 1 l I`), CSPRNG; chỉ hiển thị một lần; không lưu rõ | BR-09 | `lib/password.ts#generatePassword` |
+| BR-96 | `must_change_password = true` khi nhân viên tạo hoặc cấp lại mật khẩu; bệnh nhân được **nhắc** đổi sau đăng nhập (không bắt buộc); đổi thành công → `false` | — | `loginAction`, hộp nhắc, `changePasswordAction` |
+| BR-97 | Nhân viên cấp gói: đơn `source = 'staff'`, tạo thẳng `approved`, bắt buộc số tiền (0 – 1 tỷ) và hình thức thanh toán (`bank_transfer` / `cash` / `other`); ảnh chuyển khoản tùy chọn; người xử lý = nhân viên; lịch sử ghi `new → approved` | BR-31, BR-33, BR-35 | `grantPlanAction`, trigger insert |
+| BR-98 | Đơn `source = 'web'` bắt buộc có ảnh chuyển khoản; `source = 'staff'` thì không | BR-31 | `check` |
+| BR-99 | Cấp lại mật khẩu chỉ áp dụng cho tài khoản `role = 'user'`; ghi `account_events` (ai, lúc nào, không ghi mật khẩu) | — | `resetPatientPasswordAction` |
+
+### Phiếu tham vấn & lead (ADR-015)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-100 | Mẫu phiếu tham vấn là **một mẫu chung** do admin soạn; câu hỏi `check` (có/không), `scale` (0–10), `text` (≤ 500 ký tự); câu hỏi đang tắt không hiện | — | `consult_questions` |
+| BR-101 | Bệnh nhân đã đăng nhập gửi phiếu bất cứ lúc nào, tối đa 5 phiếu / ngày; phiếu lưu snapshot câu hỏi + trả lời, không sửa được sau khi gửi | — | `submitConsultationAction`, rate limit |
+| BR-102 | Phiếu có trạng thái `new → contacted → done` hoặc `cancelled`; staff/admin đổi trạng thái, ghi chú nội bộ (bệnh nhân không thấy), ghi người xử lý; không ghi đè khi 2 người cùng xử lý (như BR-36) | — | `setConsultationStatus` |
+| BR-103 | Bệnh nhân chỉ xem phiếu của mình; staff/admin xem tất cả; không ai xóa phiếu qua API | — | RLS `consultations_*` |
+| BR-104 | Nút premium lưu lead (khóa, họ tên, SĐT hợp lệ nếu nhập, người dùng nếu đã đăng nhập) rồi mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh. Tối đa 20 lead / giờ / IP | — | `createLeadAction`, rate limit |
+| BR-105 | Lead có trạng thái `new → contacted → converted` hoặc `closed`; lượt bấm ẩn danh (`phone is null`) chỉ để thống kê, không hiện trong danh sách cần gọi | — | `/admin/leads` |
+
+### Đồng ý xử lý dữ liệu (RV-17)
+
+| ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
+| --- | --- | --- | --- |
+| BR-106 | Khách tạo tài khoản ở box đăng ký phải tick đồng ý Chính sách bảo mật; lưu `consent_at`, `consent_version`. Học viên cũ chưa có `consent_at` được hỏi một lần sau khi đăng nhập | — | `registerAction`, hộp đồng ý |
+| BR-107 | Phiếu tham vấn và tiến độ tập là dữ liệu sức khỏe: chỉ bệnh nhân đó, staff, admin đọc được; không hiển thị trên trang công khai | — | RLS |
+
 ## Đặt lại mật khẩu
 
 | ID | Quy tắc | Thực thi tại |

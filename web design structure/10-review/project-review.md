@@ -234,7 +234,7 @@ Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadm
 | ~~Đợt 3 – Nhiều admin~~ | ~~RK-11, RK-14, RK-12 + R-05, RK-13~~ – ✅ xong 26/09/2026, E2E 57/57 (xem §7.3) | — |
 | ~~Đợt 4 – Vận hành an toàn~~ | ~~RK-10 (rào chặn + hướng dẫn staging), CI, RV-13, RV-03~~ – ✅ 26/09/2026, chờ chủ dự án tạo staging (xem §7.4) | — |
 | ~~Đợt 5 – Chống lạm dụng & dữ liệu~~ | ~~RK-06 / RV-04, RK-08, RK-04, RV-16~~ – ✅ 26/09/2026 (xem §7.4) | — |
-| **Tiếp theo** | Theo thứ tự trong [roadmap.md](roadmap.md) §3: Đợt 6 hoàn tất hạ tầng → Đợt 7 tài khoản & thông báo → Đợt 8 quy mô dữ liệu → … | — |
+| **Tiếp theo** | ~~Đợt 6 hạ tầng → Đợt 7 tài khoản & thông báo → …~~ (bản 26/09). Từ 27/09/2026 theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3: Đợt 7 vai trò staff → 8 danh mục & premium → 9 gói & hạn học → 10 buổi – bài & trình học → 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;
 có staging mới test được "admin cuối cùng" (G-12). Sau đó Đợt 5 (chống lạm dụng) trước khi quảng bá rộng.

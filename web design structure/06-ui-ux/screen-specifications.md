@@ -20,6 +20,20 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-12 | Admin – Khóa học | `/admin/courses` | US-07.01–07.04, 07.06 |
 | SCR-13 | Admin – Bài học | `/admin/courses/:id` | US-07.05 |
 | SCR-14 | 404 | (bất kỳ) | — |
+| SCR-15 | *(v0.2)* Trang chủ – khóa theo nhóm | `/#khoa-hoc` | US-11.01 |
+| SCR-16 | *(v0.2)* Giới thiệu khóa (kiểu Udemy) | `/khoa-hoc/:id` | US-11.03, 11.05, 12.02 |
+| SCR-17 | *(v0.2)* Box đăng ký có chọn gói + đồng ý | `/#dang-ky`, `/register` | US-12.02, 11.06 |
+| SCR-18 | *(v0.2)* Khóa học của tôi (tiến độ, hạn, phiếu) | `/courses` | US-12.04, 13.05, 13.06 |
+| SCR-19 | *(v0.2)* Trình học (buổi, checklist) | `/courses/:id/:lessonId` | EP-13 |
+| SCR-20 | *(v0.2)* Phiếu tham vấn | `/courses/consultation` | US-15.02 |
+| SCR-21 | *(v0.2)* Hộp nhắc đổi mật khẩu / đồng ý | (sau đăng nhập) | US-14.02, 11.06 |
+| SCR-22 | *(v0.2)* Admin – Tổng quan | `/admin` | EP-16 |
+| SCR-23 | *(v0.2)* Admin – Tạo bệnh nhân | `/admin/patients/new` | US-14.01 |
+| SCR-24 | *(v0.2)* Admin – Chi tiết bệnh nhân | `/admin/patients/:id` | US-14.03, 14.04 |
+| SCR-25 | *(v0.2)* Admin – Phiếu tham vấn / Khách quan tâm | `/admin/consultations`, `/admin/leads` | US-15.04, 11.05 |
+| SCR-26 | *(v0.2)* Admin – Khóa học: loại, ảnh bìa, gói | `/admin/courses` | US-11.02, 12.01 |
+| SCR-27 | *(v0.2)* Admin – Nội dung buổi – bài | `/admin/courses/:id` | US-13.01, 13.02 |
+| SCR-28 | *(v0.2)* Admin – Mẫu phiếu tham vấn | `/admin/settings/consultation` | US-15.01 |
 
 ---
 
@@ -290,3 +304,181 @@ Cấp / gỡ quyền có hộp xác nhận; dòng của chính mình không có 
 
 ## SCR-14 – 404
 "404" lớn màu ocean-200, "Không tìm thấy trang", mô tả, [Về trang chủ].
+
+---
+
+# Màn hình phiên bản 0.2 (chốt 27/09/2026 – chưa triển khai)
+
+Bố cục học tập tham khảo **Udemy**: trang giới thiệu có khung giá dính bên phải, trình học có cột nội dung theo buổi,
+thanh tiến độ nhỏ, nút hành động rõ ràng. Giữ màu ocean/gold và quy tắc mobile-first hiện có.
+
+## SCR-15 – Trang chủ: khóa theo nhóm
+
+```text
+├─ #mien-phi  Bắt đầu miễn phí ────────────────────────────────────────────┤
+│ ┌[ảnh bìa 16:9]┐ ┌[ảnh bìa]┐ ┌[ảnh bìa]┐   nhãn [MIỄN PHÍ]              │
+│ │ Tên khóa     │ │ …       │ │ …       │   "6 bài · 1 buổi"  [Xem ngay →] │
+├─ #chuong-trinh  Chương trình phục hồi chức năng ──────────────────────────┤
+│ [Tất cả] [Vẹo lưng] [Vẹo ngực]                                          │
+│ ┌[ảnh bìa]──────────────┐  nhãn [VẸO LƯNG]                              │
+│ │ Chương trình Vẹo lưng │  "Lộ trình 12 buổi/tháng · 6 bài/buổi"        │
+│ │ từ 990.000đ / tháng   │  [Xem lộ trình →]                             │
+├─ #premium  Premium chuyên sâu cùng bác sĩ ────────────────────────────────┤
+│ ┌[ảnh bìa] 1:4 ┐ ┌[ảnh bìa] 1:2 ┐ ┌[ảnh bìa] 1:1 ┐  giá hoặc "Liên hệ"   │
+│ │ [Liên hệ Zalo nhận ưu đãi] ┐ … (mở hộp SCR-16 §premium)                │
+```
+- Thẻ khóa đã mua (khi đăng nhập): góc thẻ hiện "Đang học · 25%".
+- Không có khóa trong nhóm → ẩn cả nhóm.
+
+## SCR-16 – Giới thiệu khóa `/khoa-hoc/:id`
+
+```text
+┌─ Dải tiêu đề (nền ocean-900, chữ trắng) ───────────────────────┐ ┌ Khung giá (sticky lg) ────┐
+│ [VẸO LƯNG]  Chương trình phục hồi vẹo lưng                     │ │ [ảnh bìa]                 │
+│ Mô tả ngắn…                                                    │ │ ( ) 1 tháng   990.000đ    │
+│ 👨‍⚕️ Bác sĩ Đỗ Mạnh Cường · 36 buổi · 216 bài tập               │ │ (•) 3 tháng 2.500.000đ    │
+└────────────────────────────────────────────────────────────────┘ │     36 buổi · tiết kiệm…  │
+┌ Bạn sẽ đạt được ─────────────────────────────┐                   │ ( ) 6 tháng …             │
+│ ✓ …  ✓ …  (2 cột)                            │                   │ [ Đăng ký gói 3 tháng ]   │ ← gold
+└──────────────────────────────────────────────┘                   │ [ Tư vấn qua Zalo ]       │
+Nội dung chương trình  36 buổi · 216 bài          [Mở tất cả]      │ ✓ Học trên điện thoại     │
+┌ ▸ Buổi 1 – Làm quen                      6 bài ┐                 │ ✓ Phiếu tham vấn bác sĩ   │
+│ ▾ Buổi 2 – …                             6 bài │                 └───────────────────────────┘
+│    ▶ Bài 1: Thở cơ hoành   (tên bài, không có video)
+└────────────────────────────────────────────────┘
+Mô tả chi tiết · Bác sĩ hướng dẫn · FAQ
+Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đăng ký]"; bấm mở danh sách gói.
+```
+| Loại | Khác biệt |
+| --- | --- |
+| Miễn phí | Khung giá: "Miễn phí" + [Bắt đầu học ngay] → bài đầu tiên; không có gói |
+| Đã mua (đăng nhập) | Khung giá: thanh tiến độ + [Tiếp tục Buổi X] + "Còn N ngày" + [Gia hạn] |
+| Premium | Không có đề cương. Khung: giá (hoặc "Liên hệ"), "Nhóm 1:4 / 1:2 / 1:1", [Liên hệ Zalo nhận ưu đãi] mở hộp: Họ tên, SĐT (điền sẵn nếu đăng nhập), [Gửi & mở Zalo], link nhỏ "Mở Zalo ngay" |
+| Chưa có gói đang bán | Nút "Liên hệ tư vấn" (Zalo) thay nút đăng ký |
+
+## SCR-17 – Box đăng ký có chọn gói (sửa SCR-03)
+
+- Bước 3: "Chọn chương trình *" rồi các nút chọn **gói** (1/3/6/12 tháng kèm giá, số buổi); QR và dòng "Số tiền" cập nhật theo gói.
+- Ô tick bắt buộc (khách mới): "Tôi đồng ý với [Chính sách bảo mật] và cho phép trung tâm lưu thông tin sức khỏe để hướng dẫn tập luyện."
+- Đã đăng nhập và đang còn hạn chương trình: dòng "Bạn đang học chương trình này tới dd/mm/yyyy – gói mới sẽ **cộng thêm** vào hạn".
+- Có đơn chờ duyệt cho chương trình: báo ngay trên form, không cho gửi.
+
+## SCR-18 – Khóa học của tôi (sửa SCR-07)
+
+```text
+Xin chào, Mai / Khóa học của tôi                           [📝 Gửi phiếu tham vấn]
+┌[ảnh bìa]┬ Chương trình Vẹo ngực ─────────────────────────────────────┐
+│         │ ████████░░░░░░░░ 18/72 bài · 25%        Còn 5 ngày (vàng)  │
+│         │ [ Tiếp tục Buổi 4 – Bài 1 → ]   [Gia hạn]                   │
+└─────────┴────────────────────────────────────────────────────────────┘
+┌[ảnh bìa]┬ Khóa miễn phí: Bài tập thở ────── 3/6 bài · 50% [Tiếp tục]┐
+Đang chờ xác nhận · Đơn chưa được xác nhận (như cũ, kèm tên gói)
+Phiếu tham vấn của tôi: 27/09 · Mới │ 10/09 · Hoàn tất
+```
+| Trạng thái | Hiển thị |
+| --- | --- |
+| Hết hạn | Nhãn đỏ "Đã hết hạn dd/mm", nút chính đổi thành [Gia hạn để tập tiếp], thanh tiến độ vẫn hiện |
+| Hoàn thành buổi cuối đã mua | Nhãn "Đã hoàn thành 12/12 buổi 🎉" + [Gửi phiếu tham vấn] + [Gia hạn] |
+
+## SCR-19 – Trình học (thay SCR-09)
+
+```text
+← Chương trình Vẹo ngực       ███████░░░ 18/72 · 25%          [📝 Phiếu tham vấn]
+┌──────────────────────────────────────────┐ ┌ Nội dung khóa học ─────────────┐
+│                                          │ │ ▾ Buổi 3 · 6/6 ✓               │
+│           VIDEO 16:9 / 9:16              │ │ ▾ Buổi 4 · 1/6   (đang tập)    │
+│                                          │ │   [✓] Bài 1 Thở cơ hoành       │
+└──────────────────────────────────────────┘ │   [▶] Bài 2 Kéo giãn …  ← đang │
+Buổi 4 · Bài 2/6                              │   [ ] Bài 3 …                  │
+<Tên bài>                                     │ ▸ Buổi 5 🔒 Hoàn thành Buổi 4   │
+<Hướng dẫn: số hiệp, số lần, lưu ý>           │ ▸ Buổi 13 🔒 Gia hạn để mở      │
+──────────────────────────────────────────    └─────────────────────────────────┘
+[← Bài trước]        [ ✓ Hoàn thành & bài tiếp theo → ]  (gold, to)
+```
+- Mobile: video tràn viền; dưới video 2 tab "Bài này" / "Nội dung (4/12 buổi)"; nút hoàn thành cố định đáy màn hình.
+- Tick bài cuối của buổi → thẻ "Xong Buổi 4! 💪 [Bắt đầu Buổi 5]"; buổi cuối đã mua → thẻ chúc mừng + phiếu tham vấn + gia hạn.
+- Bỏ tick: hỏi "Bỏ đánh dấu bài này? Buổi sau có thể bị khóa lại."
+- Bài bị khóa: vùng video hiện 🔒 + lý do + nút tương ứng (về buổi đang tập / Gia hạn / Đăng nhập).
+- Khóa miễn phí khi chưa đăng nhập: ô tick thay bằng gợi ý "Đăng nhập để lưu tiến độ".
+- Staff/admin: nhãn "Chế độ xem trước", không có ô tick.
+
+## SCR-20 – Phiếu tham vấn
+
+```text
+Phiếu tham vấn bác sĩ
+Chương trình đang tập: [Vẹo ngực ▾] (tùy chọn)
+1. Mức đau hiện tại   0 ○ 1 ○ … ● 6 … ○ 10
+2. Đau tăng sau khi tập     ( ) Có  (•) Không
+…
+Ghi chú thêm [__________________]
+[ Gửi cho nhân viên ]     Nhân viên sẽ liên hệ qua điện thoại / Zalo trong giờ làm việc.
+```
+Câu `scale` bắt buộc chọn; `check` bắt buộc; `text` không bắt buộc. Thành công → `/courses?consultation=sent` + toast.
+
+## SCR-21 – Hộp nhắc sau đăng nhập
+- **Đổi mật khẩu** (`must_change_password`): "Mật khẩu của bạn do nhân viên cấp. Bạn nên đổi mật khẩu mới để bảo mật." [Đổi ngay → /account#doi-mat-khau] [Để sau].
+- **Đồng ý chính sách** (chưa có `consent_at`): nội dung tóm tắt + link chính sách + [Tôi đồng ý]; không có nút bỏ qua cho tới khi đồng ý (vẫn đăng xuất được).
+
+## SCR-22 – Admin: Tổng quan
+
+```text
+Tổng quan                                                   [+ Tạo bệnh nhân]
+┌ Bệnh nhân ┐┌ Mới 7 ngày ┐┌ Đơn chờ ┐┌ Gói hiệu lực ┐┌ Sắp hết hạn ┐┌ Đã hết hạn ┐┌ Phiếu mới ┐┌ Lead mới ┐
+│   128     ││ 9 (Web 4 · Zalo 5)││ 3 ││ 96 ││ 7 ││ 12 ││ 2 ││ 5 │
+└───────────┘└────────────┘└─────────┘└──────────────┘└─────────────┘└────────────┘└───────────┘└──────────┘
+Việc cần làm                                   │ Tiến độ theo chương trình
+• Đơn chờ lâu nhất (3)          [Mở]            │ Vẹo lưng  ██████░░ 58% (40 bệnh nhân)
+• Sắp hết hạn: Nguyễn A (2 ngày) [☎][Zalo]      │ Vẹo ngực  ████░░░░ 41% (31)
+• Phiếu tham vấn mới (2)        [Mở]            │ Không tập > 7 ngày: 11  [Xem]
+• Lead premium mới (5)          [Mở]            │
+─────────────── Chỉ admin ────────────────────────────────────────────
+Doanh thu tháng 9: 48.500.000đ (tháng 8: 41.000.000đ)
+theo chương trình · theo hình thức (CK / tiền mặt / khác) · theo nguồn (Web / Zalo) · theo nhân viên
+```
+Mỗi thẻ là link tới danh sách đã lọc. Biểu đồ tuân theo design system (không màu mè, số liệu có nhãn).
+
+## SCR-23 – Admin: Tạo bệnh nhân
+
+```text
+Tạo tài khoản bệnh nhân (khách từ Zalo)
+Họ và tên * [____]   SĐT * [____]   Email [____]
+Ghi chú nội bộ [____]
+[✓] Bệnh nhân đã đồng ý Chính sách bảo mật (đã gửi link qua Zalo) *
+── Cấp gói ngay (tùy chọn) ─────────────────────────
+Chương trình [Vẹo ngực ▾]  Gói (•)1 tháng ( )3 tháng …
+Số tiền đã nhận * [990.000]  Hình thức * (•)Chuyển khoản ( )Tiền mặt ( )Khác
+Ảnh chuyển khoản [chọn ảnh]  Ghi chú thanh toán [____]
+[ Tạo tài khoản ]
+```
+Thành công → chuyển SCR-24 với khung xanh: "Mật khẩu: **K7m-Pq4x** (chỉ hiện một lần)" + [Chép tin nhắn gửi Zalo]:
+"Chào chị Mai, tài khoản tập luyện tại Trung tâm HV: Đăng nhập: <link> · SĐT: 09xx · Mật khẩu: … · Chị nên đổi mật khẩu sau khi đăng nhập."
+
+## SCR-24 – Admin: Chi tiết bệnh nhân
+Thông tin (sửa được), nguồn (Web/Zalo), người tạo, ngày đồng ý chính sách; **Gói & hạn học** từng chương trình (lịch sử đơn, số tiền,
+hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (thanh %, buổi đang tập, lần tập gần nhất); **Phiếu tham vấn**;
+[Cấp lại mật khẩu] (xác nhận, hiện mật khẩu một lần); nhật ký `account_events`. Staff không thấy nút đổi vai trò.
+
+## SCR-25 – Admin: Phiếu tham vấn / Khách quan tâm
+- Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: bệnh nhân (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
+  mở rộng xem toàn bộ câu trả lời; ô ghi chú nội bộ + nút chuyển trạng thái; người xử lý.
+- Lead: tab Mới · Đã liên hệ · Đã chốt · Đóng; cột khóa premium, họ tên, SĐT, đã đăng nhập hay chưa, thời điểm; dòng thống kê
+  "Lượt bấm ẩn danh 30 ngày: 42".
+
+## SCR-26 – Admin: Khóa học (sửa SCR-12)
+Form khóa thêm: Loại (Miễn phí / Chương trình / Premium), Nhóm (Vẹo lưng / Vẹo ngực / Không), Ảnh bìa (xem trước 16:9), Mô tả ngắn,
+"Bạn sẽ đạt được" (mỗi dòng một ý), Giá (chỉ premium). Khi tạo chương trình: ô **Số buổi** và **Số bài mỗi buổi** (mặc định 12 × 6).
+Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổi · Đang bán / Tắt · [Sửa] [Xóa].
+
+## SCR-27 – Admin: Nội dung buổi – bài (thay SCR-13)
+```text
+← Tất cả khóa học   Chương trình Vẹo ngực   ⚠ 12 bài chưa có video · Gói 12 tháng cần 144 buổi, hiện có 36
+[+ Tạo thêm buổi: số buổi [12] × số bài [6] ]  [+ Thêm 1 buổi]
+▾ Buổi 1 – Làm quen  (6 bài)          [↑][↓] [Sao chép buổi] [Sửa] [Xóa]
+   1. Thở cơ hoành   ✓ có video   [Xem thử] [Sửa] [Xóa]
+   2. …              ⚠ chưa có video
+   [+ Thêm bài vào buổi]
+▸ Buổi 2 …
+```
+
+## SCR-28 – Admin: Mẫu phiếu tham vấn
+Danh sách câu hỏi (kéo lên/xuống bằng nút ↑↓), loại, bật/tắt, [Sửa] [Xóa]; form thêm câu hỏi; ghi chú "Sửa câu hỏi không ảnh hưởng phiếu đã gửi".

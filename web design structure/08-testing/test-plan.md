@@ -119,6 +119,48 @@ Turnstile chưa kiểm thử tự động (cần khóa Cloudflare) – kiểm tr
 Các TC cũ được mở rộng ở Đợt 3: TC-01 (bảng `registration_events`, `role_events`, cột `review_note`), TC-10 (khách không đọc được 2 bảng lịch sử),
 TC-26 (từ chối kèm lý do), TC-28 (dòng "Lý do: …"), TC-30 (học viên thấy lý do), TC-43 (thu hồi qua ô lý do), TC-50 (lý do không sửa tay được).
 
+### 3.1. Test case dự kiến phiên bản 0.2 (⬜ chưa triển khai)
+
+Mỗi đợt thêm các bước dưới đây vào `scripts/e2e.mjs`. Vai trò mới: **Staff** (tài khoản `e2e-staff-*`), **Khách** dùng khóa miễn phí.
+Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[E2E]`) phải được dọn khi kết thúc như hiện nay.
+
+| TC | Đợt | Vai trò | Kịch bản | Truy vết |
+| --- | --- | --- | --- | --- |
+| TC-65 | 7 | Hệ thống | `role` nhận `staff`; staff gọi API đổi vai trò / sửa khóa học / sửa profile admin bị chặn; admin đổi vai trò qua UI ghi `role_events` | US-10.01, BR-70 → BR-73 |
+| TC-66 | 7 | Staff | Vào `/admin` thấy menu đúng quyền; `/admin/courses` chuyển về `/admin`; duyệt đơn → người xử lý là staff | US-10.02, US-10.03 |
+| TC-67 | 7 | Hệ thống | `/admin?status=approved` chuyển sang `/admin/registrations?status=approved` | FR-180 |
+| TC-68 | 8 | Admin | Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
+| TC-69 | 8 | Khách | Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
+| TC-70 | 8 | Khách | Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
+| TC-71 | 8 | Khách | Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
+| TC-72 | 8 | Staff | `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
+| TC-73 | 8 | Khách | Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
+| TC-74 | 9 | Admin | Thêm gói 1 tháng / 3 tháng (số buổi mặc định 12 / 36); gói 1 tháng thứ 2 bị chặn trùng | US-12.01, BR-77 |
+| TC-75 | 9 | Khách | Chọn Vẹo lưng – 3 tháng → QR đúng số tiền; gửi form sửa giá → server lưu giá gói; đơn lưu snapshot gói | US-12.02, BR-78, BR-79 |
+| TC-76 | 9 | Staff | Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
+| TC-77 | 9 | Bệnh nhân | Đơn chờ thứ 2 cùng chương trình bị chặn (UI + unique index); đã approved vẫn gửi được đơn gia hạn | BR-84 |
+| TC-78 | 9 | Bệnh nhân | Hết hạn (sửa `access_until` về quá khứ): "Đã hết hạn", tiến độ còn, video không phát, nút Gia hạn chọn sẵn chương trình | US-12.04, US-12.05, BR-85 |
+| TC-79 | 10 | Admin | Tạo khung 3 buổi × 6 bài; sao chép buổi; bài không có video lưu được; link sai bị chặn; cảnh báo thiếu buổi / thiếu video | US-13.01, US-13.02 |
+| TC-80 | 10 | Bệnh nhân | Tick 6 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → Buổi 2 mở; trước đó Buổi 2 🔒 và insert tiến độ Buổi 2 qua API bị RLS chặn | US-13.03, US-13.04, BR-89 |
+| TC-81 | 10 | Bệnh nhân | Gói 1 buổi (sửa `sessions = 1` cho test) → Buổi 2 🔒 "Gia hạn để mở"; % = 6/6 · 100% | BR-83, BR-91 |
+| TC-82 | 10 | Bệnh nhân | Bỏ tick 1 bài Buổi 1 (xác nhận) → Buổi 2 khóa lại; tick lại → mở | BR-90 |
+| TC-83 | 10 | Bệnh nhân | "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi X – Bài Y" mở đúng bài | US-13.05, US-13.06 |
+| TC-84 | 10 | Staff | Xem trước mọi buổi, không có ô tick | US-13.07 |
+| TC-85 | 11 | Staff | Tạo bệnh nhân (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện một lần; `source = zalo`, đơn `approved` `source = staff`, người xử lý = staff, lịch sử `new → approved`, hạn đúng | US-14.01, BR-94 → BR-97 |
+| TC-86 | 11 | Bệnh nhân | Đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi; "Để sau" vào học được; đổi mật khẩu → hộp không còn, đăng nhập bằng mật khẩu mới | US-14.02, BR-96 |
+| TC-87 | 11 | Staff | SĐT trùng bị báo; cấp gia hạn cho bệnh nhân có sẵn (cộng dồn); cấp lại mật khẩu → mật khẩu cũ hết hiệu lực, `account_events` ghi; không có nút với tài khoản admin | US-14.03, US-14.04, BR-99 |
+| TC-88 | 11 | Staff | Lọc bệnh nhân theo nguồn Zalo + sắp hết hạn | US-14.05 |
+| TC-89 | 12 | Admin | Thêm câu hỏi thang 0–10 vào mẫu phiếu; staff không sửa được mẫu | US-15.01 |
+| TC-90 | 12 | Bệnh nhân | Gửi phiếu từ trình học → trạng thái Mới; phiếu thứ 6 trong ngày bị chặn; bệnh nhân khác không đọc được | US-15.02, BR-101, BR-103 |
+| TC-91 | 12 | Bệnh nhân | Tick bài cuối buổi cuối đã mua → thẻ chúc mừng có nút phiếu tham vấn | US-15.03 |
+| TC-92 | 12 | Staff | Xem câu trả lời, chuyển Đã liên hệ kèm ghi chú nội bộ; bệnh nhân thấy trạng thái nhưng không thấy ghi chú nội bộ | US-15.04, BR-102 |
+| TC-93 | 13 | Admin | Dashboard: số liệu khớp dữ liệu test (bệnh nhân mới Web/Zalo, đơn chờ, sắp hết hạn, phiếu mới, lead mới); doanh thu theo hình thức | US-16.01, US-16.03 |
+| TC-94 | 13 | Staff | Dashboard không có doanh thu; `revenue_report()` bị từ chối | US-16.03 AC2 |
+
+**TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
+TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),
+TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/admin/patients`, chọn vai trò), TC-42/TC-43 (quyền theo hạn học).
+
 ## 4. Khoảng trống kiểm thử (cần bổ sung)
 
 | # | Kịch bản chưa được test tự động | Ưu tiên | Trạng thái |

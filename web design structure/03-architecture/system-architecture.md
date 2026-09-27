@@ -218,3 +218,17 @@ flowchart LR
 | Video riêng tư | Thay `lib/video.ts` bằng nhà cung cấp có signed URL (Bunny Stream, Cloudflare Stream, Mux) |
 | Đa vai trò | Mở rộng `check (role in …)` và thay `is_admin()` bằng `has_role(text)` |
 | API cho app di động | Dùng trực tiếp Supabase (RLS đã sẵn), bổ sung Route Handler cho các nghiệp vụ cần service role |
+
+## 10. Thay đổi kiến trúc phiên bản 0.2 (chốt 27/09/2026, chưa triển khai)
+
+| Hạng mục | Thay đổi | ADR |
+| --- | --- | --- |
+| Phân quyền | `is_staff()` bên cạnh `is_admin()`; `requireStaff()`; middleware cho staff vào `/admin`, chặn trang chỉ-admin | ADR-011 |
+| Nội dung trả phí | Đề cương đọc công khai; `video_url` chỉ qua RPC `get_lesson_video` (security definer, `can_view_lesson`) | ADR-013 |
+| Luật học tập | Hạn học, số buổi đã mua, mở buổi tuần tự đều tính trong database (hàm SQL), trang chỉ hiển thị | ADR-012, ADR-013 |
+| Ghi tiến độ | Server action `toggleLessonProgress` dùng **server client** (RLS kiểm tra) → không cần service role | ADR-013 |
+| Tạo tài khoản bởi nhân viên | Service role tạo user (như ADR-006); đơn cấp gói insert bằng server client của nhân viên để trigger ghi đúng người | ADR-014 |
+| Trang công khai | `/khoa-hoc/[id]` ISR như trang chủ (`revalidatePath` khi admin sửa khóa/gói/buổi); `/courses/[id]/**` render động, công khai với khóa free | ADR-008 |
+| Storage | Thêm bucket **public** `course-covers` (ảnh bìa); `payment-proofs` cho staff đọc | — |
+| Dashboard | Hàm SQL tổng hợp `dashboard_stats()`, `revenue_report()` (1 truy vấn / thẻ nhóm), không thêm dịch vụ ngoài | — |
+| Zalo | Chỉ dùng link `zalo.me` (mở chat); không tích hợp API Zalo OA ở v0.2 | ADR-015 |

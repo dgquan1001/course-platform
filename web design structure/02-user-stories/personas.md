@@ -41,6 +41,31 @@
 | Mục tiêu | Thương hiệu chuyên nghiệp, uy tín y khoa, nội dung không bị lộ tràn lan |
 | Thiết kế đáp ứng | Landing page giới thiệu chuyên môn, bảng màu xanh y tế – vàng kem, khóa học chỉ mở theo từng khóa đã thanh toán |
 
+## P6 – Chị Mai, bệnh nhân vẹo cột sống (v0.2 – persona chính)
+
+| | |
+| --- | --- |
+| Tuổi / nghề | 38 tuổi, kế toán; con gái 14 tuổi cũng bị vẹo lưng nhẹ |
+| Thiết bị | Điện thoại Android, Zalo, app ngân hàng |
+| Kênh | Xem video TikTok của bác sĩ → nhắn Zalo hỏi → được nhân viên tạo tài khoản |
+| Vấn đề | Vẹo cột sống ngực, đau lưng khi ngồi lâu; không biết tập đúng hay sai |
+| Mục tiêu | Tập đều mỗi ngày theo lộ trình, biết hôm nay tập buổi nào, thấy mình tiến bộ, được bác sĩ xem lại tình trạng |
+| Nỗi lo | Tập sai gây đau thêm; bỏ dở giữa chừng; hết hạn mất dữ liệu |
+| Thiết kế đáp ứng | Buổi mở lần lượt, checklist từng bài, % tiến độ, nút "Tiếp tục Buổi X", phiếu tham vấn bất cứ lúc nào, hết hạn vẫn còn tiến độ, gia hạn học tiếp |
+
+## P7 – Bạn Tuấn, nhân viên tư vấn (staff, v0.2)
+
+| | |
+| --- | --- |
+| Vai trò | Trả lời Zalo, chốt gói, đối chiếu chuyển khoản, gọi nhắc bệnh nhân |
+| Thiết bị | Máy tính văn phòng (Zalo PC mở song song) + điện thoại |
+| Công việc | Tạo tài khoản cho khách Zalo, gửi mật khẩu, duyệt đơn web, gọi nhắc gia hạn, chuyển phiếu tham vấn cho bác sĩ |
+| Mục tiêu | Tạo tài khoản + cấp gói trong < 1 phút; một màn hình biết hôm nay cần gọi ai |
+| Nỗi lo | Gõ nhầm SĐT, cấp nhầm gói, quên khách sắp hết hạn |
+| Thiết kế đáp ứng | Form tạo bệnh nhân 1 trang + mật khẩu tự sinh + nút "Chép tin nhắn gửi Zalo", dashboard việc cần làm, không có quyền sửa khóa học |
+
+> P3 (chị Hà) từ v0.2 là **admin**: quản lý nội dung, gói giá, nhân viên, xem doanh thu.
+
 ## P5 – Khách tìm hiểu
 
 | | |

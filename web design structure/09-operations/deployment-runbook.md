@@ -134,7 +134,22 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 4. Nếu key bị commit lên git: xóa khỏi lịch sử (git filter-repo) **sau** khi đã xoay khóa.
 5. Ghi lại sự cố, nguyên nhân, biện pháp phòng ngừa.
 
-## 10. Giám sát (đề xuất)
+## 10. Chuyển lên phiên bản 0.2 (dự kiến)
+
+Áp dụng khi triển khai từng đợt 7 → 13 (roadmap §3):
+
+1. Sao lưu database (runbook §7) trước mỗi đợt có thay đổi schema.
+2. Chạy `supabase/schema.sql` mới nhất trên **staging** → E2E → rồi mới chạy trên production, sau đó deploy code của đợt.
+   Code đợt mới **không** chạy được với schema cũ (thiếu cột/hàm) – luôn chạy schema trước.
+3. Đợt 8: tạo bucket public `course-covers` (schema tự tạo), thêm domain Supabase Storage vào `images.remotePatterns` và CSP `img-src`.
+4. Đợt 7: cấp vai trò `staff` cho nhân viên ở `/admin/patients` (tab Nhân viên & Admin) sau khi deploy.
+5. **Dọn dữ liệu test trước go-live** (hiện toàn bộ là dữ liệu test – 27/09/2026): xóa đơn, tài khoản học viên test, khóa học test
+   trong Supabase Dashboard (hoặc script SQL do dev chuẩn bị, chạy có xác nhận), giữ tài khoản admin; kiểm tra lại bucket `payment-proofs`.
+6. Soạn nội dung: ảnh bìa, 2 chương trình (Vẹo lưng, Vẹo ngực) với gói 1/3/6/12 tháng, khung buổi, khóa miễn phí, 3 khóa premium,
+   mẫu phiếu tham vấn, trang chính sách bảo mật (chủ trung tâm duyệt nội dung pháp lý).
+7. Smoke test sau deploy: khách xem khóa free, lead premium mở Zalo, đăng ký chọn gói, staff tạo bệnh nhân Zalo, bệnh nhân tick buổi 1.
+
+## 11. Giám sát (đề xuất)
 
 - Vercel Analytics / Speed Insights cho hiệu năng.
 - Sentry (hoặc Vercel Log Drains) để bắt lỗi server action.

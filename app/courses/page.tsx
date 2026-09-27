@@ -1,9 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth'
+import { requireUserPage } from '@/lib/auth'
 import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
 import { ArrowRightIcon, BookIcon, CheckIcon, ClockIcon } from '@/components/icons'
+import { daysLeft, formatDate, type OutlineRow } from '@/lib/courses'
+import { getCourseProgress, type CourseProgress } from '@/lib/progress'
+import ProgressBar from '@/components/ProgressBar'
+import StatusBadge from '@/components/StatusBadge'
+import { formatDay } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Khóa học của tôi' }
 
@@ -12,7 +17,90 @@ type CourseRow = {
   title: string
   description: string | null
   price: number
+  kind: string
   lessons: { count: number }[]
+}
+
+// Khóa đã mở kèm hạn học: null = không thời hạn (đơn cũ không có gói, hoặc nhân viên / admin xem trước)
+type OwnedCourse = CourseRow & { accessUntil: string | null; progress?: CourseProgress; nextLabel?: string | null; preview?: boolean }
+
+// "Buổi X – Bài Y" của bài tiếp theo (theo đề cương course_outline)
+async function withProgress(supabase: ReturnType<typeof createClient>, course: OwnedCourse): Promise<OwnedCourse> {
+  const [progress, { data: outline }] = await Promise.all([
+    getCourseProgress(course.id),
+    supabase.rpc('course_outline', { target_course: course.id }),
+  ])
+  const rows = (outline ?? []) as OutlineRow[]
+  const next = rows.find((r) => r.id === progress.next_lesson_id)
+  const nextLabel = next
+    ? `${next.session_title ?? 'Bài'} – Bài ${rows.filter((r) => r.session_id === next.session_id).findIndex((r) => r.id === next.id) + 1}`
+    : null
+  return { ...course, progress, nextLabel }
+}
+
+// Nhãn hạn học: còn > 7 ngày (xám), ≤ 7 ngày (vàng – nhắc gia hạn), đã hết hạn (đỏ)
+function AccessBadge({ until }: { until: string | null }) {
+  const days = daysLeft(until)
+  if (days === null) return null
+  if (days <= 0) return <span className="badge bg-red-100 text-red-700">Đã hết hạn {formatDate(until!)}</span>
+  return (
+    <span className={`badge ${days <= 7 ? 'bg-gold-100 text-gold-800' : 'bg-slate-100 text-slate-600'}`} title={`Hạn học: ${formatDate(until!)}`}>
+      Còn {days} ngày
+    </span>
+  )
+}
+
+function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolean }) {
+  const renewable = course.kind === 'program' && course.accessUntil !== null
+  return (
+    <div className="card flex flex-col p-6 transition hover:border-ocean-200 hover:shadow-md">
+      <div className="flex flex-wrap items-center gap-2">
+        <AccessBadge until={course.accessUntil} />
+      </div>
+      <h3 className="mt-2 text-lg font-bold">
+        <Link href={`/courses/${course.id}`} className="hover:text-ocean-700">
+          {course.title}
+        </Link>
+      </h3>
+      <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.description}</p>
+      {course.progress && <ProgressBar done={course.progress.done} total={course.progress.total} className="mt-4" />}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm">
+        {expired ? (
+          <Link href={`/courses/${course.id}`} className="font-semibold text-slate-600 hover:text-ocean-700">
+            Xem khóa học
+          </Link>
+        ) : (
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <BookIcon className="h-4 w-4" /> {course.lessons?.[0]?.count ?? 0} bài học
+          </span>
+        )}
+        <span className="flex flex-wrap gap-2">
+          {/* Gói còn ≤ 7 ngày: nhắc gửi phiếu tham vấn trước khi hết hạn (FR-171) */}
+          {!expired && !course.preview && (daysLeft(course.accessUntil) ?? 99) <= 7 && (
+            <Link href={`/courses/consultation?course=${course.id}&origin=expiring`} className="btn-outline btn-sm">
+              Phiếu tham vấn
+            </Link>
+          )}
+          {renewable && (
+            <Link href={`/register?course=${course.id}`} className={expired ? 'btn-gold btn-sm' : 'btn-outline btn-sm'}>
+              {expired ? 'Gia hạn để tập tiếp' : 'Gia hạn'}
+            </Link>
+          )}
+          {!expired &&
+            (course.progress?.done && course.progress.next_lesson_id ? (
+              // Đang tập dở: vào thẳng bài tiếp theo
+              <Link href={`/courses/${course.id}/${course.progress.next_lesson_id}`} className="btn-primary btn-sm">
+                Tiếp tục {course.nextLabel} <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link href={`/courses/${course.id}`} className="btn-primary btn-sm">
+                Vào học <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            ))}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 export default async function CoursesPage({
@@ -21,22 +109,26 @@ export default async function CoursesPage({
   searchParams: { registered?: string }
 }) {
   const supabase = createClient()
-  const user = (await getCurrentUser())!
+  const user = await requireUserPage('/courses')
 
-  let unlocked: CourseRow[] = []
+  let unlocked: OwnedCourse[] = []
+  let expired: OwnedCourse[] = []
   type RegistrationRow = { id: string; title: string; amount: number | null; note: string | null; course: CourseRow | null }
   let pending: RegistrationRow[] = []
   let rejected: RegistrationRow[] = []
+  type MyConsultation = { id: string; course_title: string | null; status: string; created_at: string }
+  let consultations: MyConsultation[] = []
 
-  const courseFields = 'id, title, description, price, lessons(count)'
+  const courseFields = 'id, title, description, price, kind, lessons(count)'
 
-  if (user.isAdmin) {
+  // Nhân viên và admin xem trước được mọi khóa học
+  if (user.isStaff) {
     const { data } = await supabase.from('courses').select(courseFields).order('sort_order')
-    unlocked = (data as CourseRow[]) ?? []
+    unlocked = ((data as CourseRow[]) ?? []).map((c) => ({ ...c, accessUntil: null, preview: true }))
   } else {
     const { data } = await supabase
       .from('registrations')
-      .select(`id, status, course_title, amount, review_note, courses(${courseFields})`)
+      .select(`id, status, course_title, amount, review_note, plan_months, access_until, courses(${courseFields})`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -50,23 +142,48 @@ export default async function CoursesPage({
         amount: (r.amount as number | null) ?? course?.price ?? null,
         // Lý do admin ghi khi từ chối / thu hồi
         note: r.review_note as string | null,
+        // Đơn cũ không có gói: không thời hạn
+        until: r.plan_months ? (r.access_until as string | null) : null,
+        unlimited: !r.plan_months,
         course,
       }
     })
-    const seen = new Set<string>()
-    unlocked = rows
-      .filter((r) => r.status === 'approved' && r.course && !seen.has(r.course.id) && seen.add(r.course.id))
-      .map((r) => r.course!)
+    // Gộp các đơn đã duyệt theo khóa: hạn học = hạn xa nhất (gia hạn cộng dồn), có đơn không thời hạn thì không hết hạn
+    const owned = new Map<string, OwnedCourse & { unlimited: boolean }>()
+    for (const r of rows) {
+      if (r.status !== 'approved' || !r.course) continue
+      const prev = owned.get(r.course.id)
+      const unlimited = (prev?.unlimited ?? false) || r.unlimited
+      const accessUntil = unlimited ? null : [prev?.accessUntil, r.until].filter(Boolean).sort().at(-1) ?? null
+      owned.set(r.course.id, { ...r.course, accessUntil, unlimited })
+    }
+    // Tiến độ từng khóa (vẫn đọc được khi đã hết hạn)
+    const courses = await Promise.all([...owned.values()].map((c) => withProgress(supabase, c)))
+    for (const c of courses) {
+      if (c.accessUntil && new Date(c.accessUntil) <= new Date()) expired.push(c)
+      else unlocked.push(c)
+    }
     pending = rows.filter((r) => r.status === 'pending')
     rejected = rows.filter((r) => r.status === 'rejected')
+    const { data: mine } = await supabase.rpc('my_consultations', { p_limit: 10 })
+    consultations = (mine ?? []) as MyConsultation[]
   }
 
   return (
     <main>
       <section className="border-b border-ocean-100 bg-gradient-to-b from-ocean-50 to-white">
         <div className="container-page py-8 sm:py-10">
-          <p className="text-sm text-slate-500">Xin chào, {user.fullName || user.email || user.phone}</p>
-          <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Khóa học của tôi</h1>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm text-slate-500">Xin chào, {user.fullName || user.email || user.phone}</p>
+              <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Khóa học của tôi</h1>
+            </div>
+            {!user.isStaff && (
+              <Link href="/courses/consultation" className="btn-outline">
+                📝 Gửi phiếu tham vấn
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
@@ -116,22 +233,7 @@ export default async function CoursesPage({
           {unlocked.length ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {unlocked.map((course) => (
-                <Link
-                  key={course.id}
-                  href={`/courses/${course.id}`}
-                  className="card group flex flex-col p-6 transition hover:border-ocean-200 hover:shadow-md"
-                >
-                  <h3 className="text-lg font-bold group-hover:text-ocean-700">{course.title}</h3>
-                  <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.description}</p>
-                  <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
-                    <span className="flex items-center gap-1.5 text-slate-500">
-                      <BookIcon className="h-4 w-4" /> {course.lessons?.[0]?.count ?? 0} bài học
-                    </span>
-                    <span className="flex items-center gap-1 font-semibold text-ocean-700">
-                      Vào học <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
-                    </span>
-                  </div>
-                </Link>
+                <CourseTile key={course.id} course={course} />
               ))}
             </div>
           ) : (
@@ -139,7 +241,9 @@ export default async function CoursesPage({
               <p className="text-slate-600">
                 {pending.length
                   ? 'Khóa học sẽ xuất hiện ở đây sau khi được xác nhận.'
-                  : 'Bạn chưa có khóa học nào.'}
+                  : expired.length
+                    ? 'Không có khóa học nào đang còn hạn.'
+                    : 'Bạn chưa có khóa học nào.'}
               </p>
               <Link href="/register" className="btn-gold mt-5">
                 Đăng ký khóa học
@@ -147,6 +251,20 @@ export default async function CoursesPage({
             </div>
           )}
         </section>
+
+        {!!expired.length && (
+          <section aria-label="Gói đã hết hạn">
+            <h2 className="mb-1 text-lg font-bold">Gói đã hết hạn</h2>
+            <p className="mb-3 text-sm text-slate-500">
+              Tiến độ của bạn vẫn được giữ. Gia hạn để tập tiếp từ buổi đang dở.
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {expired.map((course) => (
+                <CourseTile key={course.id} course={course} expired />
+              ))}
+            </div>
+          </section>
+        )}
 
         {!!rejected.length && (
           <section>
@@ -171,7 +289,22 @@ export default async function CoursesPage({
           </section>
         )}
 
-        {!!unlocked.length && !user.isAdmin && (
+        {!!consultations.length && (
+          <section aria-label="Phiếu tham vấn của tôi">
+            <h2 className="mb-3 text-lg font-bold">Phiếu tham vấn của tôi</h2>
+            <ul className="card divide-y divide-slate-100">
+              {consultations.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                  <span className="text-slate-500">{formatDay(c.created_at)}</span>
+                  <span className="flex-1 font-medium text-ocean-900">{c.course_title ?? 'Phiếu tham vấn'}</span>
+                  <StatusBadge status={`consult_${c.status}`} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {!!unlocked.length && !user.isStaff && (
           <div className="text-center">
             <Link href="/register" className="btn-outline">
               Đăng ký thêm khóa học

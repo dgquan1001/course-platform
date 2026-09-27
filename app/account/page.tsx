@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/auth'
+import { requireUserPage } from '@/lib/auth'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import ActionForm from '@/components/ActionForm'
 import SubmitButton from '@/components/SubmitButton'
@@ -10,7 +10,7 @@ import { changePasswordAction, updateProfileAction } from './actions'
 export const metadata: Metadata = { title: 'Tài khoản của tôi' }
 
 export default async function AccountPage() {
-  const user = (await getCurrentUser())!
+  const user = await requireUserPage('/account')
 
   return (
     <main>
@@ -54,10 +54,15 @@ export default async function AccountPage() {
         </section>
 
         <div className="space-y-6">
-          <section className="card p-5 sm:p-6">
+          <section id="doi-mat-khau" className="card scroll-mt-24 p-5 sm:p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
               <KeyIcon className="h-5 w-5 text-ocean-600" /> Đổi mật khẩu
             </h2>
+            {user.mustChangePassword && (
+              <p className="alert-warning mb-4 text-sm">
+                Mật khẩu hiện tại do nhân viên trung tâm cấp. Bạn nên đổi sang mật khẩu mới do mình tự đặt.
+              </p>
+            )}
             <ActionForm action={changePasswordAction} resetOnSuccess className="space-y-4">
               <div>
                 <label htmlFor="currentPassword" className="label">Mật khẩu hiện tại</label>

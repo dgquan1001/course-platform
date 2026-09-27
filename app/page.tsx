@@ -3,7 +3,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import RegisterForm from '@/app/register/RegisterForm'
 import { getPublishedCourses } from '@/lib/supabase/public'
-import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
+import { hotlineHref, siteConfig } from '@/lib/site-config'
+import CourseCard from '@/components/CourseCard'
+import ProgramGrid from '@/components/ProgramGrid'
 import doctorPhoto from '@/public/images/bac-si-do-manh-cuong.jpg'
 import centerBanner from '@/public/images/trung-tam-hv.jpg'
 import {
@@ -13,7 +15,6 @@ import {
   CheckIcon,
   ClockIcon,
   PhoneIcon,
-  PlayIcon,
   ShieldIcon,
 } from '@/components/icons'
 
@@ -71,6 +72,9 @@ const faqs = [
 
 export default async function HomePage() {
   const courses = await getPublishedCourses()
+  const free = courses.filter((c) => c.kind === 'free')
+  const programs = courses.filter((c) => c.kind === 'program')
+  const premium = courses.filter((c) => c.kind === 'premium')
 
   return (
     <main>
@@ -208,37 +212,60 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* KHÓA HỌC */}
+      {/* KHÓA MIỄN PHÍ: ai cũng xem được, không cần đăng nhập */}
+      {!!free.length && (
+        <section id="mien-phi" className="scroll-mt-16 py-16 sm:py-20">
+          <div className="container-page">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="eyebrow">Miễn phí</span>
+              <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Bắt đầu tập miễn phí</h2>
+              <p className="mt-3 text-slate-600">Xem ngay, không cần đăng ký tài khoản.</p>
+            </div>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {free.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* CHƯƠNG TRÌNH PHỤC HỒI (trả phí): mọi nút "Đăng ký" cuộn tới box đăng ký */}
       <section id="khoa-hoc" className="scroll-mt-16 bg-gradient-to-b from-gold-50/70 to-white py-16 sm:py-20">
         <div className="container-page">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="eyebrow">Khóa học</span>
-            <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Chọn khóa học phù hợp với bạn</h2>
+            <span className="eyebrow">Chương trình phục hồi chức năng</span>
+            <h2 className="mt-4 text-2xl font-bold sm:text-3xl">Chọn chương trình phù hợp với bạn</h2>
+            <p className="mt-3 text-slate-600">
+              Lộ trình tập theo từng buổi, chuẩn y khoa, có chuyên gia hướng dẫn.
+            </p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <div key={course.id} className="card flex flex-col p-6 transition hover:border-ocean-200 hover:shadow-md">
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-ocean-50 text-ocean-600">
-                  <PlayIcon className="ml-0.5 h-4 w-4" />
-                </span>
-                <h3 className="mt-4 text-lg font-bold">{course.title}</h3>
-                <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.description}</p>
-                <div className="mt-6 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                  <span className="text-xl font-bold text-ocean-700">{formatPrice(course.price)}</span>
-                  <Link href={`/?course=${course.id}#dang-ky`} className="btn-gold">
-                    Đăng ký
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-          {!courses.length && (
+          <ProgramGrid courses={programs} />
+          {!programs.length && (
             <p className="card mt-8 p-8 text-center text-slate-500">
-              Khóa học đang được cập nhật. Gọi <a href={hotlineHref} className="font-semibold text-ocean-700">{siteConfig.hotline}</a> để được tư vấn.
+              Chương trình đang được cập nhật. Gọi <a href={hotlineHref} className="font-semibold text-ocean-700">{siteConfig.hotline}</a> để được tư vấn.
             </p>
           )}
         </div>
       </section>
+
+      {/* PREMIUM 1:4, 1:2, 1:1: chỉ có thông tin, liên hệ Zalo để nhận ưu đãi */}
+      {!!premium.length && (
+        <section id="premium" className="scroll-mt-16 bg-ocean-950 py-16 text-white sm:py-20">
+          <div className="container-page">
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="eyebrow">Premium chuyên sâu</span>
+              <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">Tập trực tiếp cùng bác sĩ</h2>
+              <p className="mt-3 text-ocean-100">Nhóm nhỏ 1:4, 1:2 hoặc kèm riêng 1:1. Liên hệ Zalo để được tư vấn và nhận ưu đãi.</p>
+            </div>
+            <div className="mt-10 grid gap-5 text-slate-900 sm:grid-cols-2 lg:grid-cols-3">
+              {premium.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FORM ĐĂNG KÝ: mọi nút "Đăng ký" trên trang đều cuộn tới đây */}
       <section id="dang-ky" className="scroll-mt-16 py-16 sm:py-20">
@@ -252,7 +279,7 @@ export default async function HomePage() {
           </div>
           <div className="mx-auto max-w-5xl">
             <Suspense fallback={<div className="card h-[36rem] animate-pulse" />}>
-              <RegisterForm courses={courses} />
+              <RegisterForm courses={programs} />
             </Suspense>
           </div>
         </div>

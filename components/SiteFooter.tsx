@@ -16,9 +16,10 @@ export default function SiteFooter() {
         <div className="text-sm">
           <p className="mb-3 font-semibold text-ocean-900">Liên kết</p>
           <ul className="space-y-2 text-slate-600">
-            <li><Link href="/#khoa-hoc" className="hover:text-ocean-700">Khóa học</Link></li>
+            <li><Link href="/#khoa-hoc" className="hover:text-ocean-700">Chương trình phục hồi</Link></li>
             <li><Link href="/register" className="hover:text-ocean-700">Đăng ký học</Link></li>
             <li><Link href="/login" className="hover:text-ocean-700">Đăng nhập</Link></li>
+            <li><Link href="/chinh-sach-bao-mat" className="hover:text-ocean-700">Chính sách bảo mật</Link></li>
           </ul>
         </div>
         <div className="text-sm">

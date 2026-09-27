@@ -18,10 +18,10 @@
 | --- | --- |
 | Nhà cung cấp | Supabase Auth, email + password |
 | Định danh | Email thật **hoặc** SĐT (tra qua `profiles`, xem ADR-003) |
-| Phiên | Cookie HTTP do `@supabase/ssr` quản lý; middleware làm mới token |
-| Kiểm tra phiên ở server | Luôn dùng `auth.getUser()` (xác minh với Supabase), **không** tin `getSession()` ở server |
-| Ở client | `getSession()` chỉ dùng để hiển thị (header, form), không dùng để quyết định quyền |
-| Mật khẩu | ≥ 6 ký tự (khuyến nghị nâng lên ≥ 8 – RV-03) |
+| Phiên | Cookie HTTP do `@supabase/ssr` quản lý; middleware làm mới token bằng `getSession()` (không gọi mạng khi token còn hạn) – ADR-016 |
+| Kiểm tra phiên ở server | Mọi quyết định quyền dùng `auth.getUser()` (xác minh với Supabase) qua `getCurrentUser()` (cache theo request) và `requireUserPage` / `requireStaffPage` / `requireAdminPage`. Middleware chỉ dùng `getSession()` để **chuyển hướng** khách chưa đăng nhập – cookie giả qua được middleware nhưng bị chặn ở trang + RLS (ADR-016) |
+| Ở client | `getSession()` + `lib/use-profile.ts` chỉ dùng để hiển thị (header, hộp nhắc), không dùng để quyết định quyền |
+| Mật khẩu | ≥ 8 ký tự (RV-03). Mật khẩu nhân viên cấp: 8 ký tự CSPRNG (`lib/generate-password.ts`), hiện một lần, nhắc đổi (BR-95, BR-96) |
 | Đổi mật khẩu | Bắt buộc xác minh mật khẩu cũ bằng client tách biệt (không ghi đè phiên) |
 | Quên mật khẩu | Mã 6 số, SHA-256, TTL 10', 5 lần thử, 60s gửi lại, dùng 1 lần (ADR-007) |
 | Open redirect | `safeNext()` chỉ nhận path bắt đầu `/` và không `//` |
@@ -46,7 +46,42 @@
 | password_resets | ❌ | ❌ | ❌ | ✅ |
 | Storage payment-proofs – đọc | ❌ | ❌ | ✅ | ✅ |
 | Storage payment-proofs – ghi | ❌ | ❌ | ❌ | ✅ |
-| Đổi `role` | ❌ | ❌ | ✅ (qua SQL, chưa có UI) | ✅ |
+| Đổi `role` | ❌ | ❌ | ✅ (trang Học viên; nhân viên không đổi được – xem §3.1) | ✅ |
+
+### 3.1. Ma trận phân quyền phiên bản 0.2 (ADR-011)
+
+> ✅ Toàn bộ ma trận dưới đã áp dụng (Đợt 7 → 13, 27/09/2026) và có E2E kiểm tra qua API (RLS / trigger / hàm), không chỉ ở giao diện.
+> Đợt 9: chỉ admin quản lý gói; nhân viên / admin không sửa tay được gói, học phí, hạn học của đơn (trigger).
+> Đợt 11: nhân viên chỉ tạo được đơn `source = staff` đã duyệt, gói của đúng chương trình (trigger); ghi chú nội bộ ở `patient_notes`.
+> Đợt 12: bệnh nhân đọc phiếu qua `my_consultations()` (không có ghi chú nội bộ). Đợt 13: `revenue_report()` báo lỗi với nhân viên.
+
+| Tài nguyên / thao tác | Khách | Bệnh nhân | Staff | Admin |
+| --- | --- | --- | --- | --- |
+| Khóa đang hiển thị, gói đang bán, đề cương (buổi, tên bài) | ✅ | ✅ | ✅ | ✅ |
+| Video bài khóa **free** (RLS `can_view_lesson`) | ✅ | ✅ | ✅ | ✅ |
+| Video bài khóa **program** | ❌ | 🔸 còn hạn + buổi đã mở | ✅ xem trước | ✅ |
+| Khóa / gói / buổi / bài / ảnh bìa – thêm, sửa, xóa | ❌ | ❌ | ❌ | ✅ |
+| `lesson_progress` – đọc | ❌ | 🔸 | ✅ | ✅ |
+| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ giao diện không có nút (RLS vẫn cho ghi tiến độ **của chính mình**, không ảnh hưởng bệnh nhân) | ❌ như staff |
+| profiles – đọc | ❌ | 🔸 | ✅ | ✅ |
+| profiles – sửa | ❌ | 🔸 qua action | ✅ chỉ `role = user` | ✅ |
+| Đổi `role` | ❌ | ❌ | ❌ | ✅ |
+| Tạo tài khoản bệnh nhân, cấp lại mật khẩu | ❌ | ❌ | ✅ (tài khoản `user`) | ✅ |
+| registrations – đọc | ❌ | 🔸 | ✅ | ✅ |
+| registrations – duyệt / từ chối / thu hồi | ❌ | ❌ | ✅ | ✅ |
+| registrations – tạo đơn đã duyệt (cấp gói) | ❌ | ❌ | ✅ `source = staff` | ✅ |
+| Ảnh chuyển khoản – xem | ❌ | ❌ | ✅ | ✅ |
+| consultations – gửi | ❌ | ✅ qua action (5 phiếu / ngày) | ❌ (giao diện ẩn nút ở chế độ xem trước) | ❌ |
+| consultations – đọc | ❌ | 🔸 qua `my_consultations()` – không thấy ghi chú nội bộ | ✅ | ✅ |
+| consultations – đổi trạng thái | ❌ | ❌ | ✅ | ✅ |
+| Mẫu phiếu tham vấn – sửa | ❌ | ❌ | ❌ | ✅ |
+| leads – tạo | ✅ qua action | ✅ qua action | — | — |
+| leads – đọc / xử lý | ❌ | ❌ | ✅ | ✅ |
+| Ghi chú nội bộ (`patient_notes`), nhật ký tài khoản (`account_events`) | ❌ | ❌ | ✅ | ✅ |
+| `admin_patients()`, `patient_progress()`, `dashboard_stats()` | ❌ (rỗng / null) | ❌ (rỗng / null) | ✅ | ✅ |
+| `_patient_courses()` (hàm nội bộ) | ❌ | ❌ | ❌ | ❌ (chỉ gọi bên trong hàm security definer) |
+| Dashboard | ❌ | ❌ | ✅ không có doanh thu | ✅ |
+| `revenue_report()` | ❌ | ❌ | ❌ | ✅ |
 
 ## 4. Nguyên tắc về service role
 
@@ -82,19 +117,34 @@
 | T21 | File giả dạng ảnh (đổi đuôi) | Tampering | ✅ Kiểm tra magic bytes, lưu MIME theo nội dung (RK-08) | Thấp |
 | T22 | Clickjacking, nhúng script lạ, lộ công nghệ | Tampering / Info disclosure | ✅ CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn script/frame/ảnh giới hạn), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS, tắt `X-Powered-By` (RV-16) | Thấp. `script-src` còn `'unsafe-inline'` (Next.js); nâng cấp dùng nonce khi cần |
 | T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
+| T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | ✅ Đợt 7: trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` (E2E TC-65) | Thấp |
+| T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (đơn approved không ảnh) | Repudiation / Fraud | ✅ Đợt 11: bắt buộc số tiền + hình thức; trigger tự lấy gói theo `plan_id` của đúng chương trình, ghi `created_by`, người xử lý, lịch sử `new → approved`; staff không sửa được học phí / hạn học sau đó (Đợt 9). ✅ Đợt 13: admin xem doanh thu theo người duyệt / cấp gói, theo hình thức | Trung bình – vẫn cần đối soát định kỳ (tiền mặt) |
+| T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | ✅ Đợt 11: hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được (mật khẩu cũ hết hiệu lực – E2E) | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
+| T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | ✅ Đợt 10: RLS `lessons_select = can_view_lesson(id)`, `lesson_progress` insert/delete chỉ khi `can_view_lesson` (E2E: tick trước buổi, đọc video buổi khóa, tick vượt số buổi đã mua đều bị chặn) | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |
+| T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | ✅ Đợt 12: RLS `consultations` chỉ staff / admin; bệnh nhân đọc phiếu mình qua `my_consultations()`; không có trang công khai; đồng ý xử lý dữ liệu (E2E: bệnh nhân khác, khách không đọc được) | Thấp–Trung bình |
+| T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | ✅ Đợt 8: rate limit 20 lead/giờ/IP (`lead:<IP>`); ✅ Đợt 12: 5 phiếu/ngày/tài khoản (`consult:<user_id>`); Turnstile nếu bật | Thấp |
+| T31 *(v0.2)* | Bệnh nhân sửa giá gói ở trình duyệt / gửi gói của chương trình khác | Tampering | ✅ Đợt 9: server lấy giá từ `course_plans` đúng chương trình, gói phải đang bán (TC-75) | Thấp |
+| T32 *(v0.2)* | Kéo dài hạn học trái phép | Elevation | ✅ Đợt 9: hạn học chỉ do trigger tính khi duyệt; người có phiên đăng nhập không ghi được `access_*` (TC-76) | Thấp |
+| T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | ✅ Đợt 8: chỉ admin (RLS storage, E2E khách / nhân viên bị chặn); kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
+| T31 *(v0.2)* | Cookie phiên giả / hết hạn vượt qua middleware (middleware chỉ đọc cookie – ADR-016) | Spoofing | ✅ Mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (xác thực `getUser()`); RLS là lớp cuối | Thấp – không lộ dữ liệu, chỉ bị chuyển trang ở bước render |
+| T32 *(v0.2)* | Nhân viên tự gọi API tạo đơn sai quy tắc (đơn web, đơn chờ, gói chương trình khác, số tiền âm) | Tampering | ✅ Đợt 11: policy `registrations_staff_insert` + trigger `registrations_stamp_insert` (E2E kiểm tra qua API) | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
 
 | Yêu cầu | Hiện trạng | Việc cần làm |
 | --- | --- | --- |
-| Thông báo/đồng ý xử lý dữ liệu | Chưa có | Thêm ô đồng ý + trang Chính sách bảo mật |
+| Thông báo/đồng ý xử lý dữ liệu | ✅ Đợt 8 (nội dung chờ trung tâm rà soát – roadmap A-7) | **v0.2 bắt buộc (Đợt 8)**: trang `/chinh-sach-bao-mat`, ô đồng ý ở box đăng ký, nhân viên xác nhận khi tạo tài khoản, hộp đồng ý cho tài khoản cũ; lưu `consent_at`, `consent_version` |
+| Dữ liệu sức khỏe (nhạy cảm) | ✅ Đợt 10, 12: tiến độ tập, phiếu tham vấn – chỉ bệnh nhân đó + nhân viên / admin; chính sách nêu mục đích | Chủ trung tâm duyệt nội dung chính sách (A-7); quy trình xóa theo yêu cầu (xóa tài khoản → phiếu giữ họ tên / SĐT: cần xóa tay nếu bệnh nhân yêu cầu xóa hẳn) |
 | Tối thiểu hóa | Chỉ thu tên, SĐT, email (tùy chọn), ảnh CK | Đạt |
 | Quyền truy cập/sửa | Học viên tự sửa ở `/account` | Đạt |
 | Quyền xóa | Chưa có chức năng | Quy trình xóa theo yêu cầu (xóa user + ảnh) |
 | Hạn lưu trữ ảnh CK | Không giới hạn | Đề xuất xóa ảnh sau N tháng kể từ khi duyệt |
 | Bảo mật lưu trữ | Bucket private, RLS, HTTPS | Đạt |
 
-## 7. Header bảo mật đề xuất (chưa cấu hình)
+## 7. Header bảo mật (✅ đã cấu hình Đợt 5 – RV-16)
+
+Đã áp dụng trong `next.config.mjs`: CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn cho YouTube/TikTok, VietQR, Supabase,
+Turnstile), X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS, tắt X-Powered-By (E2E kiểm tra). Bản gốc đề xuất:
 
 ```js
 // next.config.mjs
@@ -116,6 +166,9 @@ CSP cần cho phép `frame-src` YouTube/TikTok, `img-src` `img.vietqr.io`, Supab
 
 - [ ] Bảng mới đã `enable row level security` và có policy tối thiểu cần thiết?
 - [ ] Action mới đã validate input ở server và kiểm quyền?
+- [ ] Trang mới cần quyền đã gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (middleware không kiểm tra vai trò)?
+- [ ] Trigger chặn sửa cột có khóa ngoại `on delete set null`: đã cho phép cột về null (bài học RK-22, RK-29)?
+- [ ] Dữ liệu nội bộ (ghi chú nhân viên) có tách khỏi bảng mà người dùng đọc được dòng của mình?
 - [ ] Không import `lib/supabase/admin` vào client component?
 - [ ] Không log/hiển thị dữ liệu nhạy cảm (mật khẩu, mã, token)?
 - [ ] Bucket mới: public hay private? Policy đọc/ghi?

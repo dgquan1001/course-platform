@@ -10,6 +10,8 @@ import { formatPrice, hotlineHref, siteConfig, vietQrUrl } from '@/lib/site-conf
 import type { PublicCourse } from '@/lib/supabase/public'
 import { realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
+import { compressImage, formatSize } from '@/lib/compress-image'
+import { formatDate, planLabel } from '@/lib/courses'
 import { CheckIcon, CopyIcon, SpinnerIcon, UploadIcon } from '@/components/icons'
 import { registerAction, type RegisterState } from './actions'
 
@@ -21,35 +23,6 @@ const turnstile = () => (window as Window & { turnstile?: TurnstileApi }).turnst
 const MAX_UPLOAD = 5 * 1024 * 1024
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif'
 const ACCEPTED_EXT = /\.(jpe?g|png|webp|heic|heif)$/i
-
-// Nén ảnh ngay trên trình duyệt: thu nhỏ cạnh dài tối đa 1600px, chuyển sang JPEG 82%.
-// Ảnh chụp màn hình vài MB thường còn 150–400KB, vẫn đọc rõ chữ, upload nhanh hơn nhiều.
-async function compressImage(file: File): Promise<File> {
-  if (file.type === 'image/jpeg' && file.size <= 400 * 1024) return file
-  let bitmap: ImageBitmap
-  try {
-    bitmap = await createImageBitmap(file)
-  } catch {
-    return file // Trình duyệt không đọc được định dạng (VD: HEIC trên Chrome) → gửi ảnh gốc
-  }
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return file
-  ctx.fillStyle = '#fff' // nền trắng cho ảnh PNG trong suốt
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
-  if (!blob || blob.size >= file.size) return file
-  return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' })
-}
-
-function formatSize(bytes: number) {
-  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`
-}
 
 function StepHeading({ n, title, hint }: { n: number; title: string; hint?: string }) {
   return (
@@ -112,8 +85,12 @@ type Proof = { url: string; original: number; final: number }
 export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   const searchParams = useSearchParams()
   const requestedCourse = searchParams.get('course')
+  const requestedPlan = searchParams.get('plan')
   const [state, formAction] = useFormState<RegisterState, FormData>(registerAction, { error: null })
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '')
+  const [planId, setPlanId] = useState(courses[0]?.plans[0]?.id ?? '')
+  // Hạn học hiện tại của tài khoản đang đăng nhập theo từng chương trình (để báo gói mới được cộng dồn)
+  const [accessUntil, setAccessUntil] = useState<Record<string, string>>({})
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -134,10 +111,18 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   }
   useEffect(renderCaptcha, [])
 
-  // Nút "Đăng ký" của từng khóa học (?course=...) chọn sẵn khóa đó
+  // Nút "Đăng ký" / "Gia hạn" (?course=...&plan=...) chọn sẵn chương trình và gói
   useEffect(() => {
-    if (requestedCourse && courses.some((c) => c.id === requestedCourse)) setCourseId(requestedCourse)
-  }, [requestedCourse, courses])
+    const course = courses.find((c) => c.id === requestedCourse)
+    if (!course) return
+    setCourseId(course.id)
+    setPlanId(course.plans.find((p) => p.id === requestedPlan)?.id ?? course.plans[0]?.id ?? '')
+  }, [requestedCourse, requestedPlan, courses])
+
+  function chooseCourse(id: string) {
+    setCourseId(id)
+    setPlanId(courses.find((c) => c.id === id)?.plans[0]?.id ?? '')
+  }
 
   // Đã đăng nhập: điền sẵn thông tin, không cần tạo mật khẩu
   useEffect(() => {
@@ -152,6 +137,17 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
       setAccount(realEmail(session.user.email) ?? profile?.phone ?? '')
       setFullName((v) => v || profile?.full_name || '')
       setPhone((v) => v || profile?.phone || '')
+      const { data: approved } = await supabase
+        .from('registrations')
+        .select('course_id, access_until')
+        .eq('user_id', session.user.id)
+        .eq('status', 'approved')
+        .gt('access_until', new Date().toISOString())
+      const until: Record<string, string> = {}
+      for (const r of approved ?? []) {
+        if (r.course_id && r.access_until && (!until[r.course_id] || r.access_until > until[r.course_id])) until[r.course_id] = r.access_until
+      }
+      setAccessUntil(until)
     })
   }, [])
 
@@ -202,7 +198,9 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   }
 
   const course = courses.find((c) => c.id === courseId)
-  const amount = course?.price ?? 0
+  const plan = course?.plans.find((p) => p.id === planId)
+  const amount = plan?.price ?? 0
+  const currentUntil = course ? accessUntil[course.id] : undefined
   const transferContent = phone.replace(/\D/g, '') || 'SDT cua ban'
   const noCourses = courses.length === 0
 
@@ -243,7 +241,7 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Số tiền và mã QR tự cập nhật theo khóa học bạn chọn ở Bước 3.
+              Số tiền và mã QR tự cập nhật theo chương trình và gói bạn chọn ở Bước 3.
             </p>
           </section>
 
@@ -350,14 +348,14 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
             )}
 
             <div>
-              <label htmlFor="courseId" className="label">Chọn khóa học *</label>
+              <label htmlFor="courseId" className="label">Chọn chương trình *</label>
               <select
                 id="courseId"
                 name="courseId"
                 required
                 disabled={noCourses}
                 value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
+                onChange={(e) => chooseCourse(e.target.value)}
                 className="input disabled:bg-slate-50"
               >
                 {noCourses ? (
@@ -365,7 +363,7 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
                 ) : (
                   courses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} – {formatPrice(c.price)}
+                      {c.title} – từ {formatPrice(Math.min(...c.plans.map((p) => p.price)))}
                     </option>
                   ))
                 )}
@@ -376,6 +374,44 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
                 </p>
               )}
             </div>
+
+            {!!course?.plans.length && (
+              <fieldset>
+                <legend className="label">Chọn gói *</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {course.plans.map((p) => (
+                    <label
+                      key={p.id}
+                      className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border-2 px-3 py-2.5 transition ${
+                        p.id === planId ? 'border-ocean-500 bg-ocean-50' : 'border-slate-200 bg-white hover:border-ocean-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="planId"
+                          value={p.id}
+                          checked={p.id === planId}
+                          onChange={() => setPlanId(p.id)}
+                          className="accent-ocean-600"
+                        />
+                        <span>
+                          <span className="block font-semibold text-ocean-900">Gói {planLabel(p.months)}</span>
+                          <span className="block text-xs text-slate-500">{p.sessions} buổi tập</span>
+                        </span>
+                      </span>
+                      <span className="font-bold text-ocean-700">{formatPrice(p.price)}</span>
+                    </label>
+                  ))}
+                </div>
+                {currentUntil && (
+                  <p className="mt-2 text-sm text-ocean-800">
+                    Bạn đang học chương trình này tới <strong>{formatDate(currentUntil)}</strong>. Gói mới sẽ được{' '}
+                    <strong>cộng thêm</strong> vào hạn học sau khi trung tâm xác nhận.
+                  </p>
+                )}
+              </fieldset>
+            )}
 
             <div>
               <span className="label">Ảnh chụp chuyển khoản *</span>
@@ -425,7 +461,8 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               <span className="min-w-0 text-sm text-slate-700">
                 {course ? (
                   <>
-                    Khóa học: <span className="font-semibold text-ocean-900">{course.title}</span>
+                    <span className="font-semibold text-ocean-900">{course.title}</span>
+                    {plan && <> · Gói {planLabel(plan.months)}</>}
                   </>
                 ) : (
                   'Chưa chọn khóa học'
@@ -433,6 +470,20 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               </span>
               <span className="shrink-0 text-lg font-bold text-ocean-700">{formatPrice(amount)}</span>
             </div>
+
+            {/* Khách tạo tài khoản mới phải đồng ý Chính sách bảo mật (có dữ liệu sức khỏe) */}
+            {account === null && (
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <input id="consent" name="consent" type="checkbox" value="yes" required className="mt-1 h-5 w-5 shrink-0 accent-ocean-600" />
+                <label htmlFor="consent" className="text-sm text-slate-700">
+                  Tôi đồng ý với{' '}
+                  <Link href="/chinh-sach-bao-mat" target="_blank" className="font-semibold text-ocean-700 underline">
+                    Chính sách bảo mật
+                  </Link>{' '}
+                  và cho phép trung tâm lưu thông tin sức khỏe, tiến độ tập để hướng dẫn tập luyện. *
+                </label>
+              </div>
+            )}
 
             {TURNSTILE_SITE_KEY && (
               <>

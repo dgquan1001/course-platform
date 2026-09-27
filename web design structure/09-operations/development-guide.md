@@ -31,11 +31,19 @@ npm run dev
 - Form nhiều bước/giữ trạng thái: `useFormState` với kiểu State riêng.
 - Sau khi ghi dữ liệu ảnh hưởng trang công khai: `revalidatePath('/', 'layout')`.
 - **Không** gọi `cookies()`/`headers()` trong `app/layout.tsx` và `app/page.tsx` (giữ ISR – ADR-008).
+- **Trang cần quyền**: gọi đầu trang `requireUserPage(path)` (bệnh nhân), `requireStaffPage()` (mọi trang `/admin/**`) hoặc `requireAdminPage()`
+  (trang chỉ admin). Middleware chỉ kiểm tra đăng nhập bằng cookie, **không** kiểm tra vai trò (ADR-016).
+- Lấy người dùng hiện tại luôn qua `getCurrentUser()` (đã cache theo request) – không tự gọi `supabase.auth.getUser()` nhiều lần.
+- Client component cần profile (header, hộp nhắc): dùng `useProfile()` trong `lib/use-profile.ts`, không tự truy vấn `profiles`.
+- Form tạo mới đặt trong trang có bộ lọc qua URL: đặt `key` theo bộ lọc để form tạo lại khi chuyển tab (giá trị mặc định đúng).
 
 ### Supabase
 - Chọn đúng client (xem system-architecture.md §3). Service role chỉ khi **bắt buộc**.
 - Mutation cần xác nhận có tác dụng: thêm `.select('id')` và kiểm tra `data.length`.
 - Không tin dữ liệu từ client; validate lại ở server.
+- Trigger giữ nguyên cột (chống sửa tay) mà cột đó có khóa ngoại `on delete set null`: cho phép cột **về null** (bài học RK-22, RK-29).
+- Dữ liệu nội bộ không cho người dùng đọc: bảng riêng + RLS, hoặc hàm `security definer` trả cột an toàn (RLS không ẩn được từng cột).
+- Hàm tổng hợp nội bộ (VD `_patient_courses`): không `security definer`, `revoke execute … from public, anon, authenticated`, chỉ gọi từ hàm đã kiểm tra quyền.
 
 ### Styling
 - Dùng Tailwind utility; lặp lại ≥ 3 lần → tạo class trong `@layer components` của `globals.css`.

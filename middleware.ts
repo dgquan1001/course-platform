@@ -1,8 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Bảo vệ /courses, /account (cần đăng nhập) và /admin (cần quyền admin).
-// Quyền xem bài học của từng khóa được kiểm soát bằng RLS trong database.
+// Middleware chạy trước mọi trang /courses, /account, /admin nên phải nhẹ:
+// - Chỉ đọc phiên từ cookie (getSession): không gọi mạng, trừ khi access token hết hạn thì làm mới và ghi lại cookie.
+// - Không truy vấn vai trò: trang quản trị tự kiểm tra bằng requireStaffPage / requireAdminPage (lib/auth.ts,
+//   xác thực phiên với Supabase Auth và đã cache theo request), RLS là lớp bảo vệ cuối.
+// Khách chưa đăng nhập vào trang cần đăng nhập → /login?next=. Trang khóa / bài học /courses/<id>/** công khai với
+// khóa miễn phí nên chỉ làm mới phiên (trang tự chuyển tới đăng nhập với khóa khác).
+const PUBLIC_COURSE_PAGE = /^\/courses\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\/|$)/i
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
@@ -29,27 +35,14 @@ export async function middleware(request: NextRequest) {
   )
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
   const path = request.nextUrl.pathname
-
-  if (!user) {
+  if (!session && !PUBLIC_COURSE_PAGE.test(path)) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('next', path)
+    loginUrl.searchParams.set('next', `${path}${request.nextUrl.search}`)
     return NextResponse.redirect(loginUrl)
-  }
-
-  if (path.startsWith('/admin')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/courses', request.url))
-    }
   }
 
   return response

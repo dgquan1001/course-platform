@@ -9,20 +9,15 @@ import { setFlash } from '@/lib/flash'
 import { isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail, realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
-import { detectImageType, type ImageType } from '@/lib/image-type'
+import { detectImageType, IMAGE_EXT } from '@/lib/image-type'
 import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { siteConfig } from '@/lib/site-config'
+import { CONSENT_VERSION } from '@/lib/consent'
 
 export type RegisterState = { error: string | null }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
-const IMAGE_EXT: Record<ImageType, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/heic': 'heic',
-}
 
 export async function registerAction(
   _prev: RegisterState,
@@ -34,7 +29,9 @@ export async function registerAction(
   const phone = normalizePhone(String(formData.get('phone') ?? ''))
   const password = String(formData.get('password') ?? '')
   const courseId = String(formData.get('courseId') ?? '')
+  const planId = String(formData.get('planId') ?? '')
   const proof = formData.get('paymentProof')
+  const consent = formData.get('consent') === 'yes'
 
   const supabase = createClient()
   const {
@@ -45,7 +42,9 @@ export async function registerAction(
   if (!sessionUser && email && !isValidEmail(email)) return { error: 'Địa chỉ email không hợp lệ.' }
   if (!phone) return { error: 'Số điện thoại không hợp lệ (VD: 0912345678).' }
   if (!sessionUser && password.length < MIN_PASSWORD_LENGTH) return { error: passwordTooShort() }
+  if (!sessionUser && !consent) return { error: 'Vui lòng đồng ý Chính sách bảo mật để tạo tài khoản.' }
   if (!courseId) return { error: 'Vui lòng chọn khóa học.' }
+  if (!planId) return { error: 'Vui lòng chọn gói.' }
   if (!(proof instanceof File) || proof.size === 0) {
     return { error: 'Vui lòng tải lên ảnh chụp chuyển khoản.' }
   }
@@ -68,11 +67,23 @@ export async function registerAction(
 
   const { data: course } = await admin
     .from('courses')
-    .select('id, title, price')
+    .select('id, title')
     .eq('id', courseId)
     .eq('status', 'published')
+    // Chỉ chương trình trả phí nhận đơn (khóa miễn phí xem ngay, khóa premium liên hệ Zalo)
+    .eq('kind', 'program')
     .maybeSingle()
   if (!course) return { error: 'Khóa học không tồn tại hoặc đã ngừng nhận đăng ký.' }
+
+  // Học phí lấy theo gói đang bán của đúng chương trình này, không tin số tiền từ trình duyệt
+  const { data: plan } = await admin
+    .from('course_plans')
+    .select('id, months, sessions, price')
+    .eq('id', planId)
+    .eq('course_id', course.id)
+    .eq('active', true)
+    .maybeSingle()
+  if (!plan) return { error: 'Gói không hợp lệ hoặc đã ngừng bán, vui lòng chọn lại.' }
 
   // User đã đăng nhập: đăng ký thêm khóa bằng tài khoản hiện tại.
   // User mới: tạo tài khoản đã xác nhận email (admin duyệt đơn thay cho bước xác nhận email);
@@ -85,21 +96,15 @@ export async function registerAction(
     userId = sessionUser.id
     email = realEmail(sessionUser.email)
 
+    // Mỗi chương trình chỉ 1 đơn chờ duyệt; đã học (còn hạn hoặc hết hạn) thì được đăng ký gia hạn
     const { data: existing } = await admin
       .from('registrations')
-      .select('status')
+      .select('id')
       .eq('user_id', userId)
       .eq('course_id', courseId)
-      .in('status', ['pending', 'approved'])
+      .eq('status', 'pending')
       .limit(1)
-    if (existing?.length) {
-      return {
-        error:
-          existing[0].status === 'approved'
-            ? 'Bạn đã sở hữu khóa học này. Vào "Khóa học của tôi" để học.'
-            : 'Bạn đã đăng ký khóa này và đang chờ xác nhận.',
-      }
-    }
+    if (existing?.length) return { error: 'Bạn đã đăng ký khóa này và đang chờ xác nhận.' }
   } else {
     // Số điện thoại dùng để đăng nhập nên mỗi SĐT chỉ gắn với một tài khoản
     if (await isPhoneTaken(phone)) {
@@ -123,8 +128,12 @@ export async function registerAction(
     }
     userId = data.user.id
     createdNewUser = true
-    // Tài khoản chỉ có SĐT: profile không lưu email nội bộ (trigger đã xử lý, đặt lại cho chắc chắn)
-    if (!email) await admin.from('profiles').update({ email: null }).eq('id', userId)
+    // Ghi nhận đồng ý Chính sách bảo mật. Tài khoản chỉ có SĐT: profile không lưu email nội bộ
+    // (trigger đã xử lý, đặt lại cho chắc chắn)
+    await admin
+      .from('profiles')
+      .update({ consent_at: new Date().toISOString(), consent_version: CONSENT_VERSION, ...(email ? {} : { email: null }) })
+      .eq('id', userId)
   }
 
   const rollbackUser = async () => {
@@ -143,9 +152,14 @@ export async function registerAction(
   const { error: insertError } = await admin.from('registrations').insert({
     user_id: userId,
     course_id: courseId,
-    // Lưu lại tên khóa và học phí lúc đăng ký: giữ lịch sử thanh toán kể cả khi khóa bị sửa giá hoặc bị xóa
+    // Lưu lại tên khóa, gói và học phí lúc đăng ký: giữ lịch sử thanh toán kể cả khi khóa / gói bị sửa hoặc bị xóa
     course_title: course.title,
-    amount: course.price,
+    amount: plan.price,
+    plan_id: plan.id,
+    plan_months: plan.months,
+    plan_sessions: plan.sessions,
+    source: 'web',
+    payment_method: 'bank_transfer',
     full_name: fullName,
     email,
     phone,
@@ -164,7 +178,7 @@ export async function registerAction(
     await supabase.auth.signInWithPassword({ email: authEmail, password })
   }
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/registrations')
   setFlash('Đã gửi đăng ký thành công!')
   redirect('/courses?registered=1')
 }

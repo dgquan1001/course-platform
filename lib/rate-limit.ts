@@ -11,6 +11,10 @@ export const LIMITS = {
   loginFailPerIp: { limit: 30, windowSeconds: 900 },
   // Số lần yêu cầu mã quên mật khẩu mỗi IP mỗi giờ
   forgotPassword: { limit: 10, windowSeconds: 3600 },
+  // Số lần bấm liên hệ Zalo ở khóa premium (lưu khách quan tâm) mỗi IP mỗi giờ
+  lead: { limit: 20, windowSeconds: 3600 },
+  // Số phiếu tham vấn mỗi bệnh nhân mỗi ngày (BR-101)
+  consultation: { limit: 5, windowSeconds: 86400 },
 } as const
 
 type Limit = (typeof LIMITS)[keyof typeof LIMITS]

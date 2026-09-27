@@ -145,6 +145,101 @@ flowchart LR
   F -->|Bài tiếp theo| E
 ```
 
+## UF-09 *(v0.2)* – Khách từ website
+
+```mermaid
+flowchart TD
+  A([Trang chủ / TikTok / Facebook]) --> B{Loại khóa}
+  B -- Miễn phí --> F[Xem ngay, không cần đăng nhập]
+  F --> F1[Gợi ý: đăng ký chương trình / nhắn Zalo]
+  B -- Premium --> P[Trang premium: ảnh bìa, thông tin, giá]
+  P --> P1[Liên hệ Zalo nhận ưu đãi<br/>lưu lead → mở Zalo] --> Z([Nhân viên tư vấn: UF-10])
+  B -- Chương trình --> C[/khoa-hoc/:id: đề cương, gói/]
+  C --> D[Chọn gói → box đăng ký<br/>QR theo giá gói, tick đồng ý]
+  D --> E[Tài khoản tạo tự động, source = web<br/>đơn pending]
+  E --> G{Staff đối chiếu chuyển khoản<br/>có thể gọi điện hướng dẫn}
+  G -- Duyệt --> H[access_until = lúc duyệt + số tháng]
+  G -- Từ chối kèm lý do --> R[Bệnh nhân thấy lý do, gọi hotline]
+  H --> L([Học: UF-12])
+```
+
+## UF-10 *(v0.2)* – Khách từ Zalo (nhân viên tạo tài khoản)
+
+```mermaid
+sequenceDiagram
+  actor K as Khách (Zalo)
+  actor S as Nhân viên
+  participant W as /admin/patients/new
+  participant A as createPatientAction (service role)
+  participant DB as Supabase
+  K->>S: Hỏi tư vấn, chốt gói, thanh toán (CK / tiền mặt)
+  S->>W: Nhập họ tên, SĐT, email?, tick "đã đồng ý", chọn chương trình + gói, số tiền, hình thức
+  W->>A: submit
+  A->>A: requireStaff, kiểm tra SĐT/email trùng, sinh mật khẩu 8 ký tự
+  A->>DB: auth.admin.createUser (email thật hoặc nội bộ)
+  A->>DB: profiles: source=zalo, created_by, must_change_password, consent_at
+  A->>DB: insert registrations approved, source=staff (trigger: người xử lý, lịch sử, hạn học)
+  alt lỗi giữa chừng
+    A->>DB: xóa user vừa tạo
+    A-->>S: báo lỗi
+  else thành công
+    A-->>S: Hiện mật khẩu một lần + "Chép tin nhắn gửi Zalo"
+    S->>K: Gửi SĐT đăng nhập + mật khẩu + link qua Zalo
+    K->>W: Đăng nhập → hộp "Bạn nên đổi mật khẩu" [Đổi ngay] / [Để sau]
+  end
+```
+
+## UF-11 *(v0.2)* – Gia hạn
+
+```mermaid
+flowchart LR
+  A{Còn ≤ 7 ngày / đã hết hạn} --> B[Thẻ khóa: "Còn N ngày" / "Đã hết hạn" + Gia hạn]
+  A --> S[Dashboard: nhân viên gọi nhắc]
+  B --> C[Box đăng ký chọn sẵn chương trình → chọn gói → CK → đơn pending]
+  S --> D[Nhân viên cấp gói trên trang bệnh nhân]
+  C --> E[Duyệt]
+  D --> E
+  E --> F[access_until = max(now, hạn cũ) + tháng<br/>số buổi mở += plan_sessions]
+  F --> G([Học tiếp từ buổi đang dở])
+```
+
+## UF-12 *(v0.2)* – Tập theo buổi
+
+```mermaid
+flowchart TD
+  A([Khóa học của tôi]) --> B[Thẻ khóa: ảnh bìa, x/y bài · z%, Còn N ngày<br/>Tiếp tục Buổi X – Bài Y]
+  B --> C[Trình học: video + cột Nội dung]
+  C --> D{Bài thuộc buổi đang mở?}
+  D -- Không: buổi trước chưa xong --> D1[🔒 Hoàn thành Buổi k để mở]
+  D -- Không: vượt số buổi đã mua / hết hạn --> D2[🔒 Gia hạn để mở]
+  D -- Có --> E[Đọc bài – RLS can_view_lesson → phát video]
+  E --> F[Hoàn thành & bài tiếp theo → tick]
+  F --> G{Buổi đã tick đủ?}
+  G -- Chưa --> C
+  G -- Rồi --> H{Còn buổi đã mua?}
+  H -- Còn --> I[Bắt đầu Buổi k+1] --> C
+  H -- Hết --> J[Chúc mừng! Gửi phiếu tham vấn · Gia hạn]
+  C -. bất cứ lúc nào .-> K[Gửi phiếu tham vấn: UF-13]
+```
+
+## UF-13 *(v0.2)* – Phiếu tham vấn
+
+```mermaid
+sequenceDiagram
+  actor P as Bệnh nhân
+  actor S as Nhân viên
+  participant W as Website
+  participant DB as Supabase
+  P->>W: Bấm "Gửi phiếu tham vấn" (trình học / Khóa học của tôi / thẻ hoàn thành)
+  W->>DB: Đọc mẫu câu hỏi đang bật
+  P->>W: Trả lời (có/không, thang 0–10, ghi chú) → Gửi
+  W->>DB: consultations (snapshot câu hỏi + trả lời), status = new
+  S->>W: Dashboard / Phiếu tham vấn: thấy phiếu mới
+  S->>P: Gọi / Zalo hẹn tham vấn bác sĩ
+  S->>W: Đổi "Đã liên hệ" → "Hoàn tất" + ghi chú nội bộ
+  P->>W: Thấy trạng thái phiếu trong "Phiếu tham vấn của tôi"
+```
+
 ## UF-08 – Admin quản lý nội dung
 
 ```mermaid

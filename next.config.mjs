@@ -1,6 +1,7 @@
 const isDev = process.env.NODE_ENV !== 'production'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co'
 const supabaseWs = supabaseUrl.replace(/^http/, 'ws')
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : '*.supabase.co'
 
 // Content Security Policy: chỉ cho tải tài nguyên từ website, Supabase (ảnh chuyển khoản, đăng nhập),
 // VietQR (ảnh QR), YouTube/TikTok (video bài học) và Cloudflare Turnstile (chống bot).
@@ -34,6 +35,12 @@ const nextConfig = {
   // Cho phép build vào thư mục riêng (VD kiểm thử E2E trong lúc `npm run dev` vẫn đang chạy trên .next)
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
+  images: {
+    // Ảnh bìa khóa học lưu ở bucket công khai course-covers của Supabase Storage
+    remotePatterns: [
+      { protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' },
+    ],
+  },
   experimental: {
     // Mặc định Server Action chỉ nhận 1MB, cần tăng để upload ảnh chuyển khoản (tối đa 5MB)
     serverActions: { bodySizeLimit: '6mb' },

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateProfile, useProfile } from '@/lib/use-profile'
 import { realEmail } from '@/lib/phone'
 import { siteConfig } from '@/lib/site-config'
 import {
@@ -19,60 +20,45 @@ import {
 } from './icons'
 import { toast } from './Toaster'
 
-type HeaderUser = { isAdmin: boolean; name: string; subtitle: string } | null
+type HeaderUser = { isStaff: boolean; name: string; subtitle: string } | null
 
 const navLinks = [
+  { href: '/#khoa-hoc', label: 'Chương trình' },
+  { href: '/#mien-phi', label: 'Miễn phí' },
+  { href: '/#premium', label: 'Premium' },
   { href: '/#bac-si', label: 'Bác sĩ' },
-  { href: '/#khoa-hoc', label: 'Khóa học' },
-  { href: '/#dang-ky', label: 'Cách đăng ký' },
   { href: '/#lien-he', label: 'Liên hệ' },
 ]
 
 export default function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<HeaderUser | undefined>(undefined)
+  // Đọc phiên đăng nhập ở trình duyệt (dùng chung với hộp nhắc, có cache), nhờ vậy các trang công khai
+  // vẫn được cache tĩnh; kiểm tra lại mỗi lần chuyển trang (login/logout qua server action)
+  const profile = useProfile()
+  const [signedOut, setSignedOut] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
 
-  // Đọc phiên đăng nhập từ cookie ở trình duyệt, nhờ vậy các trang công khai
-  // vẫn được cache tĩnh; kiểm tra lại mỗi lần chuyển trang (login/logout qua server action)
   useEffect(() => {
-    const supabase = createClient()
-    let cancelled = false
-
-    async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        if (!cancelled) setUser(null)
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name, phone')
-        .eq('id', session.user.id)
-        .single()
-      const contact = realEmail(session.user.email) ?? profile?.phone ?? ''
-      if (!cancelled) {
-        setUser({
-          isAdmin: profile?.role === 'admin',
-          name: profile?.full_name || contact || 'Tài khoản',
-          subtitle: contact,
-        })
-      }
-    }
-
-    load()
     setNavOpen(false)
     setAccountOpen(false)
-    return () => {
-      cancelled = true
-    }
   }, [pathname])
+  // Vừa đăng xuất: ẩn menu tài khoản ngay, tới khi đọc lại phiên (profile mới) thì bỏ cờ
+  useEffect(() => setSignedOut(false), [profile])
+
+  let user: HeaderUser | undefined = profile === undefined ? undefined : null
+  if (profile && !signedOut) {
+    const contact = realEmail(profile.authEmail) ?? profile.phone ?? ''
+    user = {
+      // Nhân viên và admin đều vào được trang quản trị
+      isStaff: profile.role === 'admin' || profile.role === 'staff',
+      name: profile.full_name || contact || 'Tài khoản',
+      subtitle: contact,
+    }
+  }
 
   // Đóng menu tài khoản khi bấm ra ngoài
   useEffect(() => {
@@ -92,7 +78,8 @@ export default function SiteHeader() {
       toast(`Đăng xuất không thành công: ${error.message}`, 'error')
       return
     }
-    setUser(null)
+    invalidateProfile()
+    setSignedOut(true)
     setAccountOpen(false)
     toast('Đã đăng xuất')
     router.push('/')
@@ -143,7 +130,7 @@ export default function SiteHeader() {
             <Link href="/courses" role="menuitem" className={menuItem('/courses')} {...current('/courses')}>
               <BookIcon className="h-4 w-4" /> Khóa học của tôi
             </Link>
-            {user.isAdmin && (
+            {user.isStaff && (
               <Link href="/admin" role="menuitem" className={menuItem('/admin')}>
                 <ShieldIcon className="h-4 w-4" /> Quản trị
               </Link>
@@ -203,7 +190,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex min-h-[44px] items-center gap-1 sm:gap-2">
-          {user?.isAdmin && (
+          {user?.isStaff && (
             <Link
               href="/admin"
               className={`btn-ghost hidden lg:inline-flex ${isActive('/admin') ? 'nav-active' : ''}`}

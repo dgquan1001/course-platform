@@ -5,8 +5,13 @@ Bộ tài liệu này mô tả **toàn bộ** hệ thống website bán & dạy 
 API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người mới (dev, BA, designer, tester)
 đọc xong có thể **sửa, mở rộng hoặc viết lại** hệ thống mà không phải đoán ý đồ thiết kế.
 
-> Tài liệu được viết dựa trên mã nguồn thực tế (phiên bản `0.1.0`, cập nhật 26/09/2026).
+> Tài liệu được viết dựa trên mã nguồn thực tế (bản 0.1.0 ngày 26/09/2026, cập nhật tới **v0.2 – 27/09/2026**).
 > Khi code thay đổi, **cập nhật tài liệu trong cùng một lần commit** (xem mục "Quy tắc cập nhật").
+>
+> **v0.2 (27/09/2026) – ✅ đã triển khai toàn bộ (Đợt 7 → 13, E2E 96/96)**: chương trình phục hồi chức năng cho bệnh nhân, gói tháng,
+> buổi – bài, checklist, phiếu tham vấn, premium, vai trò nhân viên, luồng web ⇄ Zalo, dashboard. Các phần v0.2 được đánh dấu *(v0.2)*
+> kèm đợt triển khai. Hiện trạng + việc tiếp theo: [roadmap §0](10-review/roadmap.md#0-tóm-tắt-hiện-trạng) và
+> [project-review §0](10-review/project-review.md#0-tóm-tắt-hiện-trạng-27092026); yêu cầu: [project-overview §9](00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026).
 
 ## Mục lục
 
@@ -32,7 +37,7 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | 09 | [09-operations/deployment-runbook.md](09-operations/deployment-runbook.md) | Cài đặt, biến môi trường, deploy, vận hành, sự cố | Dev, DevOps |
 | 09 | [09-operations/development-guide.md](09-operations/development-guide.md) | Quy ước code, quy trình thêm tính năng, Git | Dev |
 | 10 | [10-review/project-review.md](10-review/project-review.md) | Kết quả review dự án: lỗi, rủi ro, nợ kỹ thuật | Tech lead, PO |
-| 10 | [10-review/roadmap.md](10-review/roadmap.md) | Lộ trình mở rộng, thiết kế sơ bộ cho từng hạng mục | PO, Tech lead |
+| 10 | [10-review/roadmap.md](10-review/roadmap.md) | Tóm tắt hiện trạng, báo cáo theo đợt, việc chủ dự án, kế hoạch tiếp, checklist, thiết kế sơ bộ R-xx | PO, Tech lead |
 | — | [templates/](templates/README.md) | Mẫu: user story, ADR, đặc tả tính năng, bug report, checklist release | Tất cả |
 
 ## Thứ tự đọc gợi ý
@@ -55,6 +60,11 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | `ADR-xxx` | Quyết định kiến trúc | ADR-003 Email nội bộ cho tài khoản SĐT | 03-architecture/adr |
 | `TC-xx` | Test case | TC-17 Đăng ký không email | test-plan.md |
 | `RV-xx` | Phát hiện khi review | RV-01 Ẩn khóa học khóa luôn học viên cũ | project-review.md |
+| `V-xx` | Yêu cầu định vị lại v0.2 | V-02 Gói 1/3/6/12 tháng cộng dồn | project-overview.md §9 |
+| `UF-xx` | Luồng người dùng | UF-10 Khách từ Zalo | user-flows.md |
+| `RK-xx` | Risk case (review các vòng sau) | RK-34 Nhân viên tự cấp gói cho mình | project-review.md §7 |
+| `A-xx` | Việc chủ dự án cần làm | A-7 Duyệt chính sách bảo mật | roadmap.md §2 |
+| `G-xx` | Khoảng trống kiểm thử | G-12 Chặn gỡ admin cuối cùng | test-plan.md §4 |
 
 ## Quy tắc cập nhật tài liệu
 
@@ -72,4 +82,11 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | 26/09/2026 | 1.1 | Cập nhật theo bản sửa RV-01, RV-02, RV-05, RV-09, git init; bảng 46 test case E2E (PASS); risk case RK-01 → RK-10 | Claude (AI) |
 | 26/09/2026 | 1.2 | Xử lý RK-01, RK-03, RK-05 (chốt), RK-07, RK-09; thêm người xử lý đơn (`reviewed_by`); TC-47 → TC-54 | Claude (AI) |
 | 26/09/2026 | 1.3 | Đợt 3 – nhiều admin: RK-11 (không ghi đè), RK-12 + R-05 (lịch sử xử lý, lý do từ chối), RK-13 (cấp/gỡ quyền admin), RK-14; TC-55 → TC-58 | Claude (AI) |
+| 27/09/2026 | 3.0 | **Đợt 11 → 13 (làm song song) + cải tiến**: bệnh nhân từ Zalo (tạo tài khoản, mật khẩu một lần, cấp gói, hồ sơ, cấp lại mật khẩu, nhắc đổi mật khẩu), phiếu tham vấn (mẫu câu hỏi, form, xử lý), dashboard + doanh thu; khóa học theo loại; RK-18; **ADR-016** middleware nhẹ; sửa RK-29, RK-34; E2E **96/96** (TC-85 → TC-98). Cập nhật toàn bộ: SRS, BR, user stories, database (§2.9 – 2.12, §3, §4, §7, §10), API, UI, bảo mật (T31, T32), test-plan, ADR-011/014/015, source-structure, system-architecture, runbook, development-guide; **roadmap viết lại** (§0 tóm tắt, §2 việc chủ dự án, §3 go-live MVP + backlog, §7 quy ước cập nhật); project-review §0, §7.6 | Claude (AI) |
+| 27/09/2026 | 2.5 | Đợt 10 hoàn thành: E2E **83/83 PASS** (TC-79 → TC-84); sửa RK-27 (admin không thêm được bài), RK-28 (bài chưa thuộc buổi đứng đầu đề cương); đồng bộ tài liệu với ADR-013 §Điều chỉnh (bỏ `get_lesson_video`, `session_position` ở database-design §10, system-architecture §10, UF-12, US-11.04, US-13.04, ma trận quyền); roadmap §1.1, §1.2, §2.5; project-review §7.5 | Claude (AI) |
+| 27/09/2026 | 2.4 | Đợt 10 – buổi → bài tập, khung N × M, quản lý buổi, trình học theo buổi, checklist tick, mở buổi lần lượt, % tiến độ; ADR-013 điều chỉnh (RLS theo dòng); roadmap §2.5 **checklist chi tiết theo đợt**; project-review RK-23 → RK-26; TC-79 → TC-84 | Claude (AI) |
+| 27/09/2026 | 2.3 | Đợt 9 – gói 1/3/6/12 tháng, chọn gói khi đăng ký, hạn học cộng dồn, gia hạn, "Gói đã hết hạn"; project-review §7.5 (review v0.2 Đợt 7 → 9, RK-16 → RK-21); TC-74 → TC-78, E2E 78/78 PASS; sửa RK-22 (trigger chặn xóa chương trình có đơn) | Claude (AI) |
+| 27/09/2026 | 2.2 | Đợt 8 – loại khóa (miễn phí / chương trình / premium), nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý; TC-68 → TC-73, E2E 73/73 PASS | Claude (AI) |
+| 27/09/2026 | 2.1 | Đợt 7 – vai trò staff: schema (`is_staff`, policy staff, trigger chỉ admin đổi vai trò), `/admin/registrations`, ô chọn vai trò, menu theo quyền; TC-65 → TC-67, E2E 67/67 PASS | Claude (AI) |
+| 27/09/2026 | 2.0 | **Định vị lại v0.2** (thiết kế, chưa code): V-01 → V-12; ADR-011 → ADR-015; FR-110 → FR-190, NFR-14 → 16; BR-70 → BR-107; persona P6, P7; EP-10 → EP-16; UF-09 → UF-13; database §10; API §7; sitemap §6; SCR-15 → SCR-28; ma trận quyền 3 vai trò, T24 → T30; TC-65 → TC-94 (dự kiến); runbook §10; roadmap Đợt 7 → 13 kèm kế hoạch code | Claude (AI) |
 | 26/09/2026 | 1.4 | Đợt 4 (rào chặn E2E/staging, CI GitHub Actions, index email, mật khẩu ≥ 8) + Đợt 5 (giới hạn tần suất, Turnstile tùy chọn, kiểm tra ảnh theo nội dung, đơn của khóa đã xóa, security headers/CSP); roadmap có báo cáo, checklist, lộ trình theo thứ tự; TC-59 → TC-64 | Claude (AI) |

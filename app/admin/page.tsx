@@ -1,298 +1,282 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatPrice } from '@/lib/site-config'
-import StatusBadge from '@/components/StatusBadge'
-import SubmitButton from '@/components/SubmitButton'
-import ActionForm from '@/components/ActionForm'
-import { setRegistrationStatus } from './actions'
+import { requireStaffPage } from '@/lib/auth'
+import { daysLeft } from '@/lib/courses'
+import { formatDateTime, formatDay, paymentLabel, registrationSourceLabel } from '@/lib/format'
+import StatCard from '@/components/StatCard'
+import ProgressBar from '@/components/ProgressBar'
 
-const filters = [
-  { key: 'pending', label: 'Chờ duyệt' },
-  { key: 'approved', label: 'Đã duyệt' },
-  { key: 'rejected', label: 'Từ chối' },
-  { key: 'all', label: 'Tất cả' },
-  // Đơn chờ duyệt của khóa đã bị xóa: khách đã chuyển khoản, cần liên hệ hoàn tiền rồi Từ chối (ghi lý do)
-  { key: 'refund', label: 'Khóa đã xóa – cần hoàn tiền' },
-] as const
+export const metadata: Metadata = { title: 'Tổng quan' }
 
-type Status = 'pending' | 'approved' | 'rejected'
-
-// Cột của bảng, tương ứng các trường trong bảng registrations
-const columns = [
-  { label: 'STT', className: 'w-12 text-center' },
-  { label: 'Ảnh chuyển khoản', className: 'w-20' },
-  { label: 'Họ và tên' },
-  { label: 'Email' },
-  { label: 'Số điện thoại', className: 'w-28' },
-  { label: 'Khóa học' },
-  { label: 'Học phí', className: 'text-right' },
-  { label: 'Ngày đăng ký', className: 'w-28' },
-  { label: 'Trạng thái' },
-  { label: 'Ngày xử lý', className: 'w-28' },
-  // Admin đã duyệt / từ chối / thu hồi đơn (các admin quyền ngang nhau nên cần biết ai xử lý)
-  { label: 'Người xử lý' },
-  // Cột thao tác cố định bên phải: luôn thấy nút kể cả khi bảng phải cuộn ngang
-  { label: 'Thao tác', className: 'sticky right-0 bg-ocean-50 text-center shadow-[-6px_0_8px_-6px_rgba(23,42,61,0.15)]' },
-]
-
-// Ngày và giờ hiển thị 2 dòng cho gọn cột
-function DateTime({ value }: { value: string | null }) {
-  if (!value) return <span className="text-slate-300">—</span>
-  const date = new Date(value)
-  const opts = { timeZone: 'Asia/Ho_Chi_Minh' } as const
-  return (
-    <>
-      <span className="block">{date.toLocaleDateString('vi-VN', { ...opts, day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-      <span className="block text-xs text-slate-400">{date.toLocaleTimeString('vi-VN', { ...opts, hour: '2-digit', minute: '2-digit' })}</span>
-    </>
-  )
+type Stats = {
+  patients: number
+  new_7d_web: number
+  new_7d_zalo: number
+  new_30d_web: number
+  new_30d_zalo: number
+  pending_registrations: number
+  oldest_pending_at: string | null
+  active_plans: number
+  active_patients: number
+  expiring_7d: number
+  expired: number
+  inactive_7d: number
+  consultations_new: number
+  leads_new: number
+  expiring: { user_id: string; full_name: string | null; phone: string | null; course_title: string; until: string }[]
+  inactive: { user_id: string; full_name: string | null; phone: string | null; course_title: string; last_activity: string | null; done: number; total: number }[]
+  programs: { course_id: string; course_title: string; patients: number; avg_percent: number }[]
 }
 
-type RegistrationEvent = {
-  registration_id: string
-  actor_name: string | null
-  from_status: string
-  to_status: string
-  note: string | null
-  created_at: string
+type RevenueRow = { dimension: 'total' | 'course' | 'method' | 'source' | 'handler'; label: string; orders: number; revenue: number }
+
+// Đầu tháng theo giờ Việt Nam (UTC+7, không đổi giờ): tháng này và tháng trước
+function monthStarts() {
+  const vn = new Date(Date.now() + 7 * 3600_000)
+  const y = vn.getUTCFullYear()
+  const m = vn.getUTCMonth()
+  const iso = (year: number, month: number) => {
+    const d = new Date(Date.UTC(year, month, 1))
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01T00:00:00+07:00`
+  }
+  return { thisMonth: iso(y, m), lastMonth: iso(y, m - 1), nextMonth: iso(y, m + 1), label: `tháng ${m + 1}`, lastLabel: `tháng ${m === 0 ? 12 : m}` }
 }
 
-const statusLabels: Record<string, string> = { pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối' }
-
-const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString('vi-VN', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
-// Lịch sử xử lý đơn (mới nhất ở cuối), thu gọn mặc định
-function History({ events }: { events: RegistrationEvent[] }) {
-  if (!events.length) return null
-  return (
-    <details className="mt-1.5 text-xs">
-      <summary className="cursor-pointer text-ocean-700 hover:underline">Lịch sử ({events.length})</summary>
-      <ol className="mt-1.5 min-w-[220px] space-y-1.5 border-l-2 border-slate-200 pl-2 text-slate-600">
-        {events.map((e, i) => (
-          <li key={i}>
-            <span className="block text-slate-400">{formatDateTime(e.created_at)}</span>
-            <span className="font-semibold text-slate-700">{e.actor_name ?? 'Hệ thống'}</span>: {statusLabels[e.from_status]} →{' '}
-            {statusLabels[e.to_status]}
-            {e.note && <span className="block italic">Lý do: {e.note}</span>}
-          </li>
-        ))}
-      </ol>
-    </details>
-  )
+const sinceText = (value: string | null) => {
+  if (!value) return ''
+  const hours = Math.floor((Date.now() - new Date(value).getTime()) / 3600_000)
+  return hours < 24 ? `đơn cũ nhất chờ ${Math.max(hours, 1)} giờ` : `đơn cũ nhất chờ ${Math.floor(hours / 24)} ngày`
 }
 
-// Nút Từ chối / Thu hồi mở ô nhập lý do (học viên thấy lý do), bấm xác nhận mới gửi
-function RejectForm({ id, status, label }: { id: string; status: Status; label: string }) {
-  return (
-    <details>
-      <summary className="btn btn-sm cursor-pointer list-none border border-red-200 bg-white text-red-600 hover:bg-red-50 [&::-webkit-details-marker]:hidden">
-        {label}
-      </summary>
-      <ActionForm action={setRegistrationStatus.bind(null, id, 'rejected', status)} className="mt-2 w-56 space-y-2 text-left">
-        <label htmlFor={`note-${id}`} className="block text-xs font-semibold text-slate-600">
-          Lý do (học viên sẽ thấy, không bắt buộc)
-        </label>
-        <textarea id={`note-${id}`} name="note" rows={2} maxLength={500} className="input text-sm" />
-        <SubmitButton className="btn btn-sm w-full bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-100">
-          Xác nhận {label.toLowerCase()}
-        </SubmitButton>
-      </ActionForm>
-    </details>
-  )
-}
-
-export default async function AdminRegistrationsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string }
-}) {
-  const filter = filters.some((f) => f.key === searchParams.status) ? searchParams.status! : 'pending'
+// Tổng quan (SCR-22, FR-180 → FR-184): chỉ số, việc cần làm, tiến độ theo chương trình; doanh thu chỉ admin.
+// /admin?status=… (đường dẫn cũ của bảng đơn) chuyển sang /admin/registrations?status=…
+export default async function AdminDashboardPage({ searchParams }: { searchParams: { status?: string } }) {
+  if (searchParams.status) redirect(`/admin/registrations?status=${encodeURIComponent(searchParams.status)}`)
+  const me = await requireStaffPage()
   const supabase = createClient()
+  const months = monthStarts()
 
-  let query = supabase
-    .from('registrations')
-    .select(
-      'id, user_id, full_name, email, phone, status, payment_proof_path, created_at, reviewed_at, reviewed_by_name, review_note, course_title, amount, courses(title, price, status)'
-    )
-    .order('created_at', { ascending: filter === 'pending' })
-    .limit(200)
-  if (filter === 'refund') query = query.eq('status', 'pending').is('course_id', null)
-  else if (filter !== 'all') query = query.eq('status', filter)
-
-  const countOf = (status: Status) =>
-    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('status', status)
-
-  const [{ data: registrations, error }, pending, approved, rejected, refund] = await Promise.all([
-    query,
-    countOf('pending'),
-    countOf('approved'),
-    countOf('rejected'),
-    countOf('pending').is('course_id', null),
+  const [{ data, error }, thisMonth, lastMonth] = await Promise.all([
+    supabase.rpc('dashboard_stats'),
+    me.isAdmin ? supabase.rpc('revenue_report', { p_from: months.thisMonth, p_to: months.nextMonth }) : Promise.resolve({ data: null }),
+    me.isAdmin ? supabase.rpc('revenue_report', { p_from: months.lastMonth, p_to: months.thisMonth }) : Promise.resolve({ data: null }),
   ])
   if (error) throw new Error(error.message)
-
-  const counts: Record<string, number> = {
-    pending: pending.count ?? 0,
-    approved: approved.count ?? 0,
-    rejected: rejected.count ?? 0,
-    refund: refund.count ?? 0,
-  }
-  counts.all = counts.pending + counts.approved + counts.rejected
-
-  // Ảnh chuyển khoản nằm trong bucket riêng tư: tạo link xem tạm thời 1 giờ.
-  // Lịch sử xử lý của các đơn đang hiển thị (ai đổi trạng thái, lúc nào, lý do).
-  const proofUrls = new Map<string, string>()
-  const eventsByRegistration = new Map<string, RegistrationEvent[]>()
-  if (registrations?.length) {
-    const [{ data: signed }, { data: events }] = await Promise.all([
-      supabase.storage.from('payment-proofs').createSignedUrls(registrations.map((r) => r.payment_proof_path), 3600),
-      supabase
-        .from('registration_events')
-        .select('registration_id, actor_name, from_status, to_status, note, created_at')
-        .in('registration_id', registrations.map((r) => r.id))
-        .order('created_at', { ascending: true }),
-    ])
-    signed?.forEach((s) => s.path && s.signedUrl && proofUrls.set(s.path, s.signedUrl))
-    for (const e of events ?? []) {
-      eventsByRegistration.set(e.registration_id, [...(eventsByRegistration.get(e.registration_id) ?? []), e])
-    }
-  }
+  const s = data as Stats
 
   return (
-    <div className="space-y-5">
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {/* Tab "cần hoàn tiền" chỉ hiện khi có đơn, tô đỏ để admin chú ý */}
-        {filters.filter((f) => f.key !== 'refund' || counts.refund > 0 || filter === 'refund').map((f) => (
-          <Link
-            key={f.key}
-            href={f.key === 'pending' ? '/admin' : `/admin?status=${f.key}`}
-            aria-current={filter === f.key ? 'page' : undefined}
-            className={`btn-sm btn whitespace-nowrap border ${
-              filter === f.key
-                ? 'border-ocean-500 bg-ocean-500 text-white'
-                : f.key === 'refund'
-                  ? 'border-red-200 bg-red-50 text-red-700 hover:border-red-300'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-            }`}
-          >
-            {f.label}
-            <span className="opacity-80">({counts[f.key]})</span>
-          </Link>
-        ))}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold">Tổng quan</h2>
+        <Link href="/admin/patients/new" className="btn-gold">
+          + Tạo bệnh nhân
+        </Link>
       </div>
 
-      {/* Bảng cuộn ngang trên màn hình hẹp */}
-      <div className="card overflow-x-auto">
-        <table aria-label="Danh sách đơn đăng ký" className="w-full min-w-[1080px] text-left text-sm">
-          <thead className="border-b border-slate-200 bg-ocean-50/70 text-xs font-semibold uppercase tracking-wide text-ocean-800">
-            <tr>
-              {columns.map((c) => (
-                <th key={c.label} scope="col" className={`px-3 py-3 leading-snug ${c.className ?? ''}`}>
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {registrations?.map((r, i) => {
-              const course = r.courses as unknown as { title: string; price: number; status: string } | null
-              // Tên khóa & học phí lưu lúc đăng ký (vẫn còn khi khóa đã bị xóa)
-              const courseTitle = course?.title ?? r.course_title
-              const amount = r.amount ?? course?.price
-              const proofUrl = proofUrls.get(r.payment_proof_path)
-              return (
-                <tr key={r.id} className="group align-middle transition hover:bg-ocean-50/40">
-                  <td className="px-3 py-3 text-center text-slate-400">{i + 1}</td>
-                  <td className="px-3 py-3">
-                    {proofUrl ? (
-                      <a href={proofUrl} target="_blank" rel="noopener noreferrer" title="Bấm để xem ảnh lớn">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={proofUrl}
-                          alt={`Chuyển khoản của ${r.full_name}`}
-                          loading="lazy"
-                          className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200 transition hover:ring-4 hover:ring-ocean-200"
-                        />
-                      </a>
-                    ) : (
-                      <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-100 text-center text-[10px] leading-tight text-slate-400">
-                        Không có ảnh
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 font-semibold text-ocean-900">
-                    {r.full_name}
-                    {!r.user_id && <span className="block text-xs font-normal italic text-slate-400">(tài khoản đã xóa)</span>}
-                  </td>
-                  <td className="max-w-[170px] truncate px-3 py-3 text-slate-600" title={r.email ?? undefined}>
-                    {r.email ?? <span className="italic text-slate-400">Không có email</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3">
-                    <a href={`tel:${r.phone}`} className="text-ocean-700 hover:underline">
-                      {r.phone}
-                    </a>
-                  </td>
-                  <td className="min-w-[160px] max-w-[220px] px-3 py-3 text-slate-700">
-                    {courseTitle ?? 'Khóa học'}
-                    {!course && <span className="block text-xs italic text-slate-400">(khóa học đã xóa)</span>}
-                    {course?.status === 'draft' && <span className="block text-xs italic text-slate-400">(khóa đang ẩn)</span>}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-gold-700">
-                    {amount != null ? formatPrice(amount) : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-slate-600"><DateTime value={r.created_at} /></td>
-                  <td className="px-3 py-3">
-                    <StatusBadge status={r.status} />
-                    {r.review_note && (
-                      <span className="mt-1 block max-w-[200px] text-xs italic text-slate-500" title={r.review_note}>
-                        Lý do: {r.review_note}
-                      </span>
-                    )}
-                    <History events={eventsByRegistration.get(r.id) ?? []} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-slate-600">
-                    <DateTime value={r.reviewed_at} />
-                  </td>
-                  <td className="max-w-[160px] truncate px-3 py-3 text-slate-600" title={r.reviewed_by_name ?? undefined}>
-                    {r.reviewed_by_name ?? <span className="text-slate-300">—</span>}
-                  </td>
-                  <td className="sticky right-0 bg-white px-3 py-3 shadow-[-6px_0_8px_-6px_rgba(23,42,61,0.15)] group-hover:bg-ocean-50">
-                    {/* Nút gửi kèm trạng thái đang thấy: admin khác vừa xử lý thì không ghi đè */}
-                    <div className="flex items-start justify-center gap-2">
-                      {/* Khóa hoặc tài khoản đã xóa thì không còn gì để mở: chỉ giữ đơn làm lịch sử */}
-                      {r.status !== 'approved' && course && r.user_id && (
-                        <ActionForm action={setRegistrationStatus.bind(null, r.id, 'approved', r.status as Status)}>
-                          <SubmitButton className="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-200">
-                            Duyệt
-                          </SubmitButton>
-                        </ActionForm>
-                      )}
-                      {r.status !== 'rejected' && (
-                        <RejectForm id={r.id} status={r.status as Status} label={r.status === 'approved' ? 'Thu hồi' : 'Từ chối'} />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-            {!registrations?.length && (
-              <tr>
-                <td colSpan={columns.length} className="px-3 py-12 text-center text-slate-500">
-                  Không có đơn đăng ký nào.
-                </td>
-              </tr>
+      <section aria-label="Chỉ số" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Bệnh nhân" value={s.patients} hint={`Mới 7 ngày: Web ${s.new_7d_web} · Zalo ${s.new_7d_zalo}`} href="/admin/patients" />
+        <StatCard label="Mới 30 ngày" value={s.new_30d_web + s.new_30d_zalo} hint={`Web ${s.new_30d_web} · Zalo ${s.new_30d_zalo}`} href="/admin/patients?new=30" />
+        <StatCard
+          label="Đơn chờ duyệt"
+          value={s.pending_registrations}
+          hint={sinceText(s.oldest_pending_at) || 'Không có đơn chờ'}
+          href="/admin/registrations"
+          tone={s.pending_registrations ? 'warning' : 'default'}
+        />
+        <StatCard label="Gói đang hiệu lực" value={s.active_plans} hint={`${s.active_patients} bệnh nhân đang học`} href="/admin/patients?status=active" />
+        <StatCard label="Sắp hết hạn (7 ngày)" value={s.expiring_7d} hint="Gọi nhắc gia hạn" href="/admin/patients?status=expiring" tone={s.expiring_7d ? 'warning' : 'default'} />
+        <StatCard label="Đã hết hạn" value={s.expired} hint="Chưa gia hạn" href="/admin/patients?status=expired" />
+        <StatCard
+          label="Phiếu tham vấn mới"
+          value={s.consultations_new}
+          hint="Cần hẹn bác sĩ"
+          href="/admin/consultations"
+          tone={s.consultations_new ? 'critical' : 'default'}
+        />
+        <StatCard label="Khách premium mới" value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section aria-label="Việc cần làm" className="card p-5">
+          <h3 className="font-bold">Việc cần làm</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            {!!s.pending_registrations && (
+              <li className="flex items-center justify-between gap-3">
+                <span>Duyệt {s.pending_registrations} đơn đăng ký ({sinceText(s.oldest_pending_at)})</span>
+                <Link href="/admin/registrations" className="btn-outline btn-sm">Mở</Link>
+              </li>
             )}
-          </tbody>
-        </table>
+            {!!s.consultations_new && (
+              <li className="flex items-center justify-between gap-3">
+                <span>Liên hệ {s.consultations_new} phiếu tham vấn mới</span>
+                <Link href="/admin/consultations" className="btn-outline btn-sm">Mở</Link>
+              </li>
+            )}
+            {!!s.leads_new && (
+              <li className="flex items-center justify-between gap-3">
+                <span>Gọi {s.leads_new} khách quan tâm premium</span>
+                <Link href="/admin/leads" className="btn-outline btn-sm">Mở</Link>
+              </li>
+            )}
+            {s.expiring.map((x) => (
+              <li key={`${x.user_id}-${x.course_title}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                <span>
+                  Sắp hết hạn:{' '}
+                  <Link href={`/admin/patients/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">
+                    {x.full_name ?? x.phone}
+                  </Link>{' '}
+                  – {x.course_title} <span className="text-gold-800">(còn {daysLeft(x.until)} ngày)</span>
+                </span>
+                {x.phone && (
+                  <span className="flex gap-2">
+                    <a href={`tel:${x.phone}`} className="btn-outline btn-sm">Gọi</a>
+                    <a href={`https://zalo.me/${x.phone}`} target="_blank" rel="noopener noreferrer" className="btn-outline btn-sm">Zalo</a>
+                  </span>
+                )}
+              </li>
+            ))}
+            {!s.pending_registrations && !s.consultations_new && !s.leads_new && !s.expiring.length && (
+              <li className="text-slate-500">Không có việc cần xử lý ngay.</li>
+            )}
+          </ul>
+        </section>
+
+        <section aria-label="Tiến độ theo chương trình" className="card p-5">
+          <h3 className="font-bold">Tiến độ theo chương trình</h3>
+          <p className="text-xs text-slate-500">Trung bình % bài đã tập của bệnh nhân đang còn hạn</p>
+          {s.programs.length ? (
+            <ul className="mt-3 space-y-3">
+              {s.programs.map((p) => (
+                <li key={p.course_id}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="font-semibold text-ocean-900">{p.course_title}</span>
+                    <span className="tabular-nums text-slate-600">{p.avg_percent}% · {p.patients} bệnh nhân</span>
+                  </div>
+                  <div
+                    role="meter"
+                    aria-label={`Tiến độ trung bình ${p.course_title}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={p.avg_percent}
+                    className="mt-1 h-2 overflow-hidden rounded-full bg-ocean-100"
+                  >
+                    <div className="h-full rounded-full bg-ocean-500" style={{ width: `${p.avg_percent}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">Chưa có bệnh nhân đang học.</p>
+          )}
+
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-bold">Không tập &gt; 7 ngày ({s.inactive_7d})</h4>
+              {!!s.inactive_7d && <Link href="/admin/patients?status=inactive" className="text-sm font-semibold text-ocean-700 hover:underline">Xem tất cả</Link>}
+            </div>
+            <ul className="mt-2 space-y-2 text-sm">
+              {s.inactive.map((x) => (
+                <li key={`${x.user_id}-${x.course_title}`} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    <Link href={`/admin/patients/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">{x.full_name ?? x.phone}</Link>{' '}
+                    <span className="text-slate-500">
+                      – {x.course_title} · {x.last_activity ? `tập gần nhất ${formatDay(x.last_activity)}` : 'chưa tập buổi nào'}
+                    </span>
+                  </span>
+                  <ProgressBar done={x.done} total={x.total} className="w-32" />
+                </li>
+              ))}
+              {!s.inactive.length && <li className="text-slate-500">Mọi bệnh nhân đang học đều tập trong 7 ngày qua.</li>}
+            </ul>
+          </div>
+        </section>
       </div>
+
+      {me.isAdmin && (
+        <Revenue
+          current={(thisMonth.data ?? []) as RevenueRow[]}
+          previous={(lastMonth.data ?? []) as RevenueRow[]}
+          label={months.label}
+          lastLabel={months.lastLabel}
+        />
+      )}
+      <p className="text-xs text-slate-400">Số liệu tại {formatDateTime(new Date().toISOString())}.</p>
     </div>
+  )
+}
+
+const DIMENSIONS: { key: RevenueRow['dimension']; title: string; format: (s: string) => string }[] = [
+  { key: 'course', title: 'Theo chương trình', format: (s) => s },
+  { key: 'method', title: 'Theo hình thức thanh toán', format: paymentLabel },
+  { key: 'source', title: 'Theo nguồn', format: registrationSourceLabel },
+  // "—": đơn duyệt bằng script / dữ liệu cũ không ghi người xử lý
+  { key: 'handler', title: 'Theo người duyệt / cấp gói', format: (s) => (s === '—' ? 'Không rõ (dữ liệu cũ)' : s) },
+]
+
+// Doanh thu (chỉ admin, FR-184): tháng này so với tháng trước + phân tích theo 4 chiều.
+// Mỗi bảng một thang đo, thanh ngang một màu (độ lớn), số liệu ghi rõ bên cạnh; rê chuột vào thanh để xem chi tiết.
+function Revenue({ current, previous, label, lastLabel }: { current: RevenueRow[]; previous: RevenueRow[]; label: string; lastLabel: string }) {
+  const total = current.find((r) => r.dimension === 'total') ?? { revenue: 0, orders: 0 }
+  const lastTotal = previous.find((r) => r.dimension === 'total') ?? { revenue: 0, orders: 0 }
+  const delta = total.revenue - lastTotal.revenue
+  return (
+    <section aria-label="Doanh thu" className="card p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h3 className="font-bold">Doanh thu {label}</h3>
+          <p className="mt-1 text-4xl font-bold tabular-nums text-ocean-900" data-testid="revenue-total">
+            {total.revenue.toLocaleString('vi-VN')}đ
+          </p>
+          <p className="text-sm text-slate-500">
+            {total.orders} đơn · {lastLabel}: {lastTotal.revenue.toLocaleString('vi-VN')}đ{' '}
+            {lastTotal.revenue > 0 && (
+              <span className={delta >= 0 ? 'text-emerald-700' : 'text-red-700'}>
+                ({delta >= 0 ? '▲' : '▼'} {Math.abs(Math.round((delta * 100) / lastTotal.revenue))}%)
+              </span>
+            )}
+          </p>
+        </div>
+        <p className="max-w-sm text-xs text-slate-400">
+          Tính theo số tiền của các đơn đang ở trạng thái Đã duyệt, theo ngày duyệt / cấp gói (giờ Việt Nam). Đơn bị thu hồi không tính.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        {DIMENSIONS.map((d) => {
+          const rows = current.filter((r) => r.dimension === d.key).sort((a, b) => b.revenue - a.revenue)
+          const max = Math.max(...rows.map((r) => r.revenue), 1)
+          return (
+            <div key={d.key}>
+              <h4 className="text-sm font-semibold text-slate-700">{d.title}</h4>
+              {rows.length ? (
+                <table className="mt-2 w-full table-fixed text-sm">
+                  <colgroup>
+                    <col className="w-[38%]" />
+                    <col />
+                    <col className="w-[34%]" />
+                  </colgroup>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.label} title={`${d.format(r.label)}: ${r.revenue.toLocaleString('vi-VN')}đ · ${r.orders} đơn`}>
+                        <td className="truncate py-1 pr-2 text-slate-700">{d.format(r.label)}</td>
+                        <td className="py-1">
+                          <div className="h-3 rounded-r bg-ocean-500" style={{ width: `${Math.max((r.revenue / max) * 100, 2)}%` }} />
+                        </td>
+                        <td className="whitespace-nowrap py-1 pl-2 text-right tabular-nums text-slate-700">
+                          {r.revenue.toLocaleString('vi-VN')}đ <span className="text-xs text-slate-400">· {r.orders}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="mt-2 text-sm text-slate-400">Chưa có doanh thu.</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }

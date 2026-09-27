@@ -8,6 +8,7 @@ import { isEmailTaken, isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
 import type { ActionResult } from '@/lib/action-result'
+import { CONSENT_VERSION } from '@/lib/consent'
 
 const fail = (error: string): ActionResult => ({ ok: false, error })
 
@@ -46,6 +47,18 @@ export async function updateProfileAction(formData: FormData): Promise<ActionRes
   return { ok: true, message: 'Đã cập nhật thông tin tài khoản.' }
 }
 
+// Tài khoản tạo trước khi có Chính sách bảo mật: ghi nhận đồng ý (hộp hỏi hiện một lần sau khi đăng nhập)
+export async function acceptConsentAction(): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return fail('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
+  const { error } = await createAdminClient()
+    .from('profiles')
+    .update({ consent_at: new Date().toISOString(), consent_version: CONSENT_VERSION })
+    .eq('id', user.id)
+  if (error) return fail(error.message)
+  return { ok: true, message: 'Cảm ơn bạn đã đồng ý Chính sách bảo mật.' }
+}
+
 export async function changePasswordAction(formData: FormData): Promise<ActionResult> {
   const user = await getCurrentUser()
   if (!user) return fail('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
@@ -66,8 +79,14 @@ export async function changePasswordAction(formData: FormData): Promise<ActionRe
   const { error: wrong } = await verifier.auth.signInWithPassword({ email: user.authEmail, password: current })
   if (wrong) return fail('Mật khẩu hiện tại không đúng.')
 
-  const { error } = await createAdminClient().auth.admin.updateUserById(user.id, { password: next })
+  const admin = createAdminClient()
+  const { error } = await admin.auth.admin.updateUserById(user.id, { password: next })
   if (error) return fail(error.message)
+  // Mật khẩu do nhân viên cấp đã được đổi: tắt hộp nhắc đổi mật khẩu (BR-96)
+  if (user.mustChangePassword) {
+    await admin.from('profiles').update({ must_change_password: false }).eq('id', user.id)
+    revalidatePath('/account')
+  }
 
   return { ok: true, message: 'Đã đổi mật khẩu thành công.' }
 }

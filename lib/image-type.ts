@@ -12,3 +12,11 @@ export function detectImageType(bytes: Uint8Array): ImageType | null {
   if (ascii(4, 8) === 'ftyp' && HEIF_BRANDS.includes(ascii(8, 12))) return 'image/heic'
   return null
 }
+
+// Đuôi file lưu trong Storage theo định dạng thật của ảnh
+export const IMAGE_EXT: Record<ImageType, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+}

@@ -159,3 +159,27 @@ Không thêm thư viện icon; icon mới thêm vào cùng file theo cùng kiể
 - Thông báo thành công bắt đầu bằng "Đã …".
 - Nút dùng động từ: "Đăng ký", "Lưu thay đổi", "Thêm bài học", "Bắt đầu học".
 - Khi bế tắc (không có email, đơn bị từ chối): luôn đưa **hotline**.
+
+## 8. Thành phần phiên bản 0.2 (✅ đã triển khai Đợt 8 → 13)
+
+| Thành phần | Mô tả |
+| --- | --- |
+| `ProgressBar` | Thanh cao 6px (`rounded-full bg-slate-100`, phần đã xong `bg-ocean-500`; 100% dùng `bg-emerald-500`) + chữ nhỏ `text-xs text-slate-500` "18/72 bài · 25%". `role="progressbar"`, `aria-valuenow/min/max`, `aria-label` |
+| `CourseCover` | Ảnh bìa tỉ lệ 16:9 `rounded-xl object-cover` (`next/image`); không có ảnh → nền gradient ocean + icon cột sống |
+| Nhãn loại khóa | `MIỄN PHÍ` (emerald) · `VẸO LƯNG` / `VẸO NGỰC` (ocean) · `PREMIUM 1:1` (gold đậm, chữ `ocean-950`) |
+| Nhãn hạn học | `Còn N ngày` (slate) · ≤ 7 ngày (gold) · `Đã hết hạn` (red) |
+| `StatusBadge` bổ sung | `staff` Nhân viên (violet) · phiếu `new` Mới (gold) / `contacted` Đã liên hệ (ocean) / `done` Hoàn tất (emerald) / `cancelled` Hủy (slate) · lead `converted` Đã chốt (emerald) / `closed` Đóng (slate) · nguồn `web` / `zalo` |
+| `SessionAccordion` | Buổi thu gọn/mở rộng: tiêu đề "Buổi 4 · 1/6 ✓"; buổi khóa có icon 🔒 + lý do màu slate-400; buổi xong có ✓ emerald |
+| `LessonCheck` | Ô tick tròn 28px trong vùng chạm 44px; đã tập: nền emerald + ✓; `aria-pressed`, nhãn "Đánh dấu đã tập <tên bài>" |
+| CTA học tập | Nút chính `btn-gold btn-lg` ("Tiếp tục Buổi X", "Hoàn thành & bài tiếp theo"); mobile cố định đáy (`sticky bottom-0` có nền trắng + bóng trên) |
+| `StatCard` (dashboard) | ✅ `.card p-4` + viền trái 4px: nhãn nhỏ in hoa, số lớn `text-3xl font-bold tabular-nums`, dòng phụ; cả thẻ là link tới danh sách đã lọc. Viền ocean mặc định; gold khi cần làm (đơn chờ, sắp hết hạn, lead mới), red khi có phiếu tham vấn mới – luôn kèm chữ, không chỉ dựa vào màu |
+| Thanh tiến độ trung bình (dashboard) | ✅ `role="meter"`, rãnh `bg-ocean-100` cao 8px, phần đã tập `bg-ocean-500`; số % và số bệnh nhân ghi rõ bên cạnh |
+| Doanh thu (chỉ admin) | ✅ Số lớn (≥ 36px) tháng này + so với tháng trước (▲/▼ %); 4 bảng (chương trình / hình thức / nguồn / người xử lý), mỗi dòng thanh ngang một màu `ocean-500` tỉ lệ trong bảng + số tiền, số đơn; rê chuột xem chi tiết (`title`). Một màu vì chỉ thể hiện độ lớn, không có chuỗi so sánh |
+| `ConsentCheckbox` | Ô tick + chữ có link "Chính sách bảo mật" (mở tab mới); lỗi `role="alert"` ngay dưới |
+| `LoginReminders` | ✅ Hộp thoại giữa màn hình (`role="dialog"`, `aria-modal`): đồng ý chính sách (bắt buộc) hoặc "Bạn nên đổi mật khẩu" [Đổi ngay] [Để sau] |
+| Thang 0–10 (phiếu tham vấn) | ✅ 11 ô vuông 40px (radio ẩn, `peer-checked` tô ocean), nhãn phụ "0 = không đau · 10 = rất nặng"; Có/Không là radio 20px |
+| `.alert-warning` | ✅ Khung gold nhạt cho lời nhắc (VD mật khẩu do nhân viên cấp) |
+| `OneTimeSecret` | ✅ Khung emerald hiển thị mật khẩu vừa sinh (font mono, chữ lớn) + tin nhắn mẫu + [Chép tin nhắn gửi Zalo]; ghi "chỉ hiện một lần" |
+
+UX writing v0.2: gọi người dùng là "bạn" trên giao diện bệnh nhân; trong quản trị gọi là "bệnh nhân"; nút hành động học tập luôn
+nói rõ buổi/bài ("Tiếp tục Buổi 4 – Bài 2"), tránh chữ chung chung "Tiếp tục".

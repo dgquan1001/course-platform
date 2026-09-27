@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 const tabs = [
   { href: '/admin/registrations', label: 'Đơn đăng ký', adminOnly: false },
   { href: '/admin/users', label: 'Học viên', adminOnly: false },
+  { href: '/admin/leads', label: 'Khách quan tâm', adminOnly: false },
   { href: '/admin/courses', label: 'Khóa học', adminOnly: true },
 ]
 

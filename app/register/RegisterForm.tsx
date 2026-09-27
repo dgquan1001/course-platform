@@ -10,6 +10,7 @@ import { formatPrice, hotlineHref, siteConfig, vietQrUrl } from '@/lib/site-conf
 import type { PublicCourse } from '@/lib/supabase/public'
 import { realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
+import { compressImage, formatSize } from '@/lib/compress-image'
 import { CheckIcon, CopyIcon, SpinnerIcon, UploadIcon } from '@/components/icons'
 import { registerAction, type RegisterState } from './actions'
 
@@ -21,35 +22,6 @@ const turnstile = () => (window as Window & { turnstile?: TurnstileApi }).turnst
 const MAX_UPLOAD = 5 * 1024 * 1024
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif'
 const ACCEPTED_EXT = /\.(jpe?g|png|webp|heic|heif)$/i
-
-// Nén ảnh ngay trên trình duyệt: thu nhỏ cạnh dài tối đa 1600px, chuyển sang JPEG 82%.
-// Ảnh chụp màn hình vài MB thường còn 150–400KB, vẫn đọc rõ chữ, upload nhanh hơn nhiều.
-async function compressImage(file: File): Promise<File> {
-  if (file.type === 'image/jpeg' && file.size <= 400 * 1024) return file
-  let bitmap: ImageBitmap
-  try {
-    bitmap = await createImageBitmap(file)
-  } catch {
-    return file // Trình duyệt không đọc được định dạng (VD: HEIC trên Chrome) → gửi ảnh gốc
-  }
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return file
-  ctx.fillStyle = '#fff' // nền trắng cho ảnh PNG trong suốt
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
-  if (!blob || blob.size >= file.size) return file
-  return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' })
-}
-
-function formatSize(bytes: number) {
-  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`
-}
 
 function StepHeading({ n, title, hint }: { n: number; title: string; hint?: string }) {
   return (
@@ -433,6 +405,20 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
               </span>
               <span className="shrink-0 text-lg font-bold text-ocean-700">{formatPrice(amount)}</span>
             </div>
+
+            {/* Khách tạo tài khoản mới phải đồng ý Chính sách bảo mật (có dữ liệu sức khỏe) */}
+            {account === null && (
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                <input id="consent" name="consent" type="checkbox" value="yes" required className="mt-1 h-5 w-5 shrink-0 accent-ocean-600" />
+                <label htmlFor="consent" className="text-sm text-slate-700">
+                  Tôi đồng ý với{' '}
+                  <Link href="/chinh-sach-bao-mat" target="_blank" className="font-semibold text-ocean-700 underline">
+                    Chính sách bảo mật
+                  </Link>{' '}
+                  và cho phép trung tâm lưu thông tin sức khỏe, tiến độ tập để hướng dẫn tập luyện. *
+                </label>
+              </div>
+            )}
 
             {TURNSTILE_SITE_KEY && (
               <>

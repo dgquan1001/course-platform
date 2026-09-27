@@ -17,8 +17,11 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | `/forgot-password` | Công khai | — | Động | Quên mật khẩu 2 giai đoạn |
 | `/account` | Đăng nhập | — | Động | Tài khoản của tôi |
 | `/courses` | Đăng nhập | `?registered=1` | Động | Khóa học của tôi |
-| `/courses/[courseId]` | Đăng nhập | `courseId: uuid` | Động | Chi tiết khóa; 404 nếu không đọc được khóa |
-| `/courses/[courseId]/[lessonId]` | Đăng nhập + quyền khóa | `courseId, lessonId: uuid` | Động | Xem bài học |
+| `/courses/[courseId]` | Khóa miễn phí: công khai; khóa khác: đăng nhập (trang tự chuyển `/login?next=`) | `courseId: uuid` | Động | Chi tiết khóa; 404 nếu không đọc được khóa; khóa premium → `/khoa-hoc/[id]` |
+| `/courses/[courseId]/[lessonId]` | Như trên + quyền khóa | `courseId, lessonId: uuid` | Động | Xem bài học |
+| `/khoa-hoc/[courseId]` | Công khai | `courseId: uuid` | ISR 300s | Trang giới thiệu khóa (Đợt 8): đề cương qua RPC `course_outline`, khóa premium có hộp liên hệ Zalo |
+| `/chinh-sach-bao-mat` | Công khai | — | Tĩnh | Chính sách bảo mật (Đợt 8) |
+| `/admin/leads` | Nhân viên, admin | `?status=new\|contacted\|converted\|closed` | Động | Khách quan tâm premium (Đợt 8) |
 | `/admin` | Nhân viên, admin | `?status=` (giữ lại) | Động | Chuyển hướng tới `/admin/registrations` (thành Tổng quan ở Đợt 13) |
 | `/admin/registrations` | Nhân viên, admin | `?status=pending\|approved\|rejected\|all\|refund` (mặc định pending) | Động | Đơn đăng ký |
 | `/admin/users` | Nhân viên (chỉ xem), admin | `?q=<từ khóa>`, `?role=team` (Nhân viên & Admin) | Động | Học viên; admin đổi vai trò |
@@ -29,7 +32,7 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 
 ## 2. Middleware (`middleware.ts`)
 
-- **Matcher**: `/courses/:path*`, `/admin/:path*`, `/account/:path*`.
+- **Matcher**: `/courses/:path*`, `/admin/:path*`, `/account/:path*`. Với `/courses/<id>/**` middleware chỉ làm mới phiên, không bắt đăng nhập (khóa miễn phí công khai – Đợt 8); trang tự chuyển khách tới đăng nhập nếu khóa không miễn phí.
 - Làm mới phiên Supabase (ghi lại cookie nếu token được refresh).
 
 | Điều kiện | Kết quả |
@@ -60,7 +63,8 @@ Quy ước chung:
 | `cf-turnstile-response` | chỉ khi bật Turnstile | "Vui lòng xác nhận bạn không phải robot rồi bấm Đăng ký lại." |
 | (IP) | ≤ 20 đơn / giờ | "Bạn đã gửi quá nhiều đơn đăng ký. Vui lòng thử lại sau hoặc gọi … để được hỗ trợ." |
 | `password` | khách ✓ | ≥ 6 ký tự |
-| `courseId` | ✓ | tồn tại và `published`; lưu kèm snapshot `course_title`, `amount` vào đơn |
+| `courseId` | ✓ | tồn tại, `published` và `kind = 'program'`; lưu kèm snapshot `course_title`, `amount` vào đơn |
+| `consent` | khách ✓ | `= 'yes'` → "Vui lòng đồng ý Chính sách bảo mật để tạo tài khoản."; lưu `consent_at`, `consent_version` vào profile |
 | `paymentProof` | ✓ | File, MIME/đuôi ∈ {png, jpg/jpeg, webp, heic, heif}, ≤ 5MB |
 
 - **Client dùng**: service role (tạo user, upload, insert), server client (đọc phiên, đăng nhập).
@@ -139,8 +143,9 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
 | `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang."). Quyền: nhân viên hoặc admin; trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
-| `createCourse` | — | `title, description, price, sort_order, status` | insert `courses` | `Đã thêm khóa học "<title>".` |
-| `updateCourse` | `courseId` | như trên | update `courses` | "Đã lưu thông tin khóa học." |
+| `createCourse` | — | `title, description, price, sort_order, status`, `kind`, `category`, `summary`, `outcomes` (mỗi dòng 1 ý), `cover` (file) | Tải ảnh bìa lên `course-covers` (server client, RLS admin) rồi insert `courses`; lỗi thì xóa ảnh vừa tải | `Đã thêm khóa học "<title>".` |
+| `updateCourse` | `courseId` | như trên + `remove_cover` | Chặn đổi loại khóa khi đã có đơn; thay ảnh bìa (xóa file cũ) | "Đã lưu thông tin khóa học." |
+| `setLeadStatus` | `leadId`, `expected` (trạng thái đang thấy) | `status` ∈ new/contacted/converted/closed, `staff_note` ≤ 500 | update `leads` `.eq('status', expected)` (nhân viên, admin); 0 dòng → "Yêu cầu đã thay đổi (có thể người khác vừa xử lý)…" | "Đã ghi nhận: đã liên hệ khách."… |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
 | `setUserRole` | `userId` (UUID, khác chính mình) | `role` ∈ user/staff/admin ("Vai trò không hợp lệ.") | update `profiles.role` (chỉ admin); trigger `profiles_guard_role` chặn người không phải admin, tự gỡ quyền, gỡ admin cuối cùng ("Chỉ admin được thay đổi vai trò tài khoản." / "Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã chuyển vai trò thành Nhân viên." / "Đã chuyển vai trò thành Học viên." |
@@ -157,6 +162,11 @@ Kiểm tra ở server (RV-05):
 | `price` | số nguyên 0 – 1.000.000.000; trống = 0 | "Học phí phải là số nguyên." / "Học phí phải từ 0 đến 1.000.000.000." |
 | `sort_order` | số nguyên ±100.000; trống = 0 | "Thứ tự … phải là số nguyên." |
 | `status` | `draft` \| `published` | "Trạng thái khóa học không hợp lệ." |
+| `kind` | `free` \| `program` \| `premium` (free → học phí 0) | "Loại khóa học không hợp lệ." |
+| `category` | trống \| `veo_lung` \| `veo_nguc` | "Nhóm bệnh không hợp lệ." |
+| `summary` | ≤ 300 ký tự | "Mô tả ngắn tối đa 300 ký tự." |
+| `outcomes` | ≤ 12 dòng, mỗi dòng ≤ 200 ký tự | … |
+| `cover` | JPG/PNG/WEBP theo magic bytes, ≤ 2MB | "Ảnh bìa phải là ảnh JPG, PNG hoặc WEBP hợp lệ." / "Ảnh bìa tối đa 2MB." |
 | `video_url` | `isSupportedVideoUrl`: https + youtube.com/youtu.be/youtube-nocookie.com/tiktok.com và nhận dạng được ID | "Link video phải là link YouTube hoặc TikTok hợp lệ (…)" |
 | ID (bind) | UUID | "Mã … không hợp lệ, vui lòng tải lại trang." |
 
@@ -230,7 +240,7 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 | `createSession` / `updateSession` / `deleteSession` / `duplicateSession` / `moveSession` | admin | Admin | Quản lý buổi |
 | `createLesson` / `updateLesson` | admin | Admin | Thêm `session_id`; `video_url` không bắt buộc |
 | `toggleLessonProgress(lessonId, done)` | `app/courses/actions.ts` | Bệnh nhân | Insert/delete `lesson_progress` bằng server client (RLS kiểm tra `can_view_lesson`); trả tiến độ mới + bài tiếp theo |
-| `acceptConsent()` | `app/account/actions.ts` | Đăng nhập | Ghi `consent_at`, `consent_version` |
+| `acceptConsentAction()` | `app/account/actions.ts` | Đăng nhập | ✅ Đợt 8 – ghi `consent_at`, `consent_version` (service role, theo phiên) |
 | `dismissPasswordReminder()` | `app/account/actions.ts` | Đăng nhập | Ẩn hộp nhắc trong phiên (cookie), không đổi cờ |
 | `changePasswordAction` | `app/account/actions.ts` | Đăng nhập | Thêm: thành công → `must_change_password = false`. Vẫn bắt nhập mật khẩu hiện tại (mật khẩu nhân viên cấp) |
 | `createPatientAction(formData)` | `app/admin/patients/actions.ts` | Staff | Tạo tài khoản (service role) + tùy chọn cấp gói; trả `{ ok, message, password, patientId }` |
@@ -240,8 +250,8 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 | `submitConsultationAction(formData)` | `app/courses/actions.ts` | Bệnh nhân | Đọc câu hỏi đang bật, kiểm tra từng câu, giới hạn 5/ngày, insert (service role) |
 | `setConsultationStatus(id, status, expected, formData)` | `app/admin/consultations/actions.ts` | Staff | Như `setRegistrationStatus` (không ghi đè), `staff_note` ≤ 1000 |
 | `upsertConsultQuestion` / `deleteConsultQuestion` / `moveConsultQuestion` | `app/admin/settings/actions.ts` | Admin | Mẫu phiếu |
-| `createLeadAction(courseId, formData)` | `app/khoa-hoc/actions.ts` | Công khai | Họ tên, SĐT (tùy chọn – trống = ẩn danh), rate limit 20/giờ/IP; trả `zaloUrl` để client mở |
-| `setLeadStatus(id, status, expected, formData)` | `app/admin/leads/actions.ts` | Staff | |
+| `createLeadAction(courseId, formData)` | `app/khoa-hoc/actions.ts` | Công khai | ✅ Đợt 8 – họ tên + SĐT (cả hai trống = lượt bấm ẩn danh), khóa phải là premium đang hiển thị, rate limit 20/giờ/IP. Client mở Zalo **ngay khi bấm** (không chờ action) để trình duyệt không chặn cửa sổ |
+| `setLeadStatus(id, expected, formData)` | `app/admin/actions.ts` | Staff | ✅ Đợt 8 – xem §3.6 |
 
 ### 7.4. RPC gọi từ trang
 

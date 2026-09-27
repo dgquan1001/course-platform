@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ArrowLeftIcon, ArrowRightIcon, PlayIcon, ShieldIcon } from '@/components/icons'
 
@@ -10,24 +10,34 @@ export default async function CourseDetailPage({
 }) {
   const supabase = createClient()
 
-  const [{ data: course }, { data: hasAccess }, { data: lessons }] = await Promise.all([
-    supabase.from('courses').select('title, description').eq('id', params.courseId).maybeSingle(),
+  const [{ data: course }, { data: canAccess }, { data: lessons }, { data: auth }] = await Promise.all([
+    supabase.from('courses').select('title, description, kind').eq('id', params.courseId).maybeSingle(),
     supabase.rpc('has_course_access', { target_course: params.courseId }),
     supabase
       .from('lessons')
       .select('id, title, description')
       .eq('course_id', params.courseId)
       .order('sort_order', { ascending: true }),
+    supabase.auth.getUser(),
   ])
 
+  // Khóa miễn phí: ai cũng xem được. Khóa khác: phải đăng nhập (trang khóa không chặn ở middleware)
+  const isFree = course?.kind === 'free'
+  if (!auth.user && !isFree) redirect(`/login?next=${encodeURIComponent(`/courses/${params.courseId}`)}`)
   if (!course) notFound()
+  // Khóa premium không có bài học: chuyển về trang giới thiệu (liên hệ Zalo)
+  if (course.kind === 'premium') redirect(`/khoa-hoc/${params.courseId}`)
+  const hasAccess = isFree || canAccess
 
   return (
     <main>
       <section className="border-b border-ocean-100 bg-gradient-to-b from-ocean-50 to-white">
         <div className="container-page py-8 sm:py-10">
-          <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-ocean-700">
-            <ArrowLeftIcon className="h-4 w-4" /> Khóa học của tôi
+          <Link
+            href={auth.user ? '/courses' : `/khoa-hoc/${params.courseId}`}
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-ocean-700"
+          >
+            <ArrowLeftIcon className="h-4 w-4" /> {auth.user ? 'Khóa học của tôi' : 'Giới thiệu khóa học'}
           </Link>
           <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{course.title}</h1>
           {course.description && <p className="mt-2 max-w-3xl text-slate-600">{course.description}</p>}

@@ -307,35 +307,35 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-11 – Danh mục khóa, miễn phí, premium
 
-### US-11.01 – Xem khóa theo nhóm ⬜ (3 SP)
+### US-11.01 – Xem khóa theo nhóm ✅ (3 SP)
 **Là** khách, **tôi muốn** thấy khóa miễn phí, chương trình phục hồi (vẹo lưng / vẹo ngực) và premium tách riêng, **để** chọn đúng.
 - FR: FR-120, FR-122
 - **AC1** Given có khóa 3 loại When mở trang chủ Then thấy 3 nhóm; chương trình có nút lọc Vẹo lưng / Vẹo ngực; thẻ có ảnh bìa, số buổi, giá "từ …đ".
 
-### US-11.02 – Admin tải ảnh bìa ⬜ (2 SP)
+### US-11.02 – Admin tải ảnh bìa ✅ (2 SP)
 - FR: FR-121
 - **AC1** Given admin chọn ảnh 5MB When lưu Then ảnh được nén, lưu vào `course-covers`, trang chủ hiển thị ảnh mới.
 - **AC2** Given staff/khách gọi API upload vào `course-covers` Then bị chặn.
 
-### US-11.03 – Trang giới thiệu khóa kiểu Udemy ⬜ (5 SP)
+### US-11.03 – Trang giới thiệu khóa kiểu Udemy 🟡 (AC1 ✅ đề cương phẳng; AC2 chọn gói ở Đợt 9) (5 SP)
 **Là** khách, **tôi muốn** xem đề cương, lợi ích, giá các gói trước khi mua, **để** yên tâm đăng ký.
 - FR: FR-123, FR-157
 - **AC1** Given chương trình có 36 buổi When mở `/khoa-hoc/<id>` Then thấy các buổi (thu gọn), mở ra thấy tên bài; không có link video trong HTML.
 - **AC2** Given chọn gói 3 tháng ở khung giá Then nút "Đăng ký gói 3 tháng" dẫn tới box đăng ký chọn sẵn chương trình + gói.
 
-### US-11.04 – Học khóa miễn phí không cần tài khoản ⬜ (3 SP)
+### US-11.04 – Học khóa miễn phí không cần tài khoản ✅ (3 SP)
 - FR: FR-124 · BR: BR-75
 - **AC1** Given khách chưa đăng nhập When mở bài của khóa miễn phí Then xem được video; thấy gợi ý "Đăng nhập để lưu tiến độ".
 - **AC2** Given khách gọi `get_lesson_video` cho bài của chương trình trả phí Then không nhận được link.
 
-### US-11.05 – Liên hệ Zalo khóa premium ⬜ (3 SP)
+### US-11.05 – Liên hệ Zalo khóa premium ✅ (3 SP)
 **Là** khách, **tôi muốn** bấm liên hệ Zalo để nhận ưu đãi khóa 1:1, **để** được tư vấn trực tiếp.
 - FR: FR-125, FR-174, FR-175 · BR: BR-76, BR-104, BR-105 · ADR-015
 - **AC1** Given tôi nhập họ tên + SĐT When bấm "Gửi & mở Zalo" Then lead được lưu (khóa 1:1, SĐT chuẩn hóa) và Zalo mở ở tab mới.
 - **AC2** Given tôi bấm "Mở Zalo ngay" Then Zalo mở, một lượt bấm ẩn danh được lưu.
 - **AC3** Given nhân viên mở `/admin/leads` Then thấy lead mới, đổi được sang "Đã liên hệ".
 
-### US-11.06 – Chính sách bảo mật & đồng ý ⬜ (2 SP)
+### US-11.06 – Chính sách bảo mật & đồng ý ✅ (2 SP)
 - FR: FR-126, FR-132 · BR: BR-106, BR-107 · RV-17
 - **AC1** Given tôi là khách mới When gửi đơn mà không tick đồng ý Then báo "Vui lòng đồng ý Chính sách bảo mật" (cả ở server).
 - **AC2** Given tôi là học viên cũ chưa đồng ý When đăng nhập Then hiện hộp đồng ý một lần.

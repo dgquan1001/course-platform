@@ -8,6 +8,7 @@ import { isEmailTaken, isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
 import type { ActionResult } from '@/lib/action-result'
+import { CONSENT_VERSION } from '@/lib/consent'
 
 const fail = (error: string): ActionResult => ({ ok: false, error })
 
@@ -44,6 +45,18 @@ export async function updateProfileAction(formData: FormData): Promise<ActionRes
 
   revalidatePath('/', 'layout')
   return { ok: true, message: 'Đã cập nhật thông tin tài khoản.' }
+}
+
+// Tài khoản tạo trước khi có Chính sách bảo mật: ghi nhận đồng ý (hộp hỏi hiện một lần sau khi đăng nhập)
+export async function acceptConsentAction(): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return fail('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
+  const { error } = await createAdminClient()
+    .from('profiles')
+    .update({ consent_at: new Date().toISOString(), consent_version: CONSENT_VERSION })
+    .eq('id', user.id)
+  if (error) return fail(error.message)
+  return { ok: true, message: 'Cảm ơn bạn đã đồng ý Chính sách bảo mật.' }
 }
 
 export async function changePasswordAction(formData: FormData): Promise<ActionResult> {

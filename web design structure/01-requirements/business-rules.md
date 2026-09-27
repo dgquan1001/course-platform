@@ -96,9 +96,9 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-74 | Khóa có 1 trong 3 loại: `free`, `program`, `premium`. Đổi loại khi đã có đơn đăng ký bị chặn | — | `check`, `updateCourse` |
-| BR-75 | Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | `can_view_lesson`, `registerAction` |
-| BR-76 | Khóa `premium`: không có buổi/bài, không có gói, không nhận đơn; hiển thị ảnh bìa, thông tin, giá (`courses.price`, `0` = "Liên hệ") và nút liên hệ Zalo | — | UI, `registerAction` |
+| BR-74 | ✅ Khóa có 1 trong 3 loại: `free`, `program`, `premium`. Đổi loại khi đã có đơn đăng ký bị chặn | — | `courses_kind_check`, `readCourse`, `updateCourse` ("Không đổi được loại khóa khi khóa đã có đơn đăng ký.") |
+| BR-75 | ✅ Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | RLS `lessons_select` (`is_free_course()`), trang `/courses/[id]/**` (khách vào khóa khác → đăng nhập), `registerAction` (`kind = 'program'`); Đợt 10: `can_view_lesson` |
+| BR-76 | ✅ Khóa `premium`: không có buổi/bài, không có gói, không nhận đơn; hiển thị ảnh bìa, thông tin, giá (`courses.price`, `0` = "Liên hệ") và nút liên hệ Zalo | — | Trang chủ, `/khoa-hoc/[id]`, `course_outline` (bỏ premium), `registerAction`, `/courses/[id]` chuyển về trang giới thiệu |
 | BR-77 | Khóa `program` bán theo gói `months ∈ {1,3,6,12}`, mỗi chương trình tối đa 1 gói cho mỗi số tháng, giá riêng từng chương trình (0 – 1 tỷ), `sessions` = số buổi được mở, mặc định `12 × months` (1 – 500) | BR-21 | `course_plans` (unique `(course_id, months)`, `check`), action admin |
 | BR-78 | Chỉ nhận đơn cho chương trình đang hiển thị và gói đang bán; server tính lại giá theo gói, không tin client | BR-20 | `registerAction` |
 | BR-79 | Đơn lưu snapshot gói: `plan_id`, `plan_months`, `plan_sessions`, `amount`, cùng `course_title` như cũ | BR-38 | `registerAction`, `createPatientAction` |
@@ -146,14 +146,14 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | BR-101 | Bệnh nhân đã đăng nhập gửi phiếu bất cứ lúc nào, tối đa 5 phiếu / ngày; phiếu lưu snapshot câu hỏi + trả lời, không sửa được sau khi gửi | — | `submitConsultationAction`, rate limit |
 | BR-102 | Phiếu có trạng thái `new → contacted → done` hoặc `cancelled`; staff/admin đổi trạng thái, ghi chú nội bộ (bệnh nhân không thấy), ghi người xử lý; không ghi đè khi 2 người cùng xử lý (như BR-36) | — | `setConsultationStatus` |
 | BR-103 | Bệnh nhân chỉ xem phiếu của mình; staff/admin xem tất cả; không ai xóa phiếu qua API | — | RLS `consultations_*` |
-| BR-104 | Nút premium lưu lead (khóa, họ tên, SĐT hợp lệ nếu nhập, người dùng nếu đã đăng nhập) rồi mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh. Tối đa 20 lead / giờ / IP | — | `createLeadAction`, rate limit |
-| BR-105 | Lead có trạng thái `new → contacted → converted` hoặc `closed`; lượt bấm ẩn danh (`phone is null`) chỉ để thống kê, không hiện trong danh sách cần gọi | — | `/admin/leads` |
+| BR-104 | ✅ Nút premium lưu lead (khóa, họ tên, SĐT hợp lệ nếu nhập, người dùng nếu đã đăng nhập) rồi mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh. Tối đa 20 lead / giờ / IP | — | `createLeadAction`, rate limit |
+| BR-105 | ✅ Lead có trạng thái `new → contacted → converted` hoặc `closed`; lượt bấm ẩn danh (`phone is null`) chỉ để thống kê, không hiện trong danh sách cần gọi | — | `/admin/leads`, `setLeadStatus` (không ghi đè), trigger `leads_stamp` (giữ nguyên thông tin khách để lại) |
 
 ### Đồng ý xử lý dữ liệu (RV-17)
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-106 | Khách tạo tài khoản ở box đăng ký phải tick đồng ý Chính sách bảo mật; lưu `consent_at`, `consent_version`. Học viên cũ chưa có `consent_at` được hỏi một lần sau khi đăng nhập | — | `registerAction`, hộp đồng ý |
+| BR-106 | ✅ Khách tạo tài khoản ở box đăng ký phải tick đồng ý Chính sách bảo mật; lưu `consent_at`, `consent_version`. Học viên cũ chưa có `consent_at` được hỏi một lần sau khi đăng nhập | — | `registerAction`, `components/ConsentReminder.tsx` + `acceptConsentAction` (chỉ tài khoản học viên), `lib/consent.ts` |
 | BR-107 | Phiếu tham vấn và tiến độ tập là dữ liệu sức khỏe: chỉ bệnh nhân đó, staff, admin đọc được; không hiển thị trên trang công khai | — | RLS |
 
 ## Đặt lại mật khẩu

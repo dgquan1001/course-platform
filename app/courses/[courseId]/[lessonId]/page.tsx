@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getVideoEmbed } from '@/lib/video'
 import { ArrowLeftIcon, ArrowRightIcon, PlayIcon } from '@/components/icons'
@@ -10,14 +11,20 @@ export default async function LessonPage({
 }) {
   const supabase = createClient()
 
-  const [{ data: course }, { data: lessons }] = await Promise.all([
-    supabase.from('courses').select('title').eq('id', params.courseId).single(),
+  const [{ data: course }, { data: lessons }, { data: auth }] = await Promise.all([
+    supabase.from('courses').select('title, kind').eq('id', params.courseId).maybeSingle(),
     supabase
       .from('lessons')
       .select('id, title, description, video_url')
       .eq('course_id', params.courseId)
       .order('sort_order', { ascending: true }),
+    supabase.auth.getUser(),
   ])
+
+  // Khóa miễn phí xem không cần đăng nhập; khóa khác phải đăng nhập (trang không chặn ở middleware)
+  if (!auth.user && course?.kind !== 'free') {
+    redirect(`/login?next=${encodeURIComponent(`/courses/${params.courseId}/${params.lessonId}`)}`)
+  }
 
   const index = lessons?.findIndex((l) => l.id === params.lessonId) ?? -1
   const lesson = lessons?.[index]

@@ -15,8 +15,12 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 ## Tính năng
 
 **Học viên**
-- Trang giới thiệu (`/`): thông tin trung tâm, bác sĩ, danh sách khóa học kèm giá
-  và box đăng ký ngay trên trang (mọi nút "Đăng ký" đều cuộn tới box này)
+- Trang giới thiệu (`/`): thông tin trung tâm, bác sĩ; khóa học chia 3 nhóm **Miễn phí** · **Chương trình phục hồi**
+  (lọc vẹo lưng / vẹo ngực) · **Premium** 1:4 / 1:2 / 1:1, có ảnh bìa; box đăng ký ngay trên trang (mọi nút "Đăng ký" đều cuộn tới box này)
+- Trang giới thiệu từng khóa (`/khoa-hoc/<id>`): "Bạn sẽ đạt được", đề cương (không lộ link video), bác sĩ hướng dẫn
+- Khóa **miễn phí** xem ngay, không cần tài khoản. Khóa **premium**: để lại họ tên + SĐT hoặc bấm "Mở Zalo ngay" →
+  website lưu khách quan tâm và mở Zalo của trung tâm
+- **Chính sách bảo mật** (`/chinh-sach-bao-mat`); khách tạo tài khoản phải tick đồng ý, tài khoản cũ được hỏi một lần khi đăng nhập
 - Box đăng ký 3 bước (dùng chung cho trang chủ `#dang-ky` và trang riêng `/register`):
   1. Chuyển khoản: mã QR VietQR tự điền số tiền theo khóa đã chọn + nội dung là SĐT
   2. Chụp lại ảnh chuyển khoản
@@ -41,7 +45,9 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   luôn cố định bên phải khi bảng phải cuộn ngang trên màn hình nhỏ
 - Học viên: danh sách tài khoản, số điện thoại, các khóa đã đăng ký và trạng thái, tìm kiếm; admin đổi **vai trò**
   (Học viên / Nhân viên / Admin), tab "Nhân viên & Admin" để rà soát ai có quyền vào trang quản trị
-- Khóa học, bài học: **chỉ admin**
+- Khóa học, bài học: **chỉ admin**. Khóa có loại (miễn phí / chương trình / premium), nhóm bệnh, ảnh bìa
+  (nén trên trình duyệt, bucket công khai `course-covers`), mô tả ngắn, "Bạn sẽ đạt được"
+- Khách quan tâm (`/admin/leads`, nhân viên và admin): khách để lại SĐT ở khóa premium, gọi / nhắn Zalo, cập nhật trạng thái kèm ghi chú
 - Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên.
   **Ẩn** = ngừng nhận đăng ký (học viên đã được duyệt vẫn học bình thường).
   **Xóa** = xóa khóa và bài học, nhưng **giữ nguyên đơn đăng ký** (tên khóa & học phí lúc đăng ký) làm lịch sử thanh toán

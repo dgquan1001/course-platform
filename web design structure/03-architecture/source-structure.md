@@ -68,10 +68,12 @@ course-platform/
 
 ```text
 app/
-├─ khoa-hoc/[courseId]/page.tsx       # Giới thiệu khóa kiểu Udemy (ISR)          – Đợt 8
-├─ khoa-hoc/actions.ts                # createLeadAction                           – Đợt 8
-├─ khoa-hoc/LeadDialog.tsx            # 'use client' hộp lead premium + mở Zalo    – Đợt 8
-├─ chinh-sach-bao-mat/page.tsx        # Chính sách bảo mật                         – Đợt 8
+├─ khoa-hoc/[courseId]/page.tsx       # ✅ Giới thiệu khóa kiểu Udemy (ISR)       – Đợt 8
+├─ khoa-hoc/actions.ts                # ✅ createLeadAction                        – Đợt 8
+├─ khoa-hoc/LeadDialog.tsx            # ✅ 'use client' hộp lead premium + mở Zalo – Đợt 8
+├─ chinh-sach-bao-mat/page.tsx        # ✅ Chính sách bảo mật                      – Đợt 8
+├─ admin/courses/CoverInput.tsx       # ✅ 'use client' chọn / nén ảnh bìa         – Đợt 8
+├─ admin/leads/page.tsx               # ✅ Khách quan tâm (setLeadStatus trong admin/actions.ts) – Đợt 8
 ├─ courses/
 │  ├─ actions.ts                      # toggleLessonProgress, submitConsultationAction – Đợt 10, 12
 │  ├─ consultation/page.tsx           # Phiếu tham vấn                             – Đợt 12
@@ -87,12 +89,14 @@ app/
 │  ├─ courses/[courseId]/page.tsx     # Gói + buổi – bài                           – Đợt 9, 10
 │  └─ settings/consultation/page.tsx  # Mẫu phiếu tham vấn                         – Đợt 12
 components/
-├─ ProgressBar.tsx, CourseCover.tsx, CourseCard.tsx, SessionAccordion.tsx
-├─ ConsentCheckbox.tsx, OneTimeSecret.tsx, StatCard.tsx, LoginReminders.tsx
+├─ ✅ CourseCover.tsx, CourseCard.tsx, ProgramGrid.tsx (lọc nhóm bệnh), ConsentReminder.tsx – Đợt 8
+├─ ProgressBar.tsx, SessionAccordion.tsx, OneTimeSecret.tsx, StatCard.tsx, LoginReminders.tsx
 lib/
 ├─ auth.ts                            # + role, requireStaff
 ├─ password.ts                        # + generatePassword (CSPRNG, bảng chữ dễ đọc)
-├─ courses.ts                         # Kiểu dữ liệu, nhãn loại/nhóm, formatPlan, getPublicCatalog
+├─ ✅ courses.ts                      # Loại khóa, nhóm bệnh, nhãn (Đợt 8); formatPlan ở Đợt 9
+├─ ✅ consent.ts, compress-image.ts    # Phiên bản chính sách; nén ảnh dùng chung (Đợt 8)
+├─ ✅ supabase/public.ts               # getPublishedCourses, getRegistrableCourses, getPublicCourse, getCourseOutline
 └─ progress.ts                        # Gọi RPC course_progress, gom tiến độ nhiều khóa
 ```
 

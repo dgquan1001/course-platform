@@ -7,6 +7,11 @@ const styles: Record<string, { label: string; className: string }> = {
   admin: { label: 'Admin', className: 'bg-ocean-100 text-ocean-700' },
   staff: { label: 'Nhân viên', className: 'bg-violet-100 text-violet-700' },
   user: { label: 'Học viên', className: 'bg-slate-100 text-slate-600' },
+  // Khách quan tâm khóa premium
+  lead_new: { label: 'Mới', className: 'bg-gold-100 text-gold-800' },
+  lead_contacted: { label: 'Đã liên hệ', className: 'bg-ocean-100 text-ocean-700' },
+  lead_converted: { label: 'Đã chốt', className: 'bg-emerald-100 text-emerald-700' },
+  lead_closed: { label: 'Đóng', className: 'bg-slate-100 text-slate-600' },
 }
 
 export default function StatusBadge({ status }: { status: string }) {

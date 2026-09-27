@@ -49,10 +49,18 @@ const ADMIN = { email: `e2e-admin-${stamp}@example.com`, password: 'Admin#123456
 const STUDENT = { email: `e2e-hocvien-${stamp}@example.com`, password: 'Hocvien#123', name: 'Học Viên Kiểm Thử', phone: `09${tail}` }
 // Học viên 2: KHÔNG có email (chỉ số điện thoại), dùng máy tính
 const STUDENT2 = { phone: `08${tail}`, password: 'Sdt#123456', name: 'Chị Lan Không Email', laterEmail: `e2e-lan-${stamp}@example.com` }
-const COURSE_A = { title: `[E2E] Khóa A – Trị liệu cột sống ${stamp}`, price: '199000', status: 'published' }
-const COURSE_B = { title: `[E2E] Khóa B – Cổ vai gáy ${stamp}`, price: '299000', status: 'published' }
+const COURSE_A = { title: `[E2E] Khóa A – Trị liệu cột sống ${stamp}`, price: '199000', status: 'published', category: 'veo_lung' }
+const COURSE_B = { title: `[E2E] Khóa B – Cổ vai gáy ${stamp}`, price: '299000', status: 'published', category: 'veo_nguc' }
 const COURSE_HIDDEN = { title: `[E2E] Khóa C – Đang ẩn ${stamp}`, price: '99000', status: 'draft' }
 const LESSON_TITLE = 'Bài 1: Giải phẫu cột sống cơ bản'
+// v0.2 – Đợt 8: khóa miễn phí (ai cũng xem) và khóa premium (chỉ liên hệ Zalo), có ảnh bìa
+const COURSE_FREE = { title: `[E2E] Miễn phí – Bài tập thở ${stamp}`, price: '0', status: 'published', kind: 'free', summary: 'Tập thở cơ hoành 10 phút mỗi ngày' }
+const COURSE_PREMIUM = {
+  title: `[E2E] Premium 1:1 cùng bác sĩ ${stamp}`, price: '5000000', status: 'published', kind: 'premium',
+  summary: 'Kèm riêng 1:1', outcomes: 'Lộ trình riêng\nBác sĩ theo dõi sát', cover: true,
+}
+const FREE_LESSON_TITLE = 'Bài 1: Thở cơ hoành'
+const LEAD = { name: 'Khách Premium E2E', phone: `07${tail}` }
 const LEGACY_LESSON_TITLE = 'Bài 9: Link video cũ không hợp lệ'
 const LEGACY_LESSON = {}
 const REJECT_NOTE = 'Ảnh chuyển khoản bị mờ, không đọc được số tiền'
@@ -170,12 +178,25 @@ async function createCourseViaUI(page, course) {
   await form.locator('[name=description]').fill('Khóa học kiểm thử tự động.')
   await form.locator('[name=price]').fill(course.price)
   await form.locator('[name=status]').selectOption(course.status)
+  if (course.kind) await form.locator('[name=kind]').selectOption(course.kind)
+  if (course.category) await form.locator('[name=category]').selectOption(course.category)
+  if (course.summary) await form.locator('[name=summary]').fill(course.summary)
+  if (course.outcomes) await form.locator('[name=outcomes]').fill(course.outcomes)
+  if (course.cover) {
+    await form.locator('[name=cover]').setInputFiles(LARGE_IMAGE)
+    await form.getByTestId('cover-size').waitFor({ timeout: 20000 })
+  }
   await form.getByRole('button', { name: 'Thêm khóa học' }).click()
   await toast(page, 'Đã thêm khóa học')
   await page.getByRole('heading', { name: course.title }).waitFor()
   assert((await form.locator('[name=title]').inputValue()) === '', 'Form thêm khóa học không được xóa trắng')
-  const { data } = await db.from('courses').select('id, price, status').eq('title', course.title).single()
-  assert(data?.price === Number(course.price) && data.status === course.status, `Dữ liệu khóa học sai: ${JSON.stringify(data)}`)
+  const { data } = await db.from('courses').select('id, price, status, kind, category, cover_image').eq('title', course.title).single()
+  assert(
+    data?.price === Number(course.price) && data.status === course.status && data.kind === (course.kind ?? 'program') &&
+      data.category === (course.category ?? null),
+    `Dữ liệu khóa học sai: ${JSON.stringify(data)}`
+  )
+  assert(!course.cover || data.cover_image?.includes('/course-covers/'), `Ảnh bìa chưa lưu: ${data.cover_image}`)
   return data.id
 }
 
@@ -199,6 +220,7 @@ async function fillGuestForm(page, { name, email, phone, password, courseId, ima
   await page.fill('#password', password)
   if (courseId) await page.selectOption('#courseId', courseId)
   if (image) await page.setInputFiles('#paymentProof', image)
+  await page.check('#consent')
 }
 
 // Chờ email mới gửi tới địa chỉ `to` trong hộp thư test, trả về mã 6 số
@@ -244,6 +266,16 @@ async function cleanup() {
   if (created.registrationIds.length) await db.from('registrations').delete().in('id', created.registrationIds)
   // Nhật ký phân quyền giữ lại khi xóa tài khoản: xóa phần của dữ liệu test
   if (created.userIds.length) await db.from('role_events').delete().in('user_id', created.userIds)
+  // Khách quan tâm của khóa premium test (khóa bị xóa thì course_id về null nên xóa trước)
+  const courseIds = Object.values(created.courseIds)
+  if (courseIds.length) await db.from('leads').delete().in('course_id', courseIds)
+  await db.from('leads').delete().eq('phone', LEAD.phone)
+  // Ảnh bìa của khóa test
+  if (courseIds.length) {
+    const { data: covers } = await db.from('courses').select('cover_image').in('id', courseIds).not('cover_image', 'is', null)
+    const paths = (covers ?? []).map((c) => c.cover_image.split('/course-covers/')[1]).filter(Boolean)
+    if (paths.length) await db.storage.from('course-covers').remove(paths)
+  }
   // Bộ đếm giới hạn tần suất của lần chạy này
   await db.from('rate_limits').delete().like('key', `%${TEST_IP}%`)
   for (const id of created.userIds) {
@@ -310,6 +342,15 @@ try {
     const { error: reviewerError } = await db.from('registrations').select('reviewed_by, reviewed_by_name, review_note').limit(1)
     assert(!reviewerError, `Bảng registrations thiếu cột người xử lý: ${reviewerError?.message} (hãy chạy lại supabase/schema.sql)`)
     // v0.2 – Đợt 7: vai trò staff
+    // v0.2 – Đợt 8: loại khóa, khách quan tâm, đồng ý chính sách, bucket ảnh bìa
+    const { error: kindError } = await db.from('courses').select('kind, category, summary, outcomes', { head: true })
+    assert(!kindError, `Bảng courses thiếu cột loại khóa: ${kindError?.message} (hãy chạy lại supabase/schema.sql)`)
+    const { error: leadsError } = await db.from('leads').select('*', { head: true })
+    assert(!leadsError, `Thiếu bảng leads: ${leadsError?.message}`)
+    const { error: consentError } = await db.from('profiles').select('consent_at, consent_version', { head: true })
+    assert(!consentError, `Bảng profiles thiếu cột consent_at: ${consentError?.message}`)
+    const { error: coverBucketError } = await db.storage.getBucket('course-covers')
+    assert(!coverBucketError, `Bucket course-covers: ${coverBucketError?.message}`)
     const { error: staffFnError } = await db.rpc('is_staff')
     assert(!staffFnError, `Thiếu hàm is_staff: ${staffFnError?.message} (hãy chạy lại supabase/schema.sql)`)
   })
@@ -491,6 +532,28 @@ try {
     )
   })
 
+  await step('[Admin] Tạo khóa miễn phí (có bài học) và khóa premium có ảnh bìa; khách không tải được ảnh bìa lên', async () => {
+    created.courseIds.free = await createCourseViaUI(admin, COURSE_FREE)
+    created.courseIds.premium = await createCourseViaUI(admin, COURSE_PREMIUM)
+    const { data: cover } = await db.from('courses').select('cover_image').eq('id', created.courseIds.premium).single()
+    const res = await fetch(cover.cover_image)
+    assert(res.ok && res.headers.get('content-type')?.startsWith('image/'), `Ảnh bìa không mở được công khai: ${res.status}`)
+    // Khóa premium không có trang quản lý bài học
+    const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
+    await card.getByText('không có bài học').waitFor()
+    assert((await card.getByRole('link', { name: 'Quản lý bài học' }).count()) === 0, 'Khóa premium vẫn có nút Quản lý bài học')
+
+    await admin.goto(`${BASE}/admin/courses/${created.courseIds.free}`)
+    const form = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm bài học' }) })
+    await form.locator('[name=title]').fill(FREE_LESSON_TITLE)
+    await form.locator('[name=video_url]').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    await form.getByRole('button', { name: 'Thêm bài học' }).click()
+    await toast(admin, 'Đã thêm bài học')
+
+    const { error: uploadError } = await anon.storage.from('course-covers').upload(`e2e-${stamp}.png`, readFileSync(SMALL_IMAGE), { contentType: 'image/jpeg' })
+    assert(uploadError, 'Khách tải được ảnh bìa lên!')
+  })
+
   await step('[Hệ thống] RLS: khách chỉ thấy khóa đang mở; không thấy khóa ẩn, bài học, đơn đăng ký', async () => {
     const { data: courses } = await anon.from('courses').select('id').in('id', Object.values(created.courseIds))
     const visible = courses.map((c) => c.id)
@@ -498,6 +561,15 @@ try {
     assert(!visible.includes(created.courseIds.hidden), 'Khách thấy khóa đang ẩn!')
     const { data: lessons } = await anon.from('lessons').select('id').eq('course_id', created.courseIds.A)
     assert(lessons?.length === 0, 'Khách xem được bài học!')
+    // Khóa miễn phí: khách xem được bài học. Đề cương công khai của khóa trả phí không có link video.
+    const { data: freeLessons } = await anon.from('lessons').select('id, video_url').eq('course_id', created.courseIds.free)
+    assert(freeLessons?.length === 1, `Khách không xem được bài của khóa miễn phí: ${freeLessons?.length}`)
+    const { data: outline } = await anon.rpc('course_outline', { target_course: created.courseIds.A })
+    assert(outline?.length >= 1 && outline.every((l) => !('video_url' in l)), `Đề cương công khai sai: ${JSON.stringify(outline)}`)
+    const { data: hiddenOutline } = await anon.rpc('course_outline', { target_course: created.courseIds.hidden })
+    assert(!hiddenOutline?.length, 'Khách xem được đề cương khóa đang ẩn!')
+    const { data: anonLeads } = await anon.from('leads').select('id')
+    assert(!anonLeads?.length, 'Khách đọc được danh sách khách quan tâm!')
     for (const t of ['registrations', 'password_resets', 'registration_events', 'role_events']) {
       const { data } = await anon.from(t).select('id')
       assert(!data?.length, `Khách đọc được bảng ${t}!`)
@@ -526,6 +598,87 @@ try {
     await guest.screenshot({ path: `${OUT}mobile-home.png` })
   })
 
+  await step('[Khách] Trang chủ chia 3 nhóm: Miễn phí, Chương trình (lọc vẹo lưng / vẹo ngực), Premium', async () => {
+    const group = (id) => guest2.locator(id)
+    await guest2.goto(BASE)
+    await group('#mien-phi').getByRole('heading', { name: COURSE_FREE.title }).waitFor()
+    await group('#premium').getByRole('heading', { name: COURSE_PREMIUM.title }).waitFor()
+    const programs = group('#khoa-hoc')
+    await programs.getByRole('heading', { name: COURSE_A.title }).waitFor()
+    assert((await programs.getByRole('heading', { name: COURSE_FREE.title }).count()) === 0, 'Khóa miễn phí lẫn vào nhóm chương trình')
+    await programs.getByRole('button', { name: 'Vẹo ngực' }).click()
+    await programs.getByRole('heading', { name: COURSE_B.title }).waitFor()
+    assert((await programs.getByRole('heading', { name: COURSE_A.title }).count()) === 0, 'Lọc Vẹo ngực vẫn hiện khóa Vẹo lưng')
+    await programs.getByRole('button', { name: 'Tất cả' }).click()
+    await programs.getByRole('heading', { name: COURSE_A.title }).waitFor()
+    await guest2.screenshot({ path: `${OUT}desktop-home-v02.png`, fullPage: true })
+  })
+
+  await step('[Khách] Trang giới thiệu khóa: đề cương không lộ link video; khóa miễn phí học ngay không cần đăng nhập', async () => {
+    const html = await (await fetch(`${BASE}/khoa-hoc/${created.courseIds.A}`)).text()
+    assert(html.includes(LESSON_TITLE) && !html.includes('dQw4w9WgXcQ'), 'Trang giới thiệu thiếu đề cương hoặc lộ link video')
+    await guest2.goto(`${BASE}/khoa-hoc/${created.courseIds.free}`)
+    await guest2.getByRole('heading', { level: 1, name: COURSE_FREE.title }).waitFor()
+    await guest2.getByRole('link', { name: 'Bắt đầu học ngay' }).click()
+    await guest2.getByRole('heading', { name: FREE_LESSON_TITLE }).waitFor()
+    await guest2.locator('iframe[src*="youtube.com/embed/dQw4w9WgXcQ"]').waitFor({ state: 'attached' })
+    // Khóa trả phí: khách mở bài học bị chuyển tới đăng nhập
+    const lessonA = (await db.from('lessons').select('id').eq('course_id', created.courseIds.A).eq('title', LESSON_TITLE).single()).data.id
+    await guest2.goto(`${BASE}/courses/${created.courseIds.A}/${lessonA}`)
+    assert(new URL(guest2.url()).pathname === '/login', `Khách mở bài của khóa trả phí: ${guest2.url()}`)
+    await guest2.goto(`${BASE}/courses/${created.courseIds.A}`)
+    assert(new URL(guest2.url()).pathname === '/login', `Khách mở khóa trả phí: ${guest2.url()}`)
+  })
+
+  await step('[Khách] Khóa premium: để lại họ tên + SĐT → lưu khách quan tâm và mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh', async () => {
+    await guest2.goto(`${BASE}/khoa-hoc/${created.courseIds.premium}`)
+    await guest2.getByText('Lộ trình riêng').waitFor()
+    assert((await guest2.getByRole('list', { name: 'Đề cương khóa học' }).count()) === 0, 'Khóa premium có đề cương')
+    await guest2.getByRole('button', { name: 'Liên hệ Zalo nhận ưu đãi' }).click()
+    const form = guest2.getByRole('form', { name: 'Liên hệ Zalo nhận ưu đãi' })
+    await form.getByRole('button', { name: 'Gửi & mở Zalo' }).click()
+    await form.getByRole('alert').filter({ hasText: 'Vui lòng nhập họ và tên' }).waitFor()
+    await form.getByLabel('Họ và tên').fill(LEAD.name)
+    await form.getByLabel('Số điện thoại').fill(LEAD.phone)
+    const [popup] = await Promise.all([guest2Ctx.waitForEvent('page'), form.getByRole('button', { name: 'Gửi & mở Zalo' }).click()])
+    await popup.waitForURL(/zalo\.me/, { waitUntil: 'commit' }).catch(() => {})
+    assert(popup.url().includes('zalo.me'), `Không mở Zalo: ${popup.url()}`)
+    await popup.close()
+    await toast(guest2, 'Đã gửi thông tin')
+    const { data: leads } = await db.from('leads').select('full_name, phone, status, course_title').eq('course_id', created.courseIds.premium)
+    assert(
+      leads.length === 1 && leads[0].phone === LEAD.phone && leads[0].status === 'new' && leads[0].course_title === COURSE_PREMIUM.title,
+      `Khách quan tâm: ${JSON.stringify(leads)}`
+    )
+
+    await guest2.reload()
+    await guest2.getByRole('button', { name: 'Liên hệ Zalo nhận ưu đãi' }).click()
+    const [popup2] = await Promise.all([guest2Ctx.waitForEvent('page'), guest2.getByRole('link', { name: 'Mở Zalo ngay' }).click()])
+    await popup2.close()
+    for (let i = 0; i < 20; i++) {
+      const { count } = await db.from('leads').select('id', { count: 'exact', head: true }).eq('course_id', created.courseIds.premium).is('phone', null)
+      if (count === 1) break
+      assert(i < 19, 'Lượt bấm "Mở Zalo ngay" chưa được lưu')
+      await new Promise((r) => setTimeout(r, 250))
+    }
+  })
+
+  await step('[Khách] Chính sách bảo mật: có trang riêng; không tick đồng ý thì server từ chối tạo tài khoản', async () => {
+    await guest2.goto(`${BASE}/chinh-sach-bao-mat`)
+    await guest2.getByRole('heading', { level: 1, name: 'Chính sách bảo mật' }).waitFor()
+    await guest2.getByRole('heading', { name: /Dữ liệu sức khỏe|dữ liệu nào/ }).first().waitFor()
+    await guest2.goto(`${BASE}/register?course=${created.courseIds.B}`)
+    const consentLink = guest2.locator('label[for=consent]').getByRole('link', { name: 'Chính sách bảo mật' })
+    assert((await consentLink.getAttribute('href')) === '/chinh-sach-bao-mat', 'Ô đồng ý thiếu link chính sách')
+    await fillGuestForm(guest2, { ...STUDENT2, email: '', image: SMALL_IMAGE })
+    await guest2.uncheck('#consent')
+    await guest2.locator('form', { has: guest2.locator('#paymentProof') }).evaluate((f) => (f.noValidate = true))
+    await registerButton(guest2).click()
+    await alertText(guest2, 'Vui lòng đồng ý Chính sách bảo mật')
+    const { count } = await db.from('profiles').select('id', { count: 'exact', head: true }).eq('phone', STUDENT2.phone)
+    assert(count === 0, 'Vẫn tạo tài khoản khi chưa đồng ý chính sách')
+  })
+
   await step('[Khách] Nút "Đăng ký" của khóa học cuộn tới form và chọn sẵn khóa đó', async () => {
     const card = guest.locator('.card', { has: guest.getByRole('heading', { name: COURSE_B.title }) })
     await card.getByRole('link', { name: 'Đăng ký' }).click()
@@ -542,6 +695,7 @@ try {
     assert(options.some((o) => o.includes(COURSE_A.title) && o.includes('199.000đ')), `Thiếu khóa A: ${options}`)
     assert(options.some((o) => o.includes(COURSE_B.title) && o.includes('299.000đ')), `Thiếu khóa B: ${options}`)
     assert(!options.some((o) => o.includes(COURSE_HIDDEN.title)), 'Khóa đang ẩn xuất hiện trong danh sách!')
+    assert(!options.some((o) => o.includes(COURSE_FREE.title) || o.includes(COURSE_PREMIUM.title)), 'Khóa miễn phí / premium xuất hiện trong ô đăng ký!')
   })
 
   await step('[Khách] Mã QR (Bước 1) cập nhật theo khóa học và số điện thoại', async () => {
@@ -619,11 +773,12 @@ try {
     assert(reg.payment_proof_path.endsWith('.jpg'), `Ảnh không lưu dạng JPG: ${reg.payment_proof_path}`)
     const { data: file } = await db.storage.from('payment-proofs').download(reg.payment_proof_path)
     assert(file && file.size > 10_000 && file.size < 2 * 1024 * 1024, `Ảnh trong Storage: ${file?.size}B`)
-    const { data: profile } = await db.from('profiles').select('full_name, phone, email, role').eq('id', reg.user_id).single()
+    const { data: profile } = await db.from('profiles').select('full_name, phone, email, role, consent_at, consent_version').eq('id', reg.user_id).single()
     assert(
       profile?.full_name === STUDENT.name && profile.phone === STUDENT.phone && profile.email === STUDENT.email && profile.role === 'user',
       `Profile sai: ${JSON.stringify(profile)}`
     )
+    assert(profile.consent_at && profile.consent_version, `Chưa lưu đồng ý chính sách: ${JSON.stringify(profile)}`)
   })
 
   await step('[Khách] Đăng ký KHÔNG có email, chỉ số điện thoại (máy tính): thành công', async () => {
@@ -1166,6 +1321,13 @@ try {
     assert(dialogText.includes('không vào được trang quản trị'), `Hộp xác nhận: ${dialogText}`)
     await admin2.goto(`${BASE}/admin`)
     assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được: ${admin2.url()}`)
+    // Tài khoản học viên chưa đồng ý Chính sách bảo mật: hộp hỏi đồng ý hiện một lần
+    const dialog = admin2.getByRole('dialog', { name: 'Chính sách bảo mật' })
+    await dialog.getByRole('button', { name: 'Tôi đồng ý' }).click()
+    await toast(admin2, 'Cảm ơn bạn đã đồng ý')
+    await dialog.waitFor({ state: 'detached' })
+    const { data: consent } = await db.from('profiles').select('consent_at').eq('id', ADMIN2.id).single()
+    assert(consent.consent_at, 'Chưa lưu đồng ý chính sách của tài khoản cũ')
     const { data: events } = await db.from('role_events').select('from_role, to_role, actor_name').eq('user_id', ADMIN2.id).order('created_at')
     assert(events.map((e) => `${e.from_role}>${e.to_role}`).join(',') === 'user>admin,admin>user', `Nhật ký phân quyền: ${JSON.stringify(events)}`)
   })
@@ -1202,6 +1364,8 @@ try {
     assert(!adminRows?.length, 'Nhân viên sửa được tài khoản admin!')
     const { data: courseRows } = await STAFF.session.from('courses').update({ title: 'Bị sửa' }).eq('id', created.courseIds.hidden).select('id')
     assert(!courseRows?.length, 'Nhân viên sửa được khóa học!')
+    const { error: coverError } = await STAFF.session.storage.from('course-covers').upload(`e2e-staff-${stamp}.jpg`, readFileSync(SMALL_IMAGE), { contentType: 'image/jpeg' })
+    assert(coverError, 'Nhân viên tải được ảnh bìa lên!')
     const { data: profiles } = await db.from('profiles').select('id, role, full_name').in('id', [STAFF.id, STUDENT.id, ADMIN.id])
     const byId = Object.fromEntries(profiles.map((p) => [p.id, p]))
     assert(byId[STAFF.id].role === 'staff' && byId[STUDENT.id].role === 'user' && byId[ADMIN.id].full_name === 'Admin E2E', `Dữ liệu bị đổi: ${JSON.stringify(profiles)}`)
@@ -1217,7 +1381,7 @@ try {
     await staff.getByRole('link', { name: 'Quản trị', exact: true }).waitFor()
     const nav = staff.getByRole('navigation', { name: 'Menu quản trị' })
     const tabs = (await nav.getByRole('link').allTextContents()).map((t) => t.trim())
-    assert(JSON.stringify(tabs) === JSON.stringify(['Đơn đăng ký', 'Học viên']), `Menu của nhân viên: ${tabs}`)
+    assert(JSON.stringify(tabs) === JSON.stringify(['Đơn đăng ký', 'Học viên', 'Khách quan tâm']), `Menu của nhân viên: ${tabs}`)
     // Middleware chuyển về /admin, trang /admin chuyển tiếp tới /admin/registrations
     await staff.goto(`${BASE}/admin/courses`)
     await staff.waitForURL(`${BASE}/admin/registrations`).catch(() => {})
@@ -1238,6 +1402,26 @@ try {
     const { data } = await db.from('registrations').select('status, reviewed_by, reviewed_by_name').eq('id', id).single()
     assert(data.status === 'approved' && data.reviewed_by === STAFF.id && data.reviewed_by_name === STAFF.name, `Người xử lý: ${JSON.stringify(data)}`)
     await db.from('registrations').delete().eq('id', id)
+  })
+
+  await step('[Nhân viên] Khách quan tâm premium: thấy khách mới, gọi / nhắn Zalo, chuyển "Đã liên hệ" kèm ghi chú', async () => {
+    await staff.goto(`${BASE}/admin/leads`)
+    const card = staff.locator('.card', { hasText: LEAD.phone })
+    await card.getByText(COURSE_PREMIUM.title).waitFor()
+    assert((await card.getByRole('link', { name: LEAD.phone }).getAttribute('href')) === `tel:${LEAD.phone}`, 'Thiếu link gọi')
+    await card.locator('select[name=status]').selectOption('contacted')
+    await card.locator('textarea[name=staff_note]').fill('Đã gọi, hẹn tư vấn thứ 7')
+    await card.getByRole('button', { name: 'Cập nhật' }).click()
+    await toast(staff, 'Đã ghi nhận: đã liên hệ khách')
+    const { data } = await db.from('leads').select('status, staff_note, handled_by, handled_by_name, phone').eq('phone', LEAD.phone).single()
+    assert(
+      data.status === 'contacted' && data.staff_note === 'Đã gọi, hẹn tư vấn thứ 7' && data.handled_by === STAFF.id && data.handled_by_name === STAFF.name,
+      `Khách quan tâm sau khi xử lý: ${JSON.stringify(data)}`
+    )
+    // Nhân viên không sửa được thông tin khách để lại (trigger giữ nguyên)
+    await STAFF.session.from('leads').update({ phone: '0900000000' }).eq('phone', LEAD.phone)
+    const { count } = await db.from('leads').select('id', { count: 'exact', head: true }).eq('phone', LEAD.phone)
+    assert(count === 1, 'Nhân viên sửa được SĐT khách để lại!')
   })
 
   await step('[Hệ thống] Đường dẫn cũ /admin?status=… chuyển sang /admin/registrations?status=…', async () => {

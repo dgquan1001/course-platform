@@ -21,6 +21,9 @@ alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('user', 'staff', 'admin'));
 -- Số điện thoại dùng để đăng nhập nên không được trùng
 create unique index if not exists profiles_phone_key on public.profiles (phone) where phone is not null;
+-- Đồng ý Chính sách bảo mật (thời điểm + phiên bản chính sách). Tài khoản cũ chưa đồng ý được hỏi khi đăng nhập.
+alter table public.profiles add column if not exists consent_at timestamptz;
+alter table public.profiles add column if not exists consent_version text;
 
 -- Tự động tạo profile khi có user mới
 create or replace function public.handle_new_user()
@@ -67,6 +70,22 @@ alter table public.courses add column if not exists status text not null default
 -- Học phí không được âm
 alter table public.courses drop constraint if exists courses_price_nonnegative;
 alter table public.courses add constraint courses_price_nonnegative check (price >= 0);
+
+-- Loại khóa (v0.2): free = miễn phí, ai cũng xem · program = chương trình trả phí (khóa cũ mặc định là loại này)
+-- · premium = 1:4, 1:2, 1:1, chỉ có thông tin + liên hệ Zalo, không có bài học, không nhận đơn.
+-- Nhóm bệnh: vẹo lưng / vẹo ngực. Đối tượng: bệnh nhân (đội chuyên gia để giai đoạn sau).
+alter table public.courses add column if not exists kind text not null default 'program';
+alter table public.courses drop constraint if exists courses_kind_check;
+alter table public.courses add constraint courses_kind_check check (kind in ('free', 'program', 'premium'));
+alter table public.courses add column if not exists category text;
+alter table public.courses drop constraint if exists courses_category_check;
+alter table public.courses add constraint courses_category_check check (category in ('veo_lung', 'veo_nguc'));
+alter table public.courses add column if not exists audience text not null default 'patient';
+alter table public.courses drop constraint if exists courses_audience_check;
+alter table public.courses add constraint courses_audience_check check (audience in ('patient', 'expert'));
+-- Mô tả ngắn trên thẻ khóa và danh sách "Bạn sẽ đạt được" ở trang giới thiệu khóa
+alter table public.courses add column if not exists summary text;
+alter table public.courses add column if not exists outcomes text[] not null default '{}';
 
 -- ------------------------------------------------------------
 -- Bảng bài học
@@ -281,6 +300,61 @@ create trigger profiles_guard_role
   for each row execute procedure public.guard_role_change();
 
 -- ------------------------------------------------------------
+-- Khách quan tâm khóa premium: bấm "Liên hệ Zalo nhận ưu đãi" (để lại họ tên, SĐT) hoặc "Mở Zalo ngay"
+-- (lượt bấm ẩn danh: phone = null, chỉ để thống kê). Chỉ server (service role) ghi; nhân viên, admin xử lý.
+-- ------------------------------------------------------------
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid references public.courses (id) on delete set null,
+  course_title text,
+  user_id uuid references auth.users (id) on delete set null,
+  full_name text,
+  phone text,
+  status text not null default 'new' check (status in ('new', 'contacted', 'converted', 'closed')),
+  staff_note text,
+  handled_by uuid references public.profiles (id) on delete set null,
+  handled_by_name text,
+  handled_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists leads_status_idx on public.leads (status, created_at);
+
+-- Người xử lý và thời điểm do database ghi theo phiên đăng nhập khi đổi trạng thái / ghi chú
+create or replace function public.stamp_lead()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Nhân viên chỉ đổi trạng thái và ghi chú; thông tin khách để lại giữ nguyên
+  new.course_id := old.course_id;
+  new.course_title := old.course_title;
+  new.user_id := old.user_id;
+  new.full_name := old.full_name;
+  new.phone := old.phone;
+  new.created_at := old.created_at;
+  if new.status is distinct from old.status or new.staff_note is distinct from old.staff_note then
+    new.handled_by := auth.uid();
+    new.handled_by_name := (select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid());
+    new.handled_at := now();
+  else
+    new.handled_at := old.handled_at;
+    new.handled_by_name := old.handled_by_name;
+    if new.handled_by is not null then
+      new.handled_by := old.handled_by;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists leads_stamp on public.leads;
+create trigger leads_stamp
+  before update on public.leads
+  for each row execute procedure public.stamp_lead();
+
+-- ------------------------------------------------------------
 -- Mã đặt lại mật khẩu (gửi qua email). Chỉ server (service role) đọc/ghi.
 -- ------------------------------------------------------------
 create table if not exists public.password_resets (
@@ -385,6 +459,39 @@ as $$
   );
 $$;
 
+-- Khóa miễn phí đang hiển thị: ai cũng xem được bài học, không cần đăng nhập
+create or replace function public.is_free_course(target_course uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.courses
+    where id = target_course and kind = 'free' and status = 'published'
+  );
+$$;
+
+-- Đề cương công khai (trang giới thiệu khóa): tên, mô tả, thứ tự bài – KHÔNG trả link video.
+-- Chỉ với khóa đang hiển thị (hoặc người đã có quyền xem khóa), không áp dụng khóa premium.
+create or replace function public.course_outline(target_course uuid)
+returns table (id uuid, title text, description text, sort_order int)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select l.id, l.title, l.description, l.sort_order
+  from public.lessons l
+  join public.courses c on c.id = l.course_id
+  where l.course_id = target_course
+    and c.kind <> 'premium'
+    and (c.status = 'published' or public.has_course_access(c.id))
+  order by l.sort_order, l.created_at;
+$$;
+grant execute on function public.course_outline(uuid) to anon, authenticated;
+
 -- ------------------------------------------------------------
 -- Row Level Security
 -- ------------------------------------------------------------
@@ -421,10 +528,11 @@ drop policy if exists "courses_admin_delete" on public.courses;
 create policy "courses_admin_delete" on public.courses for delete
   using (public.is_admin());
 
--- lessons: chỉ học viên đã được duyệt khóa đó (hoặc nhân viên, admin xem trước)
+-- lessons: khóa miễn phí đang hiển thị thì ai cũng xem; khóa khác chỉ học viên đã được duyệt khóa đó
+-- (hoặc nhân viên, admin xem trước)
 drop policy if exists "lessons_select" on public.lessons;
 create policy "lessons_select" on public.lessons for select
-  using (public.has_course_access(course_id));
+  using (public.is_free_course(course_id) or public.has_course_access(course_id));
 drop policy if exists "lessons_admin_insert" on public.lessons;
 create policy "lessons_admin_insert" on public.lessons for insert
   with check (public.is_admin());
@@ -459,6 +567,15 @@ drop policy if exists "role_events_admin_select" on public.role_events;
 create policy "role_events_admin_select" on public.role_events for select
   using (public.is_admin());
 
+-- Khách quan tâm premium: nhân viên, admin đọc & cập nhật trạng thái; chỉ server (service role) thêm
+alter table public.leads enable row level security;
+drop policy if exists "leads_staff_select" on public.leads;
+create policy "leads_staff_select" on public.leads for select
+  using (public.is_staff());
+drop policy if exists "leads_staff_update" on public.leads;
+create policy "leads_staff_update" on public.leads for update
+  using (public.is_staff());
+
 -- ------------------------------------------------------------
 -- Storage: bucket riêng tư chứa ảnh chuyển khoản (tối đa 5MB, chỉ ảnh)
 -- Upload từ server bằng service role; chỉ nhân viên và admin được xem.
@@ -478,6 +595,27 @@ drop policy if exists "payment_proofs_admin_select" on storage.objects;
 drop policy if exists "payment_proofs_staff_select" on storage.objects;
 create policy "payment_proofs_staff_select" on storage.objects for select
   using (bucket_id = 'payment-proofs' and public.is_staff());
+
+-- ------------------------------------------------------------
+-- Storage: bucket CÔNG KHAI chứa ảnh bìa khóa học (tối đa 2MB, JPG/PNG/WEBP). Chỉ admin tải lên / xóa.
+-- ------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('course-covers', 'course-covers', true, 2097152, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do nothing;
+
+-- Ảnh bìa là công khai (hiển thị trên trang chủ); Storage cần quyền đọc để trả kết quả sau khi tải lên
+drop policy if exists "course_covers_select" on storage.objects;
+create policy "course_covers_select" on storage.objects for select
+  using (bucket_id = 'course-covers');
+drop policy if exists "course_covers_admin_insert" on storage.objects;
+create policy "course_covers_admin_insert" on storage.objects for insert
+  with check (bucket_id = 'course-covers' and public.is_admin());
+drop policy if exists "course_covers_admin_update" on storage.objects;
+create policy "course_covers_admin_update" on storage.objects for update
+  using (bucket_id = 'course-covers' and public.is_admin());
+drop policy if exists "course_covers_admin_delete" on storage.objects;
+create policy "course_covers_admin_delete" on storage.objects for delete
+  using (bucket_id = 'course-covers' and public.is_admin());
 
 -- Làm mới cache schema của API
 notify pgrst, 'reload schema';

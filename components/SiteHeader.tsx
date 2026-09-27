@@ -22,9 +22,10 @@ import { toast } from './Toaster'
 type HeaderUser = { isStaff: boolean; name: string; subtitle: string } | null
 
 const navLinks = [
+  { href: '/#khoa-hoc', label: 'Chương trình' },
+  { href: '/#mien-phi', label: 'Miễn phí' },
+  { href: '/#premium', label: 'Premium' },
   { href: '/#bac-si', label: 'Bác sĩ' },
-  { href: '/#khoa-hoc', label: 'Khóa học' },
-  { href: '/#dang-ky', label: 'Cách đăng ký' },
   { href: '/#lien-he', label: 'Liên hệ' },
 ]
 

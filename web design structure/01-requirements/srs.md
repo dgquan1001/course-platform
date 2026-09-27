@@ -170,13 +170,13 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-120 | Khóa có loại `free` / `program` / `premium`, nhóm bệnh (vẹo lưng / vẹo ngực / không), đối tượng (mặc định bệnh nhân), ảnh bìa, mô tả ngắn, mô tả chi tiết, "Bạn sẽ đạt được" (danh sách) | M | 8 | ⬜ |
-| FR-121 | Admin tải ảnh bìa (JPG/PNG/WEBP ≤ 2MB, nén ở trình duyệt) vào bucket công khai `course-covers` | M | 8 | ⬜ |
-| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | ⬜ |
-| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | ⬜ |
-| FR-124 | Khóa miễn phí: ai cũng xem được video, không cần đăng nhập; đăng nhập thì lưu tiến độ | M | 8 | ⬜ |
-| FR-125 | Khóa premium: không có đề cương, không nhận đơn; nút "Liên hệ Zalo nhận ưu đãi" (xem §2.17) | M | 8 | ⬜ |
-| FR-126 | Trang `/chinh-sach-bao-mat`; link ở footer và ở mọi ô đồng ý | M | 8 | ⬜ |
+| FR-120 | Khóa có loại `free` / `program` / `premium`, nhóm bệnh (vẹo lưng / vẹo ngực / không), đối tượng (mặc định bệnh nhân), ảnh bìa, mô tả ngắn, mô tả chi tiết, "Bạn sẽ đạt được" (danh sách) | M | 8 | ✅ |
+| FR-121 | Admin tải ảnh bìa (JPG/PNG/WEBP ≤ 2MB, nén ở trình duyệt) vào bucket công khai `course-covers` | M | 8 | ✅ |
+| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | 🟡 Đợt 8: 3 nhóm, lọc, ảnh bìa, nhãn; giá theo gói + số buổi ở Đợt 9, 10 |
+| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | 🟡 Đợt 8: trang, đề cương phẳng qua `course_outline` (không có link video), khung giá theo học phí khóa; chọn gói ở Đợt 9, đề cương theo buổi ở Đợt 10 |
+| FR-124 | Khóa miễn phí: ai cũng xem được video, không cần đăng nhập; đăng nhập thì lưu tiến độ | M | 8 | 🟡 Đợt 8: xem không cần đăng nhập; lưu tiến độ ở Đợt 10 |
+| FR-125 | Khóa premium: không có đề cương, không nhận đơn; nút "Liên hệ Zalo nhận ưu đãi" (xem §2.17) | M | 8 | ✅ |
+| FR-126 | Trang `/chinh-sach-bao-mat`; link ở footer và ở mọi ô đồng ý | M | 8 | ✅ |
 
 ### 2.13. Gói, đăng ký & hạn học (ADR-012)
 
@@ -184,7 +184,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | --- | --- | --- | --- | --- |
 | FR-130 | Admin quản lý gói cho từng chương trình: 1 / 3 / 6 / 12 tháng, giá, số buổi mở (mặc định 12 × số tháng), bật/tắt bán | M | 9 | ⬜ |
 | FR-131 | Box đăng ký: chọn **chương trình** rồi **gói**; QR tự điền số tiền theo giá gói; chỉ liệt kê chương trình đang hiển thị có ít nhất 1 gói đang bán | M | 9 | ⬜ |
-| FR-132 | Ô đồng ý "Tôi đồng ý với Chính sách bảo mật và việc trung tâm xử lý thông tin sức khỏe…" bắt buộc khi khách tạo tài khoản; lưu `consent_at` | M | 8 | ⬜ |
+| FR-132 | Ô đồng ý "Tôi đồng ý với Chính sách bảo mật và việc trung tâm xử lý thông tin sức khỏe…" bắt buộc khi khách tạo tài khoản; lưu `consent_at` | M | 8 | ✅ |
 | FR-133 | Đơn lưu snapshot gói (`plan_months`, `plan_sessions`, `amount`), `source = web`, `payment_method = bank_transfer` | M | 9 | ⬜ |
 | FR-134 | Khi duyệt: `access_until` = max(bây giờ, hạn cuối hiện tại) + số tháng của gói (cộng dồn) | M | 9 | ⬜ |
 | FR-135 | Mỗi bệnh nhân chỉ có 1 đơn **chờ duyệt** cho mỗi chương trình; được đăng ký gia hạn khi đang còn hạn | M | 9 | ⬜ |
@@ -234,8 +234,8 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-171 | Bệnh nhân đã đăng nhập gửi phiếu **bất cứ lúc nào**: nút "Gửi phiếu tham vấn" ở trình học, Khóa học của tôi; được nhắc khi hoàn thành buổi cuối đã mua hoặc gói còn ≤ 7 ngày | M | 12 | ⬜ |
 | FR-172 | Phiếu lưu snapshot câu hỏi + câu trả lời, khóa đang học, ghi chú; bệnh nhân xem lại phiếu đã gửi và trạng thái | M | 12 | ⬜ |
 | FR-173 | `/admin/consultations`: danh sách phiếu (Mới / Đã liên hệ / Hoàn tất / Hủy), xem câu trả lời, gọi/Zalo bệnh nhân, đổi trạng thái kèm ghi chú nội bộ, người xử lý | M | 12 | ⬜ |
-| FR-174 | Khóa premium: nút "Liên hệ Zalo nhận ưu đãi" mở hộp Họ tên + SĐT (điền sẵn nếu đăng nhập) → lưu lead → mở Zalo tab mới; nút phụ "Mở Zalo ngay" vẫn lưu lượt bấm ẩn danh | M | 8 | ⬜ |
-| FR-175 | `/admin/leads`: danh sách lead theo khóa premium, trạng thái Mới / Đã liên hệ / Đã chốt / Đóng, ghi chú, người xử lý; lượt bấm ẩn danh chỉ đếm | M | 8 | ⬜ |
+| FR-174 | Khóa premium: nút "Liên hệ Zalo nhận ưu đãi" mở hộp Họ tên + SĐT (điền sẵn nếu đăng nhập) → lưu lead → mở Zalo tab mới; nút phụ "Mở Zalo ngay" vẫn lưu lượt bấm ẩn danh | M | 8 | ✅ |
+| FR-175 | `/admin/leads`: danh sách lead theo khóa premium, trạng thái Mới / Đã liên hệ / Đã chốt / Đóng, ghi chú, người xử lý; lượt bấm ẩn danh chỉ đếm | M | 8 | ✅ |
 
 ### 2.18. Dashboard quản trị tập trung
 
@@ -251,7 +251,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-190 | Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi go-live | M | 8–10 | ⬜ |
+| FR-190 | ✅ (Đợt 8) Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi go-live | M | 8–10 | ⬜ |
 
 ### 2.20. FR cũ thay đổi ở v0.2
 

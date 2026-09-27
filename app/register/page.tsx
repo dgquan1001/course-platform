@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { getPublishedCourses } from '@/lib/supabase/public'
+import { getRegistrableCourses } from '@/lib/supabase/public'
 import { hotlineHref, siteConfig } from '@/lib/site-config'
 import { CheckIcon, PhoneIcon } from '@/components/icons'
 import RegisterForm from './RegisterForm'
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Đăng ký khóa học' }
 export const revalidate = 300
 
 export default async function RegisterPage() {
-  const courses = await getPublishedCourses()
+  const courses = await getRegistrableCourses()
 
   return (
     <main className="bg-gradient-to-b from-ocean-50 via-white to-gold-50/50">

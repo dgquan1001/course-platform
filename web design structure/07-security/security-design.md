@@ -117,14 +117,14 @@
 | T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | Hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
 | T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | `video_url` không cấp `select` cho client; chỉ `get_lesson_video` + `can_view_lesson`; RLS `lesson_progress` | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |
 | T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | RLS chỉ chủ phiếu / staff / admin; không có trang công khai; đồng ý xử lý dữ liệu | Thấp–Trung bình |
-| T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | Rate limit 20 lead/giờ/IP, 5 phiếu/ngày/bệnh nhân; Turnstile nếu bật | Thấp |
-| T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | Chỉ admin; kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
+| T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | ✅ Đợt 8: rate limit 20 lead/giờ/IP (`lead:<IP>`); phiếu tham vấn: 5 phiếu/ngày/bệnh nhân; Turnstile nếu bật | Thấp |
+| T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | ✅ Đợt 8: chỉ admin (RLS storage, E2E khách / nhân viên bị chặn); kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
 
 | Yêu cầu | Hiện trạng | Việc cần làm |
 | --- | --- | --- |
-| Thông báo/đồng ý xử lý dữ liệu | Chưa có | **v0.2 bắt buộc (Đợt 8)**: trang `/chinh-sach-bao-mat`, ô đồng ý ở box đăng ký, nhân viên xác nhận khi tạo tài khoản, hộp đồng ý cho tài khoản cũ; lưu `consent_at`, `consent_version` |
+| Thông báo/đồng ý xử lý dữ liệu | ✅ Đợt 8 (nội dung chờ trung tâm rà soát – roadmap A-7) | **v0.2 bắt buộc (Đợt 8)**: trang `/chinh-sach-bao-mat`, ô đồng ý ở box đăng ký, nhân viên xác nhận khi tạo tài khoản, hộp đồng ý cho tài khoản cũ; lưu `consent_at`, `consent_version` |
 | Dữ liệu sức khỏe (nhạy cảm) | Chưa thu thập | **v0.2**: phiếu tham vấn, tiến độ tập → chính sách nêu rõ mục đích (hướng dẫn tập, tham vấn bác sĩ), người được xem (nhân viên, bác sĩ, admin), thời hạn lưu |
 | Tối thiểu hóa | Chỉ thu tên, SĐT, email (tùy chọn), ảnh CK | Đạt |
 | Quyền truy cập/sửa | Học viên tự sửa ở `/account` | Đạt |

@@ -90,6 +90,8 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `full_name` | text | ✓ | — | Họ tên |
 | `phone` | text | ✓ | — | SĐT chuẩn hóa `0xxxxxxxxx`. Unique index một phần `profiles_phone_key … where phone is not null` |
 | `role` | text | ✗ | `'user'` | Constraint `profiles_role_check`: `role in ('user','staff','admin')` (staff từ Đợt 7 – ADR-011) |
+| `consent_at` | timestamptz | ✓ | — | Thời điểm đồng ý Chính sách bảo mật (Đợt 8) |
+| `consent_version` | text | ✓ | — | Phiên bản chính sách đã đồng ý (`lib/consent.ts`) |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
 ### 2.2. `public.courses`
@@ -99,7 +101,12 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `id` | uuid | ✗ | `gen_random_uuid()` | PK |
 | `title` | text | ✗ | — | Tên khóa học |
 | `description` | text | ✓ | — | Mô tả ngắn (hiển thị tối đa 3 dòng ở thẻ) |
-| `cover_image` | text | ✓ | — | **Dự phòng**, chưa dùng ở UI (roadmap R-03) |
+| `cover_image` | text | ✓ | — | URL công khai ảnh bìa trong bucket `course-covers` (Đợt 8) |
+| `kind` | text | ✗ | `'program'` | `courses_kind_check`: `free` / `program` / `premium` (ADR-012) |
+| `category` | text | ✓ | — | `courses_category_check`: `veo_lung` / `veo_nguc` |
+| `audience` | text | ✗ | `'patient'` | `patient` / `expert` (chưa có UI) |
+| `summary` | text | ✓ | — | Mô tả ngắn trên thẻ khóa (≤ 300 ký tự, kiểm tra ở server) |
+| `outcomes` | text[] | ✗ | `'{}'` | "Bạn sẽ đạt được" (≤ 12 ý × 200 ký tự) |
 | `price` | int | ✗ | `0` | Học phí VNĐ. `constraint courses_price_nonnegative check (price >= 0)`; server giới hạn ≤ 1 tỷ |
 | `status` | text | ✗ | `'published'` | `check (status in ('draft','published'))` |
 | `sort_order` | int | ✗ | `0` | Thứ tự hiển thị tăng dần |
@@ -185,6 +192,22 @@ Index: `registration_events_registration_idx (registration_id, created_at)`. Ch�
 
 Index: `role_events_user_idx (user_id, created_at desc)`. Chỉ trigger `profiles_guard_role` ghi.
 
+### 2.7b. `public.leads` (khách quan tâm khóa premium – Đợt 8)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | ✗ | `gen_random_uuid()` | PK |
+| `course_id` | uuid | ✓ | — | FK `courses` on delete set null |
+| `course_title` | text | ✓ | — | Snapshot tên khóa |
+| `user_id` | uuid | ✓ | — | Tài khoản đang đăng nhập khi bấm (nếu có), FK `auth.users` on delete set null |
+| `full_name`, `phone` | text | ✓ | — | Khách để lại; `phone is null` = lượt bấm "Mở Zalo ngay" ẩn danh (chỉ thống kê) |
+| `status` | text | ✗ | `'new'` | `new` / `contacted` / `converted` / `closed` |
+| `staff_note` | text | ✓ | — | Ghi chú nội bộ (≤ 500) |
+| `handled_by`, `handled_by_name`, `handled_at` | uuid, text, timestamptz | ✓ | — | Trigger `leads_stamp` ghi theo phiên khi đổi trạng thái / ghi chú |
+| `created_at` | timestamptz | ✗ | `now()` | |
+
+Index `leads_status_idx (status, created_at)`. Chỉ service role thêm (`createLeadAction`, giới hạn 20 lần/giờ/IP).
+
 ### 2.8. `public.rate_limits` (giới hạn tần suất)
 
 | Cột | Kiểu | Null | Mặc định | Ý nghĩa |
@@ -204,6 +227,9 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | `handle_new_user()` | trigger function | `security definer`, `search_path = public` | Sau khi insert `auth.users`: tạo profile với `email` (bỏ email nội bộ), `full_name`, `phone` từ `raw_user_meta_data`; `on conflict (id) do nothing` |
 | `on_auth_user_created` | trigger | — | `after insert on auth.users for each row` |
 | `is_admin()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role = 'admin')` |
+| `is_free_course(course)` | SQL, `stable` | `security definer` | Khóa `kind = 'free'` và `published` (Đợt 8) – dùng trong `lessons_select` |
+| `course_outline(course)` | SQL, `stable` | `security definer`, `grant execute` cho anon/authenticated | Đề cương công khai: `id, title, description, sort_order` (không có `video_url`) của khóa đang hiển thị hoặc người đã có quyền; bỏ khóa premium (Đợt 8) |
+| `stamp_lead()` / trigger `leads_stamp` | trigger | `security definer` | `before update on leads`: giữ nguyên thông tin khách để lại; đổi trạng thái / ghi chú thì ghi `handled_by`, `handled_by_name`, `handled_at` |
 | `is_staff()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role in ('staff','admin'))` (Đợt 7) |
 | `has_course_access(target_course uuid)` | SQL, `stable` | `security definer` | `is_staff() or exists(registrations where user_id = auth.uid() and course_id = target_course and status = 'approved')` (nhân viên, admin xem trước mọi khóa). Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
 | `stamp_registration_review()` | trigger function | `security definer`, `search_path = public` | Khi `status` đổi: về `pending` → xóa `reviewed_at/by/by_name`; trạng thái khác → `now()`, `auth.uid()`, tên admin từ `profiles`. Khi `status` không đổi → giữ nguyên giá trị cũ (không sửa tay được; riêng `reviewed_by` được về `null` để khóa ngoại hoạt động khi xóa admin) |
@@ -224,7 +250,7 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | profiles | INSERT/DELETE | — | Không ai (chỉ trigger/service role) |
 | courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_staff()`; học viên đã duyệt đọc được khóa đang ẩn) |
 | courses | INSERT / UPDATE / DELETE | `courses_admin_*` | `is_admin()` |
-| lessons | SELECT | `lessons_select` | `has_course_access(course_id)` |
+| lessons | SELECT | `lessons_select` | `is_free_course(course_id) or has_course_access(course_id)` (khóa miễn phí đang hiển thị: ai cũng xem) |
 | lessons | INSERT / UPDATE / DELETE | `lessons_admin_*` | `is_admin()` |
 | registrations | SELECT | `registrations_select` | `auth.uid() = user_id or is_staff()` |
 | registrations | UPDATE | `registrations_staff_update` | `is_staff()` |
@@ -234,6 +260,9 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | role_events | SELECT | `role_events_admin_select` | `is_admin()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
 | storage.objects (`payment-proofs`) | SELECT | `payment_proofs_staff_select` | `bucket_id = 'payment-proofs' and is_staff()` |
 | storage.objects (`payment-proofs`) | INSERT/UPDATE/DELETE | — | Chỉ service role |
+| leads | SELECT / UPDATE | `leads_staff_select` / `leads_staff_update` | `is_staff()`; INSERT/DELETE chỉ service role |
+| storage.objects (`course-covers`) | SELECT | `course_covers_select` | `bucket_id = 'course-covers'` (bucket công khai) |
+| storage.objects (`course-covers`) | INSERT / UPDATE / DELETE | `course_covers_admin_*` | `bucket_id = 'course-covers' and is_admin()` |
 
 Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security/security-design.md#3-ma-trận-phân-quyền).
 
@@ -242,6 +271,7 @@ Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security
 | Bucket | Public | Giới hạn | MIME cho phép | Cấu trúc đường dẫn |
 | --- | --- | --- | --- | --- |
 | `payment-proofs` | ✗ | 5 MB (5242880) | image/png, image/jpeg, image/webp, image/heic, image/heif | `<user_id>/<uuid>.<ext>` |
+| `course-covers` (Đợt 8) | ✓ | 2 MB (2097152) | image/png, image/jpeg, image/webp | `<uuid>.<ext>`; file cũ bị xóa khi đổi / xóa ảnh bìa hoặc xóa khóa |
 
 Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600)`).
 
@@ -399,8 +429,8 @@ erDiagram
 
 | Bảng | Thay đổi | Đợt |
 | --- | --- | --- |
-| `profiles` | ✅ Đợt 7: `role` check thêm `staff`. Còn lại: thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
-| `courses` | thêm `kind text not null default 'program' check in ('free','program','premium')`, `category text check in ('veo_lung','veo_nguc')`, `audience text not null default 'patient' check in ('patient','expert')`, `summary text`, `outcomes text[] not null default '{}'`; dùng `cover_image` | 8 |
+| `profiles` | ✅ Đợt 7: `role` check thêm `staff`. ✅ Đợt 8: `consent_at`, `consent_version`. Còn lại: thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
+| `courses` | ✅ Đợt 8 – thêm `kind text not null default 'program' check in ('free','program','premium')`, `category text check in ('veo_lung','veo_nguc')`, `audience text not null default 'patient' check in ('patient','expert')`, `summary text`, `outcomes text[] not null default '{}'`; dùng `cover_image` | 8 |
 | `lessons` | thêm `session_id uuid → course_sessions on delete cascade`; `video_url` **bỏ `not null`**; `revoke select (video_url)` khỏi `anon`, `authenticated` | 10 |
 | `registrations` | thêm `plan_id → course_plans on delete set null`, `plan_months int`, `plan_sessions int`, `source text not null default 'web' check in ('web','staff')`, `payment_method text not null default 'bank_transfer' check in (...)`, `payment_note text`, `created_by uuid → profiles on delete set null`, `access_starts_at`, `access_until timestamptz`; `payment_proof_path` bỏ `not null` + `check (source = 'staff' or payment_proof_path is not null)`; unique index `registrations_active_key` **thay bằng** `registrations_pending_key (user_id, course_id) where status = 'pending'` | 9, 11 |
 | `registration_events` | `from_status` nhận thêm giá trị `'new'` (đơn tạo thẳng `approved` bởi nhân viên) | 11 |
@@ -414,7 +444,7 @@ erDiagram
 | `lesson_progress` | PK `(user_id, lesson_id)`; FK `user_id → auth.users` cascade, `lesson_id` cascade; `course_id` (điền bởi trigger từ bài học); index `(user_id, course_id)` | |
 | `consult_questions` | PK `id`; `kind in ('check','scale','text')`; `label` ≤ 300 ký tự | Seed sẵn ~6 câu mẫu (xem §10.8) |
 | `consultations` | PK `id`; FK `user_id → auth.users on delete set null`; `status` check; index `(status, created_at)`, `(user_id, created_at desc)` | Dữ liệu sức khỏe |
-| `leads` | PK `id`; FK `course_id on delete set null`; `status` check; index `(status, created_at)` | |
+| `leads` | ✅ Đợt 8 – PK `id`; FK `course_id on delete set null`; `status` check; index `(status, created_at)` | Xem §2.7b |
 | `account_events` | PK `id`; `user_id`, `actor` → profiles on delete set null; `action` check | Chỉ server ghi |
 
 ### 10.4. Hàm
@@ -468,7 +498,7 @@ erDiagram
 | leads | SELECT / UPDATE | `is_staff()` |
 | leads | INSERT | Chỉ service role (`createLeadAction`) |
 | account_events | SELECT | `is_staff()`; ghi chỉ service role |
-| storage `course-covers` (public) | INSERT/UPDATE/DELETE | `is_admin()`; đọc công khai |
+| storage `course-covers` (public) | INSERT/UPDATE/DELETE | ✅ Đợt 8 – `is_admin()`; đọc công khai |
 | storage `payment-proofs` | SELECT | `is_staff()` (nhân viên xem ảnh chuyển khoản) |
 
 ### 10.7. Chuyển đổi dữ liệu (FR-190)

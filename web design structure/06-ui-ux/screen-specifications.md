@@ -315,6 +315,8 @@ thanh tiến độ nhỏ, nút hành động rõ ràng. Giữ màu ocean/gold v�
 
 ## SCR-15 – Trang chủ: khóa theo nhóm
 
+> ✅ Đợt 8: 3 nhóm (Miễn phí `#mien-phi` – ẩn khi trống, Chương trình `#khoa-hoc` có nút lọc nhóm bệnh khi có ≥ 2 nhóm, Premium `#premium` nền tối); thẻ khóa `CourseCard`. Giá "từ …/tháng", số buổi, nhãn "Đang học" ở Đợt 9–10.
+
 ```text
 ├─ #mien-phi  Bắt đầu miễn phí ────────────────────────────────────────────┤
 │ ┌[ảnh bìa 16:9]┐ ┌[ảnh bìa]┐ ┌[ảnh bìa]┐   nhãn [MIỄN PHÍ]              │
@@ -332,6 +334,8 @@ thanh tiến độ nhỏ, nút hành động rõ ràng. Giữ màu ocean/gold v�
 - Không có khóa trong nhóm → ẩn cả nhóm.
 
 ## SCR-16 – Giới thiệu khóa `/khoa-hoc/:id`
+
+> ✅ Đợt 8: dải tiêu đề, "Bạn sẽ đạt được", đề cương phẳng (tên bài, không có video), giới thiệu, bác sĩ; khung hành động dính bên phải (điện thoại: ngay dưới tiêu đề) với học phí khóa. Chọn gói ở Đợt 9, đề cương theo buổi ở Đợt 10.
 
 ```text
 ┌─ Dải tiêu đề (nền ocean-900, chữ trắng) ───────────────────────┐ ┌ Khung giá (sticky lg) ────┐
@@ -358,6 +362,8 @@ Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đ�
 | Chưa có gói đang bán | Nút "Liên hệ tư vấn" (Zalo) thay nút đăng ký |
 
 ## SCR-17 – Box đăng ký có chọn gói (sửa SCR-03)
+
+> ✅ Đợt 8: ô đồng ý Chính sách bảo mật (chỉ khách tạo tài khoản mới); ô chọn khóa chỉ có chương trình. Chọn gói ở Đợt 9.
 
 - Bước 3: "Chọn chương trình *" rồi các nút chọn **gói** (1/3/6/12 tháng kèm giá, số buổi); QR và dòng "Số tiền" cập nhật theo gói.
 - Ô tick bắt buộc (khách mới): "Tôi đồng ý với [Chính sách bảo mật] và cho phép trung tâm lưu thông tin sức khỏe để hướng dẫn tập luyện."
@@ -417,6 +423,8 @@ Ghi chú thêm [__________________]
 Câu `scale` bắt buộc chọn; `check` bắt buộc; `text` không bắt buộc. Thành công → `/courses?consultation=sent` + toast.
 
 ## SCR-21 – Hộp nhắc sau đăng nhập
+
+> ✅ Đợt 8: hộp đồng ý chính sách (`ConsentReminder`, chỉ tài khoản học viên, không hiện trên trang chính sách). Nhắc đổi mật khẩu ở Đợt 11.
 - **Đổi mật khẩu** (`must_change_password`): "Mật khẩu của bạn do nhân viên cấp. Bạn nên đổi mật khẩu mới để bảo mật." [Đổi ngay → /account#doi-mat-khau] [Để sau].
 - **Đồng ý chính sách** (chưa có `consent_at`): nội dung tóm tắt + link chính sách + [Tôi đồng ý]; không có nút bỏ qua cho tới khi đồng ý (vẫn đăng xuất được).
 
@@ -460,12 +468,16 @@ hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (than
 [Cấp lại mật khẩu] (xác nhận, hiện mật khẩu một lần); nhật ký `account_events`. Staff không thấy nút đổi vai trò.
 
 ## SCR-25 – Admin: Phiếu tham vấn / Khách quan tâm
+
+> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`): tab kèm số lượng, thẻ khách (gọi, Zalo, khóa, thời điểm, người cập nhật), ô chọn trạng thái + ghi chú nội bộ. Phiếu tham vấn ở Đợt 12.
 - Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: bệnh nhân (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
   mở rộng xem toàn bộ câu trả lời; ô ghi chú nội bộ + nút chuyển trạng thái; người xử lý.
 - Lead: tab Mới · Đã liên hệ · Đã chốt · Đóng; cột khóa premium, họ tên, SĐT, đã đăng nhập hay chưa, thời điểm; dòng thống kê
   "Lượt bấm ẩn danh 30 ngày: 42".
 
 ## SCR-26 – Admin: Khóa học (sửa SCR-12)
+
+> ✅ Đợt 8: loại, nhóm bệnh, ảnh bìa (nén trên trình duyệt, xem trước, "Xóa ảnh bìa hiện tại"), mô tả ngắn, "Bạn sẽ đạt được"; thẻ khóa có ảnh nhỏ, nhãn loại, nút "Xem trang giới thiệu"; khóa premium không có "Quản lý bài học". Bảng gói ở Đợt 9, số buổi × số bài ở Đợt 10.
 Form khóa thêm: Loại (Miễn phí / Chương trình / Premium), Nhóm (Vẹo lưng / Vẹo ngực / Không), Ảnh bìa (xem trước 16:9), Mô tả ngắn,
 "Bạn sẽ đạt được" (mỗi dòng một ý), Giá (chỉ premium). Khi tạo chương trình: ô **Số buổi** và **Số bài mỗi buổi** (mặc định 12 × 6).
 Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổi · Đang bán / Tắt · [Sửa] [Xóa].

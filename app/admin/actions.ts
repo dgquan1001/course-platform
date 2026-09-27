@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser, requireAdmin, requireStaff, type Role } from '@/lib/auth'
 import { isSupportedVideoUrl } from '@/lib/video'
+import { detectImageType, type ImageType } from '@/lib/image-type'
+import { isCourseCategory, isCourseKind } from '@/lib/courses'
 import type { ActionResult } from '@/lib/action-result'
 
 type DbResult = { data: unknown[] | null; error: { message: string; code?: string } | null }
@@ -23,6 +25,12 @@ const MAX_DESCRIPTION = 5000
 const MAX_PRICE = 1_000_000_000
 const MAX_SORT_ORDER = 100_000
 const MAX_NOTE = 500
+const MAX_SUMMARY = 300
+const MAX_OUTCOMES = 12
+const MAX_OUTCOME = 200
+const MAX_COVER = 2 * 1024 * 1024
+const COVER_BUCKET = 'course-covers'
+const COVER_EXT: Partial<Record<ImageType, string>> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
 // Chạy thao tác quản trị: kiểm tra quyền, dừng nếu dữ liệu nhập không hợp lệ, báo lỗi nếu database lỗi
 // hoặc không có dòng nào bị ảnh hưởng (VD: dữ liệu đã bị xóa), làm mới toàn bộ trang khi thành công.
@@ -71,7 +79,17 @@ function readTitleAndDescription(
   return { value: { title, description }, error: null }
 }
 
-type CourseInput = { title: string; description: string | null; price: number; sort_order: number; status: string }
+type CourseInput = {
+  title: string
+  description: string | null
+  price: number
+  sort_order: number
+  status: string
+  kind: string
+  category: string | null
+  summary: string | null
+  outcomes: string[]
+}
 
 function readCourse(formData: FormData): Parsed<CourseInput> {
   const base = readTitleAndDescription(formData, 'khóa học')
@@ -82,7 +100,52 @@ function readCourse(formData: FormData): Parsed<CourseInput> {
   if (typeof sortOrder === 'string') return { value: null, error: sortOrder }
   const status = text(formData, 'status') || 'published'
   if (status !== 'draft' && status !== 'published') return { value: null, error: 'Trạng thái khóa học không hợp lệ.' }
-  return { value: { ...base.value, price, sort_order: sortOrder, status }, error: null }
+  const kind = text(formData, 'kind') || 'program'
+  if (!isCourseKind(kind)) return { value: null, error: 'Loại khóa học không hợp lệ.' }
+  const category = text(formData, 'category') || null
+  if (category && !isCourseCategory(category)) return { value: null, error: 'Nhóm bệnh không hợp lệ.' }
+  const summary = text(formData, 'summary') || null
+  if (summary && summary.length > MAX_SUMMARY) return { value: null, error: `Mô tả ngắn tối đa ${MAX_SUMMARY} ký tự.` }
+  // "Bạn sẽ đạt được": mỗi dòng một ý, bỏ dòng trống
+  const outcomes = text(formData, 'outcomes')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+  if (outcomes.length > MAX_OUTCOMES) return { value: null, error: `"Bạn sẽ đạt được" tối đa ${MAX_OUTCOMES} dòng.` }
+  if (outcomes.some((o) => o.length > MAX_OUTCOME)) return { value: null, error: `Mỗi ý "Bạn sẽ đạt được" tối đa ${MAX_OUTCOME} ký tự.` }
+  // Khóa miễn phí luôn có học phí 0
+  return {
+    value: { ...base.value, price: kind === 'free' ? 0 : price, sort_order: sortOrder, status, kind, category, summary, outcomes },
+    error: null,
+  }
+}
+
+type Cover = { file: File; contentType: ImageType; ext: string } | null
+
+// Ảnh bìa (không bắt buộc): JPG/PNG/WEBP ≤ 2MB, xác định định dạng theo nội dung file
+async function readCover(formData: FormData): Promise<Parsed<Cover>> {
+  const file = formData.get('cover')
+  if (!(file instanceof File) || file.size === 0) return { value: null, error: null }
+  if (file.size > MAX_COVER) return { value: null, error: 'Ảnh bìa tối đa 2MB.' }
+  const contentType = detectImageType(new Uint8Array(await file.slice(0, 16).arrayBuffer()))
+  const ext = contentType && COVER_EXT[contentType]
+  if (!contentType || !ext) return { value: null, error: 'Ảnh bìa phải là ảnh JPG, PNG hoặc WEBP hợp lệ.' }
+  return { value: { file, contentType, ext }, error: null }
+}
+
+// Tải ảnh bìa lên bucket công khai (chịu RLS: chỉ admin), trả về đường dẫn công khai
+async function uploadCover(cover: NonNullable<Cover>) {
+  const storage = createClient().storage.from(COVER_BUCKET)
+  const path = `${crypto.randomUUID()}.${cover.ext}`
+  const { error } = await storage.upload(path, cover.file, { contentType: cover.contentType })
+  if (error) return { url: null, error: { message: `Không tải được ảnh bìa: ${error.message}` } }
+  return { url: storage.getPublicUrl(path).data.publicUrl, error: null }
+}
+
+// Xóa file ảnh bìa cũ (không làm hỏng thao tác chính nếu lỗi)
+async function removeCover(url: string | null | undefined) {
+  const path = url?.split(`/${COVER_BUCKET}/`)[1]
+  if (path) await createClient().storage.from(COVER_BUCKET).remove([decodeURIComponent(path)])
 }
 
 type LessonInput = { title: string; description: string | null; video_url: string; sort_order: number }
@@ -153,6 +216,40 @@ export async function setRegistrationStatus(
   )
 }
 
+// ---------- Khách quan tâm khóa premium ----------
+
+const leadMessages = {
+  new: 'Đã chuyển về "Mới".',
+  contacted: 'Đã ghi nhận: đã liên hệ khách.',
+  converted: 'Đã ghi nhận: khách đã chốt.',
+  closed: 'Đã đóng yêu cầu.',
+}
+type LeadStatus = keyof typeof leadMessages
+const isLeadStatus = (s: string): s is LeadStatus => Object.hasOwn(leadMessages, s)
+
+// Nhân viên cập nhật trạng thái + ghi chú nội bộ. `expected`: trạng thái đang thấy trên trang (không ghi đè người khác).
+// Người xử lý, thời điểm do trigger leads_stamp ghi.
+export async function setLeadStatus(leadId: string, expected: string, formData: FormData) {
+  const status = text(formData, 'status')
+  const note = text(formData, 'staff_note')
+  const invalid =
+    checkId(leadId, 'yêu cầu') ??
+    (isLeadStatus(status) && isLeadStatus(expected) ? null : 'Trạng thái không hợp lệ.') ??
+    (note.length > MAX_NOTE ? `Ghi chú tối đa ${MAX_NOTE} ký tự.` : null)
+  return run(
+    isLeadStatus(status) ? leadMessages[status] : '',
+    () =>
+      createClient()
+        .from('leads')
+        .update({ status, staff_note: note || null })
+        .eq('id', leadId)
+        .eq('status', expected)
+        .select('id'),
+    invalid,
+    { notFound: 'Yêu cầu đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang.', staff: true }
+  )
+}
+
 // ---------- Phân quyền ----------
 
 const roleMessages: Record<Role, string> = {
@@ -183,15 +280,52 @@ export async function setUserRole(userId: string, formData: FormData) {
 
 export async function createCourse(formData: FormData) {
   const { value, error } = readCourse(formData)
-  return run(`Đã thêm khóa học "${value?.title}".`, () => createClient().from('courses').insert(value!).select('id'), error)
+  const cover = await readCover(formData)
+  return run(
+    `Đã thêm khóa học "${value?.title}".`,
+    async () => {
+      let cover_image: string | null = null
+      if (cover.value) {
+        const uploaded = await uploadCover(cover.value)
+        if (uploaded.error) return { data: null, error: uploaded.error }
+        cover_image = uploaded.url
+      }
+      const result = await createClient().from('courses').insert({ ...value!, cover_image }).select('id')
+      if (result.error) await removeCover(cover_image)
+      return result
+    },
+    error ?? cover.error
+  )
 }
 
 export async function updateCourse(courseId: string, formData: FormData) {
   const { value, error } = readCourse(formData)
+  const cover = await readCover(formData)
+  const removeCurrent = formData.get('remove_cover') === 'yes'
   return run(
     'Đã lưu thông tin khóa học.',
-    () => createClient().from('courses').update(value!).eq('id', courseId).select('id'),
-    checkId(courseId, 'khóa học') ?? error
+    async () => {
+      const supabase = createClient()
+      const { data: current } = await supabase.from('courses').select('kind, cover_image').eq('id', courseId).maybeSingle()
+      if (!current) return { data: [], error: null }
+      // Đổi loại khóa khi đã có đơn đăng ký sẽ làm sai lịch sử thanh toán / quyền học
+      if (current.kind !== value!.kind) {
+        const { count } = await supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('course_id', courseId)
+        if (count) return { data: null, error: { message: 'Không đổi được loại khóa khi khóa đã có đơn đăng ký.' } }
+      }
+      let cover_image: string | null = removeCurrent ? null : current.cover_image
+      if (cover.value) {
+        const uploaded = await uploadCover(cover.value)
+        if (uploaded.error) return { data: null, error: uploaded.error }
+        cover_image = uploaded.url
+      }
+      const result = await supabase.from('courses').update({ ...value!, cover_image }).eq('id', courseId).select('id')
+      // Ảnh bìa cũ không còn dùng → xóa; lưu lỗi thì xóa ảnh vừa tải lên
+      if (result.error) await removeCover(cover.value ? cover_image : null)
+      else if (cover_image !== current.cover_image) await removeCover(current.cover_image)
+      return result
+    },
+    checkId(courseId, 'khóa học') ?? error ?? cover.error
   )
 }
 
@@ -208,7 +342,11 @@ export async function setCourseStatus(courseId: string, status: 'draft' | 'publi
 export async function deleteCourse(courseId: string) {
   return run(
     'Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại.',
-    () => createClient().from('courses').delete().eq('id', courseId).select('id'),
+    async () => {
+      const result = await createClient().from('courses').delete().eq('id', courseId).select('id, cover_image')
+      if (!result.error) await removeCover(result.data?.[0]?.cover_image)
+      return result
+    },
     checkId(courseId, 'khóa học')
   )
 }

@@ -13,6 +13,7 @@ import { detectImageType, type ImageType } from '@/lib/image-type'
 import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { siteConfig } from '@/lib/site-config'
+import { CONSENT_VERSION } from '@/lib/consent'
 
 export type RegisterState = { error: string | null }
 
@@ -35,6 +36,7 @@ export async function registerAction(
   const password = String(formData.get('password') ?? '')
   const courseId = String(formData.get('courseId') ?? '')
   const proof = formData.get('paymentProof')
+  const consent = formData.get('consent') === 'yes'
 
   const supabase = createClient()
   const {
@@ -45,6 +47,7 @@ export async function registerAction(
   if (!sessionUser && email && !isValidEmail(email)) return { error: 'Địa chỉ email không hợp lệ.' }
   if (!phone) return { error: 'Số điện thoại không hợp lệ (VD: 0912345678).' }
   if (!sessionUser && password.length < MIN_PASSWORD_LENGTH) return { error: passwordTooShort() }
+  if (!sessionUser && !consent) return { error: 'Vui lòng đồng ý Chính sách bảo mật để tạo tài khoản.' }
   if (!courseId) return { error: 'Vui lòng chọn khóa học.' }
   if (!(proof instanceof File) || proof.size === 0) {
     return { error: 'Vui lòng tải lên ảnh chụp chuyển khoản.' }
@@ -71,6 +74,8 @@ export async function registerAction(
     .select('id, title, price')
     .eq('id', courseId)
     .eq('status', 'published')
+    // Chỉ chương trình trả phí nhận đơn (khóa miễn phí xem ngay, khóa premium liên hệ Zalo)
+    .eq('kind', 'program')
     .maybeSingle()
   if (!course) return { error: 'Khóa học không tồn tại hoặc đã ngừng nhận đăng ký.' }
 
@@ -123,8 +128,12 @@ export async function registerAction(
     }
     userId = data.user.id
     createdNewUser = true
-    // Tài khoản chỉ có SĐT: profile không lưu email nội bộ (trigger đã xử lý, đặt lại cho chắc chắn)
-    if (!email) await admin.from('profiles').update({ email: null }).eq('id', userId)
+    // Ghi nhận đồng ý Chính sách bảo mật. Tài khoản chỉ có SĐT: profile không lưu email nội bộ
+    // (trigger đã xử lý, đặt lại cho chắc chắn)
+    await admin
+      .from('profiles')
+      .update({ consent_at: new Date().toISOString(), consent_version: CONSENT_VERSION, ...(email ? {} : { email: null }) })
+      .eq('id', userId)
   }
 
   const rollbackUser = async () => {

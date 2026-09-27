@@ -129,12 +129,12 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-65 | 7 | Admin / Hệ thống | ✅ PASS (bước "[Admin] Chuyển tài khoản sang vai trò Nhân viên…"): admin đổi vai trò qua UI ghi `role_events`; staff gọi API tự nâng quyền (0 dòng), cấp quyền cho học viên ("Chỉ admin…"), sửa profile admin / sửa khóa học (0 dòng) bị chặn; staff đọc được đơn | US-10.01, BR-70 → BR-73 |
 | TC-66 | 7 | Staff | ✅ PASS (2 bước): vào `/admin` → `/admin/registrations`, menu chỉ có Đơn đăng ký + Học viên, `/admin/courses` bị chuyển về, không có ô đổi vai trò; duyệt đơn trên UI → `reviewed_by` = staff | US-10.02, US-10.03 |
 | TC-67 | 7 | Hệ thống | ✅ PASS: `/admin?status=approved` chuyển sang `/admin/registrations?status=approved`, tab Đã duyệt được chọn | FR-070 |
-| TC-68 | 8 | Admin | Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
-| TC-69 | 8 | Khách | Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
-| TC-70 | 8 | Khách | Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
-| TC-71 | 8 | Khách | Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
-| TC-72 | 8 | Staff | `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
-| TC-73 | 8 | Khách | Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
+| TC-68 | 8 | Admin | ✍️ Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
+| TC-69 | 8 | Khách | ✍️ Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
+| TC-70 | 8 | Khách | ✍️ Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
+| TC-71 | 8 | Khách | ✍️ Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
+| TC-72 | 8 | Staff | ✍️ `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
+| TC-73 | 8 | Khách | ✍️ Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
 | TC-74 | 9 | Admin | Thêm gói 1 tháng / 3 tháng (số buổi mặc định 12 / 36); gói 1 tháng thứ 2 bị chặn trùng | US-12.01, BR-77 |
 | TC-75 | 9 | Khách | Chọn Vẹo lưng – 3 tháng → QR đúng số tiền; gửi form sửa giá → server lưu giá gói; đơn lưu snapshot gói | US-12.02, BR-78, BR-79 |
 | TC-76 | 9 | Staff | Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |

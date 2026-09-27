@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Bảo vệ /courses, /account (cần đăng nhập) và /admin (nhân viên hoặc admin;
-// quản lý khóa học chỉ admin). Quyền xem bài học của từng khóa được kiểm soát bằng RLS trong database.
+// Bảo vệ /courses (Khóa học của tôi), /account (cần đăng nhập) và /admin (nhân viên hoặc admin;
+// quản lý khóa học chỉ admin). Trang khóa / bài học /courses/[id]/** chỉ làm mới phiên vì khóa miễn phí
+// ai cũng xem được: trang tự chuyển tới đăng nhập với khóa khác. Quyền xem bài học kiểm soát bằng RLS.
 const ADMIN_ONLY = ['/admin/courses', '/admin/settings']
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
@@ -35,13 +37,16 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  if (!user) {
+  // Trang khóa / bài học: chỉ làm mới phiên, trang tự quyết định (khóa miễn phí không cần đăng nhập)
+  const isCoursePage = path.startsWith('/courses/')
+
+  if (!user && !isCoursePage) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', path)
     return NextResponse.redirect(loginUrl)
   }
 
-  if (path.startsWith('/admin')) {
+  if (user && path.startsWith('/admin')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

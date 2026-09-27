@@ -1,4 +1,6 @@
 // Các ô nhập dùng chung cho form thêm/sửa khóa học và bài học
+import { COURSE_CATEGORIES, COURSE_KINDS } from '@/lib/courses'
+import CoverInput from './CoverInput'
 
 type CourseValues = {
   title?: string
@@ -6,6 +8,11 @@ type CourseValues = {
   price?: number
   sort_order?: number
   status?: string
+  kind?: string
+  category?: string | null
+  summary?: string | null
+  outcomes?: string[]
+  cover_image?: string | null
 }
 
 export function CourseFields({ values = {} }: { values?: CourseValues }) {
@@ -15,12 +22,42 @@ export function CourseFields({ values = {} }: { values?: CourseValues }) {
         <label className="label">Tên khóa học *</label>
         <input name="title" required defaultValue={values.title} className="input" />
       </div>
+      <div>
+        <label className="label">Loại khóa</label>
+        <select name="kind" defaultValue={values.kind ?? 'program'} className="input">
+          {COURSE_KINDS.map((k) => (
+            <option key={k.value} value={k.value}>
+              {k.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="label">Nhóm bệnh</label>
+        <select name="category" defaultValue={values.category ?? ''} className="input">
+          <option value="">Không phân nhóm</option>
+          {COURSE_CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <CoverInput current={values.cover_image} />
       <div className="sm:col-span-2">
-        <label className="label">Mô tả</label>
+        <label className="label">Mô tả ngắn (hiện trên thẻ khóa học)</label>
+        <input name="summary" maxLength={300} defaultValue={values.summary ?? ''} className="input" />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="label">Bạn sẽ đạt được (mỗi dòng một ý)</label>
+        <textarea name="outcomes" rows={3} defaultValue={values.outcomes?.join('\n') ?? ''} className="input" />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="label">Giới thiệu chi tiết</label>
         <textarea name="description" rows={3} defaultValue={values.description ?? ''} className="input" />
       </div>
       <div>
-        <label className="label">Giá (VNĐ, 0 = Liên hệ)</label>
+        <label className="label">Giá (VNĐ, 0 = Liên hệ; khóa miễn phí bỏ qua)</label>
         <input name="price" type="number" min={0} step={1000} defaultValue={values.price ?? 0} className="input" />
       </div>
       <div>

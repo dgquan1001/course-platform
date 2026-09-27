@@ -48,7 +48,7 @@ flowchart TB
 | Vùng | Máy tính (≥ lg) | Điện thoại / tablet (< lg) |
 | --- | --- | --- |
 | Logo | Icon cột sống + "Trung tâm HV" + tagline, về `/` | Như máy tính |
-| Menu neo | Bác sĩ · Khóa học · Cách đăng ký · Liên hệ | Trong menu hamburger |
+| Menu neo | Chương trình · Miễn phí · Premium · Bác sĩ · Liên hệ (Đợt 8) | Trong menu hamburger |
 | Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold) | Trong menu hamburger |
 | Đã đăng nhập | [Quản trị] (nhân viên, admin) · Avatar chữ cái + "Tài khoản" ▾ | Avatar ▾ (ẩn chữ "Tài khoản" < sm) |
 | Menu Tài khoản | Tên + email/SĐT · Tài khoản của tôi · Khóa học của tôi · Quản trị (admin) · Đăng xuất (đỏ) | Như máy tính, mở bằng chạm |
@@ -60,14 +60,14 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-Tab gạch chân (`nav aria-label="Menu quản trị"`): **Đơn đăng ký** (`/admin/registrations`) · **Học viên** (`/admin/users`) · **Khóa học** (`/admin/courses`, chỉ admin).
+Tab gạch chân (`nav aria-label="Menu quản trị"`): **Đơn đăng ký** (`/admin/registrations`) · **Học viên** (`/admin/users`) · **Khách quan tâm** (`/admin/leads`, Đợt 8) · **Khóa học** (`/admin/courses`, chỉ admin).
 Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên).
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
 
 ## 5. Footer (`#lien-he`)
 
 Tên + tên đầy đủ + tagline + mô tả · Liên kết (Khóa học, Đăng ký học, Đăng nhập) ·
-Liên hệ (hotline `tel:`, email `mailto:`, Zalo) · Dòng miễn trừ y khoa.
+Liên hệ (hotline `tel:`, email `mailto:`, Zalo) · Chính sách bảo mật · Dòng miễn trừ y khoa.
 
 ## 6. Phiên bản 0.2 (chốt 27/09/2026, chưa triển khai)
 

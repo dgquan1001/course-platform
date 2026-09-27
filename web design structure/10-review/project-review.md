@@ -223,7 +223,7 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | --- | --- | --- | --- |
 | 7 | Vai trò `staff` (ADR-011): `is_staff()`, RLS, trigger chỉ admin đổi vai trò, `/admin/registrations`, ô chọn vai trò, menu theo quyền | ✅ `c3d08a5` | E2E 67/67 (TC-65 → TC-67) |
 | 8 | Loại khóa, nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý (RV-17) | ✅ `1251587` (nội dung chính sách chờ A-7) | E2E 73/73 (TC-68 → TC-73) |
-| 9 | Gói 1/3/6/12 tháng (`course_plans`), chọn gói khi đăng ký, snapshot gói trên đơn, hạn học cộng dồn do trigger tính, chỉ 1 đơn chờ duyệt / khóa, "Gói đã hết hạn" + gia hạn, cột Gói / Hạn học ở bảng đơn | 🟡 Code xong, chờ chạy schema + E2E | TC-74 → TC-78 |
+| 9 | Gói 1/3/6/12 tháng (`course_plans`), chọn gói khi đăng ký, snapshot gói trên đơn, hạn học cộng dồn do trigger tính, chỉ 1 đơn chờ duyệt / khóa, "Gói đã hết hạn" + gia hạn, cột Gói / Hạn học ở bảng đơn | ✅ `b46f232` + sửa RK-22 `da23361` | E2E 78/78 (TC-74 → TC-78) |
 
 **Risk case mới phát hiện khi làm v0.2**
 
@@ -237,7 +237,7 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | RK-22 | 🔴 | Trigger Đợt 9 khóa cột `plan_id` / `created_by` với người đăng nhập → khi admin xóa chương trình đã có đơn, khóa ngoại `on delete set null` bị trigger trả lại giá trị cũ → **không xóa được khóa học** | 👁 E2E TC-44 đỏ lần chạy đầu Đợt 9 | Admin không xóa được chương trình có đơn / không xóa được tài khoản nhân viên đã tạo đơn | ✅ Đã sửa: 2 cột này được phép về null (như `reviewed_by`); chạy lại schema |
 | RK-21 | 🟡 | Tính hạn "+ N tháng" theo lịch UTC của Postgres: duyệt ngày 31 → tháng sau không có ngày 31 thì về ngày cuối tháng | 📖 `make_interval(months => n)` | Chênh 1–3 ngày ở cuối tháng, hiển thị theo giờ Việt Nam | Chấp nhận; ghi chú trong BR-80 |
 
-Xác minh Đợt 7, 8: schema đã chạy trên Supabase, E2E PASS, dữ liệu test dọn sạch. Đợt 9: chờ chạy schema + E2E.
+Xác minh Đợt 7, 8, 9: schema đã chạy trên Supabase, E2E PASS (67 → 73 → 78 bước), dữ liệu test dọn sạch. RK-22 phát hiện nhờ E2E Đợt 9 và đã sửa trong cùng đợt.
 Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 
 ### Đã kiểm tra – **không** phải rủi ro
@@ -262,7 +262,7 @@ Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 | ~~Đợt 5 – Chống lạm dụng & dữ liệu~~ | ~~RK-06 / RV-04, RK-08, RK-04, RV-16~~ – ✅ 26/09/2026 (xem §7.4) | — |
 | ~~Đợt 7 – Vai trò staff~~ | ✅ 27/09/2026, E2E 67/67 (xem §7.5) | — |
 | ~~Đợt 8 – Danh mục, premium, chính sách~~ | ✅ 27/09/2026, E2E 73/73 (xem §7.5) | — |
-| Đợt 9 – Gói tháng & hạn học | 🟡 Code xong 27/09/2026, chờ schema + E2E (xem §7.5) | — |
+| ~~Đợt 9 – Gói tháng & hạn học~~ | ✅ 27/09/2026, E2E 78/78, sửa RK-22 (xem §7.5) | — |
 | **Tiếp theo** | Theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3: Đợt 10 buổi – bài & trình học → 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;

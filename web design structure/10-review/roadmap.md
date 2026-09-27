@@ -23,7 +23,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
 | 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ Xong (nội dung chính sách chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → TC-73 | 73/73 PASS |
-| 9 | Gói tháng & hạn học | — | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-74 → TC-78 | Chờ chạy |
+| 9 | Gói tháng & hạn học | — | ✅ Xong (kèm sửa RK-22) | 27/09/2026 (`b46f232`, `da23361`) | TC-74 → TC-78 | 78/78 PASS |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
 | 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
 | 12 | Phiếu tham vấn | — | ⬜ | — | TC-89 → TC-92 | — |
@@ -118,7 +118,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
 - [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
 - [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – ✅ 27/09/2026, E2E 73/73
-- [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
+- [x] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07) – ✅ 27/09/2026, E2E 78/78
 - [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)
 - [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
 - [ ] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)

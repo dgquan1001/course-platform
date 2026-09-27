@@ -30,7 +30,7 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 8 · **73/73 bước PASS** (xem §3.1). Sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 9 · **78/78 bước PASS** (xem §3.1). Sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
 **63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
@@ -135,11 +135,11 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-71 | 8 | Khách | ✅ PASS – Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
 | TC-72 | 8 | Staff | ✅ PASS – `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
 | TC-73 | 8 | Khách | ✅ PASS – Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
-| TC-74 | 9 | Admin | ✍️ Thêm gói 1 tháng / 3 tháng (số buổi mặc định 12 / 36); gói 1 tháng thứ 2 bị chặn trùng | US-12.01, BR-77 |
-| TC-75 | 9 | Khách | ✍️ Chọn Vẹo lưng – 3 tháng → QR đúng số tiền; gửi form sửa giá → server lưu giá gói; đơn lưu snapshot gói | US-12.02, BR-78, BR-79 |
-| TC-76 | 9 | Staff | ✍️ Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
-| TC-77 | 9 | Bệnh nhân | ✍️ Đơn chờ thứ 2 cùng chương trình bị chặn (UI + unique index); đã approved vẫn gửi được đơn gia hạn | BR-84 |
-| TC-78 | 9 | Bệnh nhân | ✍️ Hết hạn (sửa `access_until` về quá khứ): "Đã hết hạn", tiến độ còn, video không phát, nút Gia hạn chọn sẵn chương trình | US-12.04, US-12.05, BR-85 |
+| TC-74 | 9 | Admin | ✅ PASS – Thêm gói 1 tháng / 3 tháng (số buổi mặc định 12 / 36); gói 1 tháng thứ 2 bị chặn trùng | US-12.01, BR-77 |
+| TC-75 | 9 | Khách | ✅ PASS – Chọn Vẹo lưng – 3 tháng → QR đúng số tiền; gửi form sửa giá → server lưu giá gói; đơn lưu snapshot gói | US-12.02, BR-78, BR-79 |
+| TC-76 | 9 | Staff | ✅ PASS – Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
+| TC-77 | 9 | Bệnh nhân | ✅ PASS – Đơn chờ thứ 2 cùng chương trình bị chặn (UI + unique index); đã approved vẫn gửi được đơn gia hạn | BR-84 |
+| TC-78 | 9 | Bệnh nhân | ✅ PASS – Hết hạn (sửa `access_until` về quá khứ): "Đã hết hạn", tiến độ còn, video không phát, nút Gia hạn chọn sẵn chương trình | US-12.04, US-12.05, BR-85 |
 | TC-79 | 10 | Admin | Tạo khung 3 buổi × 6 bài; sao chép buổi; bài không có video lưu được; link sai bị chặn; cảnh báo thiếu buổi / thiếu video | US-13.01, US-13.02 |
 | TC-80 | 10 | Bệnh nhân | Tick 6 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → Buổi 2 mở; trước đó Buổi 2 🔒 và insert tiến độ Buổi 2 qua API bị RLS chặn | US-13.03, US-13.04, BR-89 |
 | TC-81 | 10 | Bệnh nhân | Gói 1 buổi (sửa `sessions = 1` cho test) → Buổi 2 🔒 "Gia hạn để mở"; % = 6/6 · 100% | BR-83, BR-91 |
@@ -165,6 +165,7 @@ Kết quả Đợt 8 (27/09/2026, schema mới đã chạy): **73/73 bước PAS
 TC-55/TC-58 (ô chọn vai trò, tab "Nhân viên & Admin"), TC-56 (thông báo "có thể người khác vừa xử lý").
 
 Đợt 9 (phase "9c" của `e2e.mjs`, dùng chương trình + bệnh nhân riêng): TC-74 ↔ bước "[Admin] Tạo chương trình có học phí…", TC-75 ↔ "[Khách] Trang giới thiệu chọn gói 3 tháng…", TC-76 ↔ "[Nhân viên] Duyệt đơn gói 1 tháng…" + "[Bệnh nhân] Gia hạn gói 3 tháng…", TC-77 ↔ phần đơn chờ thứ 2 của bước gia hạn, TC-78 ↔ "[Bệnh nhân] Hết hạn…". Đã sửa TC-24/28 (thêm cột Gói, Hạn học).
+Kết quả Đợt 9 (27/09/2026): **78/78 PASS**. Lần chạy đầu đỏ ở TC-44 (xóa khóa B) – **lỗi thật RK-22**: trigger khóa `plan_id` làm hỏng `on delete set null` khi xóa chương trình có đơn; đã sửa trigger, chạy lại schema, PASS.
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),

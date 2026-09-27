@@ -260,14 +260,19 @@ begin
   -- Người dùng đăng nhập (nhân viên, admin) chỉ đổi trạng thái và lý do: gói, học phí, nguồn, thanh toán, hạn học
   -- giữ nguyên. Service role (server, script) được sửa trực tiếp.
   if auth.uid() is not null then
-    new.plan_id := old.plan_id;
+    -- plan_id / created_by chỉ được về null: khóa ngoại tự đặt null khi xóa gói (xóa khóa học) / xóa tài khoản nhân viên
+    if new.plan_id is not null then
+      new.plan_id := old.plan_id;
+    end if;
+    if new.created_by is not null then
+      new.created_by := old.created_by;
+    end if;
     new.plan_months := old.plan_months;
     new.plan_sessions := old.plan_sessions;
     new.amount := old.amount;
     new.source := old.source;
     new.payment_method := old.payment_method;
     new.payment_note := old.payment_note;
-    new.created_by := old.created_by;
     new.access_starts_at := old.access_starts_at;
     new.access_until := old.access_until;
   end if;

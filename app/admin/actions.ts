@@ -82,7 +82,8 @@ function readTitleAndDescription(
 type CourseInput = {
   title: string
   description: string | null
-  price: number
+  // null: form không có ô Giá (sửa chương trình – giá nằm ở bảng gói, RK-18) → giữ nguyên
+  price: number | null
   sort_order: number
   status: string
   kind: string
@@ -94,7 +95,7 @@ type CourseInput = {
 function readCourse(formData: FormData): Parsed<CourseInput> {
   const base = readTitleAndDescription(formData, 'khóa học')
   if (base.error !== null) return base
-  const price = readInt(formData, 'price', 'Học phí', 0, MAX_PRICE)
+  const price = formData.has('price') ? readInt(formData, 'price', 'Học phí', 0, MAX_PRICE) : null
   if (typeof price === 'string') return { value: null, error: price }
   const sortOrder = readInt(formData, 'sort_order', 'Thứ tự hiển thị', -MAX_SORT_ORDER, MAX_SORT_ORDER)
   if (typeof sortOrder === 'string') return { value: null, error: sortOrder }
@@ -251,12 +252,117 @@ export async function setLeadStatus(leadId: string, expected: string, formData: 
   )
 }
 
+// ---------- Phiếu tham vấn (ADR-015) ----------
+
+const consultationMessages = {
+  new: 'Đã chuyển phiếu về "Mới".',
+  contacted: 'Đã ghi nhận: đã liên hệ bệnh nhân.',
+  done: 'Đã hoàn tất phiếu tham vấn.',
+  cancelled: 'Đã hủy phiếu.',
+}
+type ConsultationStatus = keyof typeof consultationMessages
+const isConsultationStatus = (s: string): s is ConsultationStatus => Object.hasOwn(consultationMessages, s)
+const MAX_STAFF_NOTE = 1000
+
+// Như setLeadStatus: không ghi đè khi người khác vừa xử lý; người xử lý, thời điểm do trigger consultations_stamp ghi.
+// Ghi chú nội bộ bệnh nhân không đọc được (bệnh nhân xem phiếu qua my_consultations()).
+export async function setConsultationStatus(consultationId: string, expected: string, formData: FormData) {
+  const status = text(formData, 'status')
+  const note = text(formData, 'staff_note')
+  const invalid =
+    checkId(consultationId, 'phiếu') ??
+    (isConsultationStatus(status) && isConsultationStatus(expected) ? null : 'Trạng thái không hợp lệ.') ??
+    (note.length > MAX_STAFF_NOTE ? `Ghi chú tối đa ${MAX_STAFF_NOTE} ký tự.` : null)
+  return run(
+    isConsultationStatus(status) ? consultationMessages[status] : '',
+    () =>
+      createClient()
+        .from('consultations')
+        .update({ status, staff_note: note || null })
+        .eq('id', consultationId)
+        .eq('status', expected)
+        .select('id'),
+    invalid,
+    { notFound: 'Phiếu đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang.', staff: true }
+  )
+}
+
+// Mẫu phiếu tham vấn (chỉ admin). Sửa câu hỏi không ảnh hưởng phiếu đã gửi (phiếu lưu ảnh chụp câu hỏi).
+const QUESTION_KINDS = ['check', 'scale', 'text'] as const
+const MAX_QUESTION = 300
+
+function readQuestion(formData: FormData): Parsed<{ label: string; kind: string; active: boolean }> {
+  const label = text(formData, 'label')
+  const kind = text(formData, 'kind')
+  if (!label) return { value: null, error: 'Vui lòng nhập câu hỏi.' }
+  if (label.length > MAX_QUESTION) return { value: null, error: `Câu hỏi tối đa ${MAX_QUESTION} ký tự.` }
+  if (!(QUESTION_KINDS as readonly string[]).includes(kind)) return { value: null, error: 'Loại câu hỏi không hợp lệ.' }
+  // Ô "Đang dùng" (checkbox) chỉ có ở form sửa; câu hỏi mới luôn bật
+  return { value: { label, kind, active: formData.get('active') === 'on' }, error: null }
+}
+
+export async function createConsultQuestion(formData: FormData) {
+  const { value, error } = readQuestion(formData)
+  return run(
+    'Đã thêm câu hỏi.',
+    async () => {
+      const supabase = createClient()
+      const { data: last } = await supabase.from('consult_questions').select('sort_order').order('sort_order', { ascending: false }).limit(1)
+      return supabase
+        .from('consult_questions')
+        .insert({ ...value!, active: true, sort_order: (last?.[0]?.sort_order ?? 0) + 1 })
+        .select('id')
+    },
+    error
+  )
+}
+
+export async function updateConsultQuestion(questionId: string, formData: FormData) {
+  const { value, error } = readQuestion(formData)
+  return run(
+    'Đã lưu câu hỏi.',
+    () => createClient().from('consult_questions').update(value!).eq('id', questionId).select('id'),
+    checkId(questionId, 'câu hỏi') ?? error
+  )
+}
+
+export async function deleteConsultQuestion(questionId: string) {
+  return run(
+    'Đã xóa câu hỏi.',
+    () => createClient().from('consult_questions').delete().eq('id', questionId).select('id'),
+    checkId(questionId, 'câu hỏi')
+  )
+}
+
+// Đổi chỗ câu hỏi với câu liền trước / liền sau (đánh lại thứ tự 1…n)
+export async function moveConsultQuestion(questionId: string, direction: 'up' | 'down') {
+  return run(
+    'Đã đổi thứ tự câu hỏi.',
+    async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('consult_questions').select('id, sort_order').order('sort_order').order('created_at')
+      const questions = data ?? []
+      const index = questions.findIndex((x) => x.id === questionId)
+      const target = direction === 'up' ? index - 1 : index + 1
+      if (index < 0 || target < 0 || target >= questions.length) return { data: [], error: null }
+      ;[questions[index], questions[target]] = [questions[target], questions[index]]
+      for (const [i, q] of questions.entries()) {
+        if (q.sort_order === i + 1) continue
+        const { error } = await supabase.from('consult_questions').update({ sort_order: i + 1 }).eq('id', q.id)
+        if (error) return { data: null, error }
+      }
+      return { data: [questionId], error: null }
+    },
+    checkId(questionId, 'câu hỏi') ?? (direction === 'up' || direction === 'down' ? null : 'Hướng không hợp lệ.')
+  )
+}
+
 // ---------- Phân quyền ----------
 
 const roleMessages: Record<Role, string> = {
   admin: 'Đã cấp quyền admin.',
   staff: 'Đã chuyển vai trò thành Nhân viên.',
-  user: 'Đã chuyển vai trò thành Học viên.',
+  user: 'Đã chuyển vai trò thành Bệnh nhân.',
 }
 
 const isRole = (s: string): s is Role => Object.hasOwn(roleMessages, s)
@@ -293,13 +399,13 @@ export async function createCourse(formData: FormData) {
         cover_image = uploaded.url
       }
       const supabase = createClient()
-      const result = await supabase.from('courses').insert({ ...value!, cover_image }).select('id')
+      const result = await supabase.from('courses').insert({ ...value!, price: value!.price ?? 0, cover_image }).select('id')
       if (result.error) {
         await removeCover(cover_image)
         return result
       }
       // Chương trình có học phí: tạo sẵn gói 1 tháng (12 buổi) theo học phí nhập, thêm gói khác ở bảng gói
-      if (value!.kind === 'program' && value!.price > 0) {
+      if (value!.kind === 'program' && value!.price) {
         const { error: planError } = await supabase
           .from('course_plans')
           .insert({ course_id: result.data[0].id, months: 1, sessions: SESSIONS_PER_MONTH, price: value!.price })
@@ -337,7 +443,12 @@ export async function updateCourse(courseId: string, formData: FormData) {
         if (uploaded.error) return { data: null, error: uploaded.error }
         cover_image = uploaded.url
       }
-      const result = await supabase.from('courses').update({ ...value!, cover_image }).eq('id', courseId).select('id')
+      const { price, ...rest } = value!
+      const result = await supabase
+        .from('courses')
+        .update(price === null ? { ...rest, cover_image } : { ...rest, price, cover_image })
+        .eq('id', courseId)
+        .select('id')
       // Ảnh bìa cũ không còn dùng → xóa; lưu lỗi thì xóa ảnh vừa tải lên
       if (result.error) await removeCover(cover.value ? cover_image : null)
       else if (cover_image !== current.cover_image) await removeCover(current.cover_image)

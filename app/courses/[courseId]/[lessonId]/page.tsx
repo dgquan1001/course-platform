@@ -78,7 +78,13 @@ export default async function LessonPage({
         {mode === 'preview' ? (
           <span className="badge bg-violet-100 text-violet-700">Chế độ xem trước (nhân viên / admin)</span>
         ) : learning.user ? (
-          <ProgressBar done={progress.done} total={progress.total} className="w-48" />
+          <div className="flex items-center gap-4">
+            <ProgressBar done={progress.done} total={progress.total} className="w-48" />
+            {/* Phiếu tham vấn gửi được bất cứ lúc nào (FR-171) */}
+            <Link href={`/courses/consultation?course=${params.courseId}`} className="btn-outline btn-sm">
+              📝 Phiếu tham vấn
+            </Link>
+          </div>
         ) : (
           <Link href={`/login?next=${encodeURIComponent(lessonPath)}`} className="text-sm font-semibold text-ocean-700 hover:underline">
             Đăng nhập để lưu tiến độ
@@ -137,11 +143,18 @@ export default async function LessonPage({
               <p className="mt-1 text-sm text-emerald-900">
                 {progress.done}/{progress.total} bài. Hãy duy trì luyện tập và liên hệ trung tâm nếu cần bác sĩ tư vấn.
               </p>
-              {mode === 'program' && (
-                <Link href={`/register?course=${params.courseId}`} className="btn-gold btn-sm mt-4">
-                  Gia hạn để tập tiếp
-                </Link>
-              )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {learning.user && (
+                  <Link href={`/courses/consultation?course=${params.courseId}&origin=course_end`} className="btn-primary btn-sm">
+                    📝 Gửi phiếu tham vấn bác sĩ
+                  </Link>
+                )}
+                {mode === 'program' && (
+                  <Link href={`/register?course=${params.courseId}`} className="btn-gold btn-sm">
+                    Gia hạn để tập tiếp
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 

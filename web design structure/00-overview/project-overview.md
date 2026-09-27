@@ -104,11 +104,11 @@ Chi tiết: [03-architecture/system-architecture.md](../03-architecture/system-a
 - Nội dung chuyển khoản là **số điện thoại** của khách để admin đối chiếu.
 - Supabase Auth bắt buộc có email → tài khoản chỉ có SĐT dùng email nội bộ `<SĐT>@sdt.hv.invalid` (xem ADR-003).
 - Video YouTube nên để chế độ **Unlisted**; hệ thống không ngăn học viên chia sẻ link video gốc.
-- Số lượng dữ liệu dự kiến nhỏ (hàng trăm – vài nghìn học viên); trang admin giới hạn 200 đơn / 500 tài khoản mỗi lần tải.
+- Số lượng dữ liệu dự kiến nhỏ (hàng trăm – vài nghìn học viên); trang admin giới hạn 200 đơn / 200 bệnh nhân mỗi lần tải (lọc / tìm để thu hẹp).
 
 ## 9. Định vị lại – phiên bản 0.2 (chốt 27/09/2026)
 
-> Trạng thái: **đã chốt yêu cầu, chưa triển khai code**. Kế hoạch triển khai theo đợt: [roadmap.md §3](../10-review/roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự-thực-hiện).
+> Trạng thái (27/09/2026): **✅ đã triển khai toàn bộ yêu cầu v0.2** (Đợt 7 → 13, E2E xem test-plan). Việc còn lại trước khi chạy thật: [roadmap.md](../10-review/roadmap.md) – Đợt 14 (go-live MVP).
 
 ### 9.1. Tầm nhìn
 Nền tảng dạy cho **bệnh nhân** và **đội chuyên gia**; giai đoạn này tập trung vào **bệnh nhân**. Bệnh nhân tập các chương trình

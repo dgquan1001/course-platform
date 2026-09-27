@@ -24,6 +24,13 @@ create unique index if not exists profiles_phone_key on public.profiles (phone) 
 -- Đồng ý Chính sách bảo mật (thời điểm + phiên bản chính sách). Tài khoản cũ chưa đồng ý được hỏi khi đăng nhập.
 alter table public.profiles add column if not exists consent_at timestamptz;
 alter table public.profiles add column if not exists consent_version text;
+-- Nguồn tài khoản (v0.2 Đợt 11, ADR-014): web = khách tự đăng ký · zalo = nhân viên tạo cho khách chốt qua Zalo.
+-- must_change_password: mật khẩu do nhân viên cấp → nhắc (không bắt buộc) đổi sau khi đăng nhập.
+alter table public.profiles add column if not exists source text not null default 'web';
+alter table public.profiles drop constraint if exists profiles_source_check;
+alter table public.profiles add constraint profiles_source_check check (source in ('web', 'zalo'));
+alter table public.profiles add column if not exists created_by uuid references public.profiles (id) on delete set null;
+alter table public.profiles add column if not exists must_change_password boolean not null default false;
 
 -- Tự động tạo profile khi có user mới
 create or replace function public.handle_new_user()
@@ -392,6 +399,224 @@ create trigger registrations_stamp_review
   before update on public.registrations
   for each row execute procedure public.stamp_registration_review();
 
+-- Nhân viên cấp gói (v0.2 Đợt 11, ADR-014): đơn tạo thẳng "Đã duyệt" bằng phiên đăng nhập của nhân viên.
+-- Database tự điền gói (theo plan_id của đúng chương trình), tên khóa, người tạo / người xử lý và hạn học
+-- (cộng dồn như khi duyệt). Đơn khách tự đăng ký tạo bằng service role (không có phiên) giữ nguyên.
+create or replace function public.stamp_registration_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_until timestamptz;
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if new.source is distinct from 'staff' or new.status is distinct from 'approved' then
+    raise exception 'Nhân viên chỉ tạo được đơn cấp gói (nguồn nhân viên, đã duyệt).';
+  end if;
+  if new.user_id is null or new.course_id is null then
+    raise exception 'Thiếu bệnh nhân hoặc chương trình.';
+  end if;
+  -- Chỉ cấp gói cho tài khoản bệnh nhân (không tự cấp cho tài khoản nhân viên / admin – làm sai doanh thu, RK-34)
+  if not exists (select 1 from public.profiles where id = new.user_id and role = 'user') then
+    raise exception 'Chỉ cấp gói cho tài khoản bệnh nhân.';
+  end if;
+  select p.months, p.sessions, c.title into new.plan_months, new.plan_sessions, new.course_title
+  from public.course_plans p
+  join public.courses c on c.id = p.course_id
+  where p.id = new.plan_id and p.course_id = new.course_id and c.kind = 'program';
+  if not found then
+    raise exception 'Gói không thuộc chương trình đã chọn.';
+  end if;
+  if new.amount is null or new.amount < 0 or new.amount > 1000000000 then
+    raise exception 'Số tiền phải từ 0 đến 1.000.000.000đ.';
+  end if;
+  new.created_by := auth.uid();
+  new.reviewed_at := now();
+  new.reviewed_by := auth.uid();
+  new.reviewed_by_name := (select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid());
+  new.review_note := null;
+  -- Hạn học như khi duyệt đơn (ADR-012): nối tiếp hạn cuối hiện tại của bệnh nhân cho chương trình này
+  perform pg_advisory_xact_lock(hashtext('registration_access:' || new.user_id || ':' || new.course_id));
+  select max(access_until) into current_until
+  from public.registrations
+  where user_id = new.user_id and course_id = new.course_id and status = 'approved';
+  new.access_starts_at := greatest(now(), coalesce(current_until, now()));
+  new.access_until := new.access_starts_at + make_interval(months => new.plan_months);
+  return new;
+end;
+$$;
+
+drop trigger if exists registrations_stamp_insert on public.registrations;
+create trigger registrations_stamp_insert
+  before insert on public.registrations
+  for each row execute procedure public.stamp_registration_insert();
+
+-- Lịch sử của đơn nhân viên cấp: "Tạo mới → Đã duyệt" (ghi sau khi đơn đã có trong bảng)
+create or replace function public.log_registration_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.source = 'staff' and new.status = 'approved' then
+    insert into public.registration_events (registration_id, actor, actor_name, from_status, to_status, note)
+    values (new.id, new.reviewed_by, new.reviewed_by_name, 'new', new.status, new.payment_note);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists registrations_log_insert on public.registrations;
+create trigger registrations_log_insert
+  after insert on public.registrations
+  for each row execute procedure public.log_registration_insert();
+
+-- ------------------------------------------------------------
+-- Bệnh nhân do nhân viên quản lý (v0.2 Đợt 11, ADR-014)
+-- account_events: nhật ký tạo tài khoản / cấp lại mật khẩu / sửa thông tin (chỉ server ghi, không lưu mật khẩu).
+-- patient_notes: ghi chú nội bộ về bệnh nhân – tách khỏi profiles để bệnh nhân không đọc được.
+-- ------------------------------------------------------------
+create table if not exists public.account_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles (id) on delete set null,
+  user_name text,
+  actor uuid references public.profiles (id) on delete set null,
+  actor_name text,
+  action text not null check (action in ('created', 'password_reset', 'profile_updated')),
+  created_at timestamptz not null default now()
+);
+create index if not exists account_events_user_idx on public.account_events (user_id, created_at desc);
+
+create table if not exists public.patient_notes (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  note text not null default '' check (char_length(note) <= 1000),
+  updated_by uuid references public.profiles (id) on delete set null,
+  updated_by_name text,
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.stamp_patient_note()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Khóa ngoại đặt updated_by về null khi xóa tài khoản nhân viên (không có phiên): giữ nguyên ghi chú
+  if tg_op = 'UPDATE' and auth.uid() is null then
+    return new;
+  end if;
+  new.note := btrim(new.note);
+  new.updated_by := auth.uid();
+  new.updated_by_name := (select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid());
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists patient_notes_stamp on public.patient_notes;
+create trigger patient_notes_stamp
+  before insert or update on public.patient_notes
+  for each row execute procedure public.stamp_patient_note();
+
+-- ------------------------------------------------------------
+-- Phiếu tham vấn bác sĩ (v0.2 Đợt 12, ADR-015)
+-- consult_questions: một mẫu phiếu chung do admin soạn (check = có/không, scale = thang 0–10, text = trả lời ngắn).
+-- consultations: phiếu bệnh nhân gửi – lưu ảnh chụp câu hỏi + câu trả lời (sửa mẫu không làm sai phiếu cũ).
+-- Chỉ server (service role) ghi phiếu; nhân viên, admin đổi trạng thái + ghi chú nội bộ; bệnh nhân đọc phiếu của mình
+-- qua hàm my_consultations() (không thấy ghi chú nội bộ). Dữ liệu sức khỏe: không hiển thị công khai.
+-- ------------------------------------------------------------
+create table if not exists public.consult_questions (
+  id uuid primary key default gen_random_uuid(),
+  label text not null check (char_length(btrim(label)) between 1 and 300),
+  kind text not null check (kind in ('check', 'scale', 'text')),
+  sort_order int not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Câu hỏi mẫu (database-design §10.8): chỉ thêm khi mẫu phiếu còn trống, admin sửa được sau
+do $$
+begin
+  if not exists (select 1 from public.consult_questions) then
+    insert into public.consult_questions (label, kind, sort_order) values
+      ('Mức đau lưng / lưng ngực hiện tại', 'scale', 1),
+      ('Đau tăng lên khi tập hoặc sau khi tập', 'check', 2),
+      ('Có tê bì tay chân', 'check', 3),
+      ('Đã tập đều theo lịch (≥ 3 buổi/tuần)', 'check', 4),
+      ('Động tác khó thực hiện hoặc chưa chắc tập đúng', 'text', 5),
+      ('Thời gian thuận tiện để bác sĩ / nhân viên liên hệ', 'text', 6);
+  end if;
+end $$;
+
+-- origin: manual = tự gửi · course_end = từ thẻ chúc mừng hoàn thành · expiring = gói sắp hết hạn
+create table if not exists public.consultations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  full_name text,
+  phone text,
+  course_id uuid references public.courses (id) on delete set null,
+  course_title text,
+  answers jsonb not null default '[]'::jsonb,
+  note text check (char_length(note) <= 1000),
+  origin text not null default 'manual' check (origin in ('manual', 'course_end', 'expiring')),
+  status text not null default 'new' check (status in ('new', 'contacted', 'done', 'cancelled')),
+  staff_note text check (char_length(staff_note) <= 1000),
+  handled_by uuid references public.profiles (id) on delete set null,
+  handled_by_name text,
+  handled_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists consultations_status_idx on public.consultations (status, created_at);
+create index if not exists consultations_user_idx on public.consultations (user_id, created_at desc);
+
+-- Nhân viên chỉ đổi trạng thái và ghi chú nội bộ; người xử lý và thời điểm do database ghi theo phiên đăng nhập
+create or replace function public.stamp_consultation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- user_id / course_id chỉ được về null: khóa ngoại tự đặt null khi xóa tài khoản / khóa học
+  if new.user_id is not null then
+    new.user_id := old.user_id;
+  end if;
+  if new.course_id is not null then
+    new.course_id := old.course_id;
+  end if;
+  new.full_name := old.full_name;
+  new.phone := old.phone;
+  new.course_title := old.course_title;
+  new.answers := old.answers;
+  new.note := old.note;
+  new.origin := old.origin;
+  new.created_at := old.created_at;
+  if new.status is distinct from old.status or new.staff_note is distinct from old.staff_note then
+    new.handled_by := auth.uid();
+    new.handled_by_name := (select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid());
+    new.handled_at := now();
+  else
+    new.handled_at := old.handled_at;
+    new.handled_by_name := old.handled_by_name;
+    if new.handled_by is not null then
+      new.handled_by := old.handled_by;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists consultations_stamp on public.consultations;
+create trigger consultations_stamp
+  before update on public.consultations
+  for each row execute procedure public.stamp_consultation();
+
 -- ------------------------------------------------------------
 -- Phân quyền: chỉ admin đổi vai trò (user / staff / admin) của tài khoản khác trên giao diện.
 -- Không tự gỡ quyền của mình, luôn còn ít nhất 1 admin; mỗi lần đổi quyền được ghi lại.
@@ -478,10 +703,15 @@ security definer
 set search_path = public
 as $$
 begin
-  -- Nhân viên chỉ đổi trạng thái và ghi chú; thông tin khách để lại giữ nguyên
-  new.course_id := old.course_id;
+  -- Nhân viên chỉ đổi trạng thái và ghi chú; thông tin khách để lại giữ nguyên.
+  -- course_id / user_id chỉ được về null: khóa ngoại tự đặt null khi xóa khóa premium / tài khoản (RK-29)
+  if new.course_id is not null then
+    new.course_id := old.course_id;
+  end if;
+  if new.user_id is not null then
+    new.user_id := old.user_id;
+  end if;
   new.course_title := old.course_title;
-  new.user_id := old.user_id;
   new.full_name := old.full_name;
   new.phone := old.phone;
   new.created_at := old.created_at;
@@ -783,6 +1013,241 @@ $$;
 grant execute on function public.course_progress(uuid) to anon, authenticated;
 
 -- ------------------------------------------------------------
+-- Số liệu quản trị (v0.2 Đợt 11 – 13)
+-- _patient_courses: mỗi cặp (bệnh nhân, chương trình) đã được duyệt: hạn học (infinity = không thời hạn), lần duyệt đầu,
+-- số buổi đã mua, số bài đã tick / tổng số bài trong các buổi đã mua, lần tập gần nhất. Hàm nội bộ: không cấp quyền gọi
+-- cho người dùng, chỉ dùng bên trong các hàm security definer bên dưới (đã kiểm tra nhân viên / admin).
+-- ------------------------------------------------------------
+create or replace function public._patient_courses(p_user uuid default null)
+returns table (
+  user_id uuid, course_id uuid, course_title text, until timestamptz, started_at timestamptz,
+  purchased int, done int, total int, last_activity timestamptz
+)
+language sql
+stable
+as $$
+  with acc as (
+    select r.user_id, r.course_id,
+           case when bool_or(r.plan_months is null) then 'infinity'::timestamptz else max(r.access_until) end as until,
+           min(coalesce(r.access_starts_at, r.reviewed_at, r.created_at)) as started_at,
+           case when bool_or(r.plan_sessions is null) then null else sum(r.plan_sessions)::int end as purchased
+    from public.registrations r
+    where r.status = 'approved' and r.user_id is not null and r.course_id is not null
+      and (p_user is null or r.user_id = p_user)
+    group by r.user_id, r.course_id
+  ),
+  pos as (
+    select cs.id, row_number() over (partition by cs.course_id order by cs.sort_order, cs.created_at)::int as pos
+    from public.course_sessions cs
+    where cs.course_id in (select a.course_id from acc a)
+  ),
+  included as (
+    select a.user_id, a.course_id, l.id as lesson_id
+    from acc a
+    join public.lessons l on l.course_id = a.course_id
+    left join pos p on p.id = l.session_id
+    where a.purchased is null or p.pos is null or p.pos <= a.purchased
+  ),
+  counts as (
+    select i.user_id, i.course_id, count(*)::int as total, count(lp.lesson_id)::int as done
+    from included i
+    left join public.lesson_progress lp on lp.user_id = i.user_id and lp.lesson_id = i.lesson_id
+    group by i.user_id, i.course_id
+  ),
+  recent as (
+    select lp.user_id, lp.course_id, max(lp.completed_at) as last_activity
+    from public.lesson_progress lp
+    where lp.user_id in (select a.user_id from acc a)
+    group by lp.user_id, lp.course_id
+  )
+  select a.user_id, a.course_id, c.title, a.until, a.started_at, a.purchased,
+         coalesce(n.done, 0), coalesce(n.total, 0), rc.last_activity
+  from acc a
+  join public.courses c on c.id = a.course_id
+  left join counts n on n.user_id = a.user_id and n.course_id = a.course_id
+  left join recent rc on rc.user_id = a.user_id and rc.course_id = a.course_id;
+$$;
+revoke execute on function public._patient_courses(uuid) from public, anon, authenticated;
+
+-- Danh sách bệnh nhân (tài khoản role = user) cho trang quản trị: lọc theo từ khóa, nguồn, trạng thái gói, mới tạo N ngày.
+-- p_status: active (đang học) · expiring (còn ≤ 7 ngày) · expired (có chương trình đã hết hạn chưa gia hạn)
+-- · none (chưa có gói) · inactive (đang học nhưng không tập > 7 ngày). Người không phải nhân viên / admin nhận danh sách rỗng.
+create or replace function public.admin_patients(
+  p_q text default '', p_source text default '', p_status text default '', p_new_days int default 0, p_limit int default 300
+)
+returns table (
+  id uuid, full_name text, email text, phone text, source text, created_at timestamptz, created_by_name text,
+  active_courses int, nearest_until timestamptz, has_expiring boolean, has_expired boolean, inactive boolean,
+  last_activity timestamptz, avg_percent int
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with pc as (
+    select * from public._patient_courses()
+  ),
+  agg as (
+    select pc.user_id,
+           count(*) filter (where pc.until > now())::int as active_courses,
+           min(pc.until) filter (where pc.until > now() and pc.until <> 'infinity') as nearest_until,
+           bool_or(pc.until > now() and pc.until <= now() + interval '7 days') as has_expiring,
+           bool_or(pc.until <= now()) as has_expired,
+           bool_or(pc.until > now() and coalesce(pc.last_activity, pc.started_at) < now() - interval '7 days') as inactive,
+           max(pc.last_activity) as last_activity,
+           floor(avg(pc.done * 100.0 / pc.total) filter (where pc.until > now() and pc.total > 0))::int as avg_percent
+    from pc
+    group by pc.user_id
+  )
+  select p.id, p.full_name, p.email, p.phone, p.source, p.created_at,
+         coalesce(nullif(cb.full_name, ''), cb.email, cb.phone),
+         coalesce(a.active_courses, 0), a.nearest_until, coalesce(a.has_expiring, false), coalesce(a.has_expired, false),
+         coalesce(a.inactive, false), a.last_activity, a.avg_percent
+  from public.profiles p
+  left join agg a on a.user_id = p.id
+  left join public.profiles cb on cb.id = p.created_by
+  where public.is_staff()
+    and p.role = 'user'
+    and (coalesce(p_q, '') = '' or p.full_name ilike '%' || p_q || '%' or p.email ilike '%' || p_q || '%' or p.phone ilike '%' || p_q || '%')
+    and (coalesce(p_source, '') = '' or p.source = p_source)
+    and (coalesce(p_new_days, 0) <= 0 or p.created_at >= now() - make_interval(days => p_new_days))
+    and case coalesce(p_status, '')
+          when 'active' then coalesce(a.active_courses, 0) > 0
+          when 'expiring' then coalesce(a.has_expiring, false)
+          when 'expired' then coalesce(a.has_expired, false)
+          when 'none' then a.user_id is null
+          when 'inactive' then coalesce(a.inactive, false)
+          else true
+        end
+  order by p.created_at desc
+  limit least(greatest(coalesce(p_limit, 300), 1), 1000);
+$$;
+grant execute on function public.admin_patients(text, text, text, int, int) to authenticated;
+
+-- Tiến độ từng chương trình của một bệnh nhân (trang chi tiết bệnh nhân). until null + unlimited = không thời hạn.
+create or replace function public.patient_progress(p_user uuid)
+returns table (
+  course_id uuid, course_title text, until timestamptz, unlimited boolean, purchased int, done int, total int, last_activity timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select pc.course_id, pc.course_title, nullif(pc.until, 'infinity'), pc.until = 'infinity', pc.purchased, pc.done, pc.total, pc.last_activity
+  from public._patient_courses(p_user) pc
+  where public.is_staff()
+  order by pc.course_title;
+$$;
+grant execute on function public.patient_progress(uuid) to authenticated;
+
+-- Dashboard (SCR-22): mọi chỉ số trong 1 lần gọi. Chỉ nhân viên / admin (người khác nhận null). Không có doanh thu.
+create or replace function public.dashboard_stats()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with pc as (
+    select pc.*, p.full_name, p.phone
+    from public._patient_courses() pc
+    join public.profiles p on p.id = pc.user_id and p.role = 'user'
+  ),
+  patients as (
+    select p.source, p.created_at from public.profiles p where p.role = 'user'
+  )
+  select case when not public.is_staff() then null else jsonb_build_object(
+    'patients', (select count(*) from patients),
+    'new_7d_web', (select count(*) from patients where source = 'web' and created_at >= now() - interval '7 days'),
+    'new_7d_zalo', (select count(*) from patients where source = 'zalo' and created_at >= now() - interval '7 days'),
+    'new_30d_web', (select count(*) from patients where source = 'web' and created_at >= now() - interval '30 days'),
+    'new_30d_zalo', (select count(*) from patients where source = 'zalo' and created_at >= now() - interval '30 days'),
+    'pending_registrations', (select count(*) from public.registrations where status = 'pending'),
+    'oldest_pending_at', (select min(created_at) from public.registrations where status = 'pending'),
+    'active_plans', (select count(*) from pc where until > now()),
+    'active_patients', (select count(distinct user_id) from pc where until > now()),
+    'expiring_7d', (select count(*) from pc where until > now() and until <= now() + interval '7 days'),
+    'expired', (select count(*) from pc where until <= now()),
+    'inactive_7d', (select count(distinct user_id) from pc where until > now() and coalesce(last_activity, started_at) < now() - interval '7 days'),
+    'consultations_new', (select count(*) from public.consultations where status = 'new'),
+    'leads_new', (select count(*) from public.leads where status = 'new' and phone is not null),
+    'expiring', (
+      select coalesce(jsonb_agg(x order by x.until), '[]'::jsonb) from (
+        select user_id, full_name, phone, course_id, course_title, until from pc
+        where until > now() and until <= now() + interval '7 days' order by until limit 10
+      ) x
+    ),
+    'inactive', (
+      select coalesce(jsonb_agg(x order by x.last_seen nulls first), '[]'::jsonb) from (
+        select user_id, full_name, phone, course_title, last_activity, coalesce(last_activity, started_at) as last_seen, done, total from pc
+        where until > now() and coalesce(last_activity, started_at) < now() - interval '7 days'
+        order by coalesce(last_activity, started_at) limit 10
+      ) x
+    ),
+    'programs', (
+      select coalesce(jsonb_agg(x order by x.patients desc, x.course_title), '[]'::jsonb) from (
+        select course_id, course_title, count(*)::int as patients,
+               coalesce(floor(avg(done * 100.0 / total) filter (where total > 0)), 0)::int as avg_percent
+        from pc where until > now() group by course_id, course_title
+      ) x
+    )
+  ) end;
+$$;
+grant execute on function public.dashboard_stats() to authenticated;
+
+-- Doanh thu (chỉ admin): tổng số tiền đơn đang "Đã duyệt" theo thời điểm duyệt trong [p_from, p_to),
+-- theo chương trình / hình thức thanh toán / nguồn / người xử lý. Đơn bị thu hồi không tính.
+create or replace function public.revenue_report(p_from timestamptz, p_to timestamptz)
+returns table (dimension text, label text, orders int, revenue bigint)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+#variable_conflict use_column
+begin
+  if not public.is_admin() then
+    raise exception 'Chỉ admin được xem doanh thu.';
+  end if;
+  return query
+  with r as (
+    select coalesce(reg.course_title, 'Khóa học') as course_title, reg.payment_method, reg.source,
+           coalesce(reg.reviewed_by_name, '—') as handler, coalesce(reg.amount, 0)::bigint as amount
+    from public.registrations reg
+    where reg.status = 'approved' and reg.reviewed_at >= p_from and reg.reviewed_at < p_to
+  )
+  select 'total'::text, 'Tổng'::text, count(*)::int, coalesce(sum(r.amount), 0)::bigint from r
+  union all
+  select 'course', r.course_title, count(*)::int, sum(r.amount)::bigint from r group by r.course_title
+  union all
+  select 'method', r.payment_method, count(*)::int, sum(r.amount)::bigint from r group by r.payment_method
+  union all
+  select 'source', r.source, count(*)::int, sum(r.amount)::bigint from r group by r.source
+  union all
+  select 'handler', r.handler, count(*)::int, sum(r.amount)::bigint from r group by r.handler;
+end;
+$$;
+grant execute on function public.revenue_report(timestamptz, timestamptz) to authenticated;
+
+-- Phiếu tham vấn của người đang đăng nhập (không có ghi chú nội bộ của nhân viên)
+create or replace function public.my_consultations(p_limit int default 20)
+returns table (id uuid, course_title text, status text, created_at timestamptz, handled_at timestamptz)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select c.id, c.course_title, c.status, c.created_at, c.handled_at
+  from public.consultations c
+  where c.user_id = auth.uid()
+  order by c.created_at desc
+  limit least(greatest(coalesce(p_limit, 20), 1), 100);
+$$;
+grant execute on function public.my_consultations(int) to authenticated;
+
+-- ------------------------------------------------------------
 -- Row Level Security
 -- ------------------------------------------------------------
 alter table public.profiles enable row level security;
@@ -907,6 +1372,52 @@ create policy "leads_staff_select" on public.leads for select
   using (public.is_staff());
 drop policy if exists "leads_staff_update" on public.leads;
 create policy "leads_staff_update" on public.leads for update
+  using (public.is_staff());
+
+-- Nhân viên cấp gói cho bệnh nhân (Đợt 11): chỉ tạo đơn nguồn "staff" đã duyệt, người tạo là chính mình.
+-- Trigger registrations_stamp_insert điền gói, hạn học, người xử lý; khách tự đăng ký vẫn chỉ qua server (service role).
+drop policy if exists "registrations_staff_insert" on public.registrations;
+create policy "registrations_staff_insert" on public.registrations for insert
+  with check (public.is_staff() and source = 'staff' and status = 'approved' and created_by = auth.uid());
+
+-- Nhật ký tài khoản (nhân viên, admin đọc; chỉ server ghi) và ghi chú nội bộ về bệnh nhân (nhân viên, admin đọc / ghi)
+alter table public.account_events enable row level security;
+drop policy if exists "account_events_staff_select" on public.account_events;
+create policy "account_events_staff_select" on public.account_events for select
+  using (public.is_staff());
+alter table public.patient_notes enable row level security;
+drop policy if exists "patient_notes_staff_select" on public.patient_notes;
+create policy "patient_notes_staff_select" on public.patient_notes for select
+  using (public.is_staff());
+drop policy if exists "patient_notes_staff_insert" on public.patient_notes;
+create policy "patient_notes_staff_insert" on public.patient_notes for insert
+  with check (public.is_staff());
+drop policy if exists "patient_notes_staff_update" on public.patient_notes;
+create policy "patient_notes_staff_update" on public.patient_notes for update
+  using (public.is_staff());
+
+-- Mẫu phiếu tham vấn: người đăng nhập đọc câu hỏi đang bật; admin đọc tất cả và thêm / sửa / xóa
+alter table public.consult_questions enable row level security;
+drop policy if exists "consult_questions_select" on public.consult_questions;
+create policy "consult_questions_select" on public.consult_questions for select
+  using ((active and auth.uid() is not null) or public.is_admin());
+drop policy if exists "consult_questions_admin_insert" on public.consult_questions;
+create policy "consult_questions_admin_insert" on public.consult_questions for insert
+  with check (public.is_admin());
+drop policy if exists "consult_questions_admin_update" on public.consult_questions;
+create policy "consult_questions_admin_update" on public.consult_questions for update
+  using (public.is_admin());
+drop policy if exists "consult_questions_admin_delete" on public.consult_questions;
+create policy "consult_questions_admin_delete" on public.consult_questions for delete
+  using (public.is_admin());
+
+-- Phiếu tham vấn: nhân viên, admin đọc & cập nhật trạng thái; bệnh nhân đọc qua my_consultations(); chỉ server thêm; không ai xóa
+alter table public.consultations enable row level security;
+drop policy if exists "consultations_staff_select" on public.consultations;
+create policy "consultations_staff_select" on public.consultations for select
+  using (public.is_staff());
+drop policy if exists "consultations_staff_update" on public.consultations;
+create policy "consultations_staff_update" on public.consultations for update
   using (public.is_staff());
 
 -- ------------------------------------------------------------

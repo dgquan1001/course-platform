@@ -283,7 +283,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ---
 
-# Phiên bản 0.2 (chốt 27/09/2026 – ⬜ chưa triển khai)
+# Phiên bản 0.2 (chốt 27/09/2026 – ✅ triển khai Đợt 7 → 13)
 
 ## EP-10 – Vai trò nhân viên
 
@@ -408,49 +408,50 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-14 – Nhân viên tạo tài khoản & cấp gói
 
-### US-14.01 – Tạo tài khoản bệnh nhân từ Zalo ⬜ (5 SP)
+### US-14.01 – Tạo tài khoản bệnh nhân từ Zalo ✅ (5 SP)
 **Là** nhân viên, **tôi muốn** nhập thông tin khách Zalo và cấp gói trong một form, **để** khách học được ngay.
 - FR: FR-160 → FR-162 · BR: BR-94, BR-95, BR-97 · ADR-014
 - **AC1** Given nhập họ tên, SĐT, tick đồng ý, chọn Vẹo ngực – 1 tháng, số tiền 990.000đ, "Tiền mặt" When bấm Tạo Then tài khoản `source = zalo`, đơn `approved` `source = staff`, hạn = bây giờ + 1 tháng, người xử lý là tôi; màn hình hiện mật khẩu 8 ký tự một lần và nút "Chép tin nhắn gửi Zalo".
-- **AC2** Given SĐT đã có tài khoản Then báo "Số điện thoại đã có tài khoản" kèm link tới bệnh nhân đó.
+- **AC2** Given SĐT đã có tài khoản Then báo "Số điện thoại này đã có tài khoản. Hãy tìm bệnh nhân đó và cấp gói ở trang chi tiết." (Đợt 11: chưa kèm link trực tiếp).
 - **AC3** Given tạo đơn lỗi Then tài khoản vừa tạo bị xóa.
 
-### US-14.02 – Bệnh nhân đăng nhập bằng tài khoản được cấp ⬜ (3 SP)
+### US-14.02 – Bệnh nhân đăng nhập bằng tài khoản được cấp ✅ (3 SP)
 - FR: FR-165 · BR: BR-96
 - **AC1** Given tôi đăng nhập bằng SĐT + mật khẩu được cấp Then hiện hộp "Bạn nên đổi mật khẩu" [Đổi ngay] / [Để sau].
 - **AC2** Given tôi đổi mật khẩu Then đăng nhập được bằng mật khẩu mới (Supabase Auth), hộp không hiện nữa.
-- **AC3** Given tôi bấm "Để sau" Then vào học bình thường; lần đăng nhập sau vẫn được nhắc.
+- **AC3** Given tôi bấm "Để sau" Then vào học bình thường, không hỏi lại trong phiên trình duyệt này; mở trình duyệt lần sau vẫn được nhắc (tới khi đổi mật khẩu).
 
-### US-14.03 – Cấp gói / gia hạn cho bệnh nhân có sẵn ⬜ (3 SP)
+### US-14.03 – Cấp gói / gia hạn cho bệnh nhân có sẵn ✅ (3 SP)
 - FR: FR-163 · BR: BR-80, BR-97
 - **AC1** Given bệnh nhân còn hạn tới H When nhân viên cấp thêm gói 3 tháng Then hạn = H + 3 tháng.
 
-### US-14.04 – Cấp lại mật khẩu ⬜ (2 SP)
+### US-14.04 – Cấp lại mật khẩu ✅ (2 SP)
 - FR: FR-164 · BR: BR-99
 - **AC1** Given bệnh nhân quên mật khẩu (không có email) When nhân viên bấm "Cấp lại mật khẩu" và xác nhận Then mật khẩu cũ hết hiệu lực, mật khẩu mới hiện một lần, `account_events` ghi lại.
 - **AC2** Given tài khoản là staff/admin Then không có nút này; gọi action bị từ chối.
 
-### US-14.05 – Tìm và lọc bệnh nhân ⬜ (2 SP)
+### US-14.05 – Tìm và lọc bệnh nhân ✅ (2 SP)
 - FR: FR-166
 - **AC1** Given lọc "Zalo" + "Sắp hết hạn" Then chỉ hiện bệnh nhân nhân viên tạo có gói hết hạn trong 7 ngày.
+- **AC2** (Đợt 11, thêm) Lọc "Không tập > 7 ngày", "Chưa có gói", "Mới 7 / 30 ngày"; danh sách có % tiến độ và lần tập gần nhất.
 
 ## EP-15 – Phiếu tham vấn
 
-### US-15.01 – Admin soạn mẫu phiếu ⬜ (2 SP)
+### US-15.01 – Admin soạn mẫu phiếu ✅ (2 SP)
 - FR: FR-170 · BR: BR-100
 - **AC1** Given admin thêm câu "Mức đau lưng hiện tại" dạng thang 0–10 Then phiếu mới có câu này; phiếu cũ không đổi.
 
-### US-15.02 – Gửi phiếu bất cứ lúc nào ⬜ (3 SP)
+### US-15.02 – Gửi phiếu bất cứ lúc nào ✅ (3 SP)
 **Là** bệnh nhân, **tôi muốn** điền phiếu tình trạng và gửi cho nhân viên lúc nào cũng được, **để** được bác sĩ tư vấn kịp thời.
 - FR: FR-171, FR-172 · BR: BR-101
-- **AC1** Given tôi đang ở Buổi 5 When bấm "Gửi phiếu tham vấn", điền và gửi Then phiếu trạng thái "Mới", tôi thấy nó trong "Phiếu tham vấn của tôi".
+- **AC1** Given tôi đang ở Buổi 5 When bấm "Phiếu tham vấn" (chương trình được chọn sẵn), điền và gửi Then phiếu trạng thái "Mới", tôi thấy nó trong "Phiếu tham vấn của tôi".
 - **AC2** Given đã gửi 5 phiếu hôm nay Then báo đợi ngày mai hoặc gọi hotline.
 
-### US-15.03 – Nhắc khi kết thúc khóa ⬜ (2 SP)
+### US-15.03 – Nhắc khi kết thúc khóa ✅ (2 SP)
 - FR: FR-155
 - **AC1** Given tôi tick xong bài cuối của buổi cuối đã mua Then hiện thẻ chúc mừng với "Gửi phiếu tham vấn bác sĩ" và "Gia hạn để tập tiếp".
 
-### US-15.04 – Nhân viên xử lý phiếu ⬜ (3 SP)
+### US-15.04 – Nhân viên xử lý phiếu ✅ (3 SP)
 - FR: FR-173 · BR: BR-102, BR-103
 - **AC1** Given phiếu mới Then nhân viên xem toàn bộ câu trả lời, gọi/Zalo bệnh nhân, chuyển "Đã liên hệ" kèm ghi chú nội bộ.
 - **AC2** Given 2 nhân viên cùng xử lý Then người sau nhận "Phiếu đã thay đổi, vui lòng tải lại trang".
@@ -458,15 +459,15 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-16 – Dashboard quản trị
 
-### US-16.01 – Tổng quan ⬜ (5 SP)
+### US-16.01 – Tổng quan ✅ (5 SP)
 - FR: FR-180, FR-181
 - **AC1** Given mở `/admin` Then thấy thẻ: tổng bệnh nhân, mới 7/30 ngày (Web / Zalo), đơn chờ, gói hiệu lực, sắp hết hạn, đã hết hạn, phiếu mới, lead mới; bấm thẻ mở danh sách đã lọc.
 
-### US-16.02 – Việc cần làm hôm nay ⬜ (3 SP)
+### US-16.02 – Việc cần làm hôm nay ✅ (3 SP)
 - FR: FR-182, FR-183
 - **AC1** Then có danh sách: đơn chờ lâu nhất, bệnh nhân sắp hết hạn (nút gọi / Zalo), phiếu mới, lead mới, bệnh nhân không tập > 7 ngày kèm %.
 
-### US-16.03 – Doanh thu (chỉ admin) ⬜ (3 SP)
+### US-16.03 – Doanh thu (chỉ admin) ✅ (3 SP)
 - FR: FR-184 · BR: BR-73
 - **AC1** Given tôi là admin Then thấy doanh thu tháng này / tháng trước theo chương trình, hình thức thanh toán, nguồn, nhân viên.
 - **AC2** Given tôi là staff Then không có mục doanh thu; gọi hàm `revenue_report()` bị từ chối. (Staff vẫn thấy học phí từng đơn vì cần đối chiếu chuyển khoản.)

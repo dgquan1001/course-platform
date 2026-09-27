@@ -181,12 +181,15 @@ Dùng `useFormState(action, initialState)`; action nhận `prevState` và trả 
 
 ```mermaid
 flowchart LR
-  R[Request] --> L1{Middleware<br/>đã đăng nhập?<br/>admin?}
-  L1 -- không --> X1[Redirect /login hoặc /courses]
-  L1 -- ok --> L2{Server Action<br/>requireAdmin / getCurrentUser}
+  R[Request] --> L1{Middleware<br/>có phiên trong cookie?<br/>getSession – không gọi mạng}
+  L1 -- không --> X1[Redirect /login]
+  L1 -- ok --> L1b{Trang: requireUserPage /<br/>requireStaffPage / requireAdminPage<br/>getUser đã xác thực, cache theo request}
+  L1b -- không --> X1b[Redirect /login, /courses hoặc /admin]
+  L1b -- ok --> L2{Server Action<br/>requireAdmin / requireStaff / getCurrentUser}
   L2 -- không --> X2[ActionResult lỗi]
   L2 -- ok --> L3{Postgres RLS<br/>is_admin / has_course_access<br/>auth.uid() = user_id}
   L3 -- không --> X3[0 dòng / lỗi]
+  %% ADR-016: vai trò kiểm tra ở trang (L1b), middleware chỉ kiểm tra đăng nhập
   L3 -- ok --> OK[Dữ liệu]
 ```
 
@@ -223,12 +226,14 @@ flowchart LR
 
 | Hạng mục | Thay đổi | ADR |
 | --- | --- | --- |
-| Phân quyền | `is_staff()` bên cạnh `is_admin()`; `requireStaff()`; middleware cho staff vào `/admin`, chặn trang chỉ-admin | ADR-011 |
+| Phân quyền | ✅ Đợt 7: `is_staff()` bên cạnh `is_admin()`; `requireStaff()`. ✅ Đợt 11: vai trò kiểm tra ở trang (`requireStaffPage` / `requireAdminPage`), middleware nhẹ chỉ đọc cookie | ADR-011, ADR-016 |
 | Nội dung trả phí | ✅ Đợt 10: đề cương đọc công khai qua RPC `course_outline` (không có link); `lessons` (kèm `video_url`) đọc theo RLS `is_staff() or can_view_lesson(id)` – thay cho RPC `get_lesson_video` dự kiến | ADR-013 |
 | Luật học tập | ✅ Đợt 9–10: hạn học, số buổi đã mua, mở buổi tuần tự đều tính trong database (hàm SQL), trang chỉ hiển thị | ADR-012, ADR-013 |
 | Ghi tiến độ | ✅ Đợt 10: server action `completeLessonAction` / `uncompleteLessonAction` dùng **server client** (RLS kiểm tra) → không cần service role | ADR-013 |
-| Tạo tài khoản bởi nhân viên | Service role tạo user (như ADR-006); đơn cấp gói insert bằng server client của nhân viên để trigger ghi đúng người | ADR-014 |
+| Tạo tài khoản bởi nhân viên | ✅ Đợt 11: service role tạo user (như ADR-006); đơn cấp gói insert bằng server client của nhân viên (policy `registrations_staff_insert` + trigger) để ghi đúng người | ADR-014 |
 | Trang công khai | `/khoa-hoc/[id]` ISR như trang chủ (`revalidatePath` khi admin sửa khóa/gói/buổi); `/courses/[id]/**` render động, công khai với khóa free | ADR-008 |
 | Storage | Thêm bucket **public** `course-covers` (ảnh bìa); `payment-proofs` cho staff đọc | — |
-| Dashboard | Hàm SQL tổng hợp `dashboard_stats()`, `revenue_report()` (1 truy vấn / thẻ nhóm), không thêm dịch vụ ngoài | — |
+| Dashboard | ✅ Đợt 13: hàm SQL `dashboard_stats()` (1 lần gọi cho mọi thẻ + danh sách), `revenue_report()` (chỉ admin); hàm nội bộ `_patient_courses()` dùng chung với danh sách / hồ sơ bệnh nhân; không thêm dịch vụ ngoài | — |
+| Phiếu tham vấn | ✅ Đợt 12: ghi bằng service role sau khi kiểm tra; bệnh nhân đọc qua `my_consultations()` (ẩn ghi chú nội bộ) | ADR-015 |
+| Hiệu năng xác thực | ✅ `getCurrentUser()` bọc `React.cache` (1 lần xác thực / request); header + hộp nhắc dùng chung profile phía trình duyệt (`lib/use-profile.ts`, cache 60s) | ADR-016 |
 | Zalo | Chỉ dùng link `zalo.me` (mở chat); không tích hợp API Zalo OA ở v0.2 | ADR-015 |

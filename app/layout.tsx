@@ -5,7 +5,7 @@ import NavigationProgress from '@/components/NavigationProgress'
 import SiteHeader from '@/components/SiteHeader'
 import Toaster from '@/components/Toaster'
 import SiteFooter from '@/components/SiteFooter'
-import ConsentReminder from '@/components/ConsentReminder'
+import LoginReminders from '@/components/LoginReminders'
 import { siteConfig } from '@/lib/site-config'
 import './globals.css'
 
@@ -53,7 +53,7 @@ export default function RootLayout({
         <SiteHeader />
         <div className="flex-1">{children}</div>
         <SiteFooter />
-        <ConsentReminder />
+        <LoginReminders />
       </body>
     </html>
   )

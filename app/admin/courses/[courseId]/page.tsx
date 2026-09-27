@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminPage } from '@/lib/auth'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import StatusBadge from '@/components/StatusBadge'
@@ -81,6 +82,7 @@ function LessonItem({ lesson, index, courseId, sessions }: { lesson: Lesson; ind
 
 // Nội dung khóa: buổi → bài tập (ADR-013). Tạo khung "N buổi × M bài", thêm / sửa / xóa / đổi thứ tự / sao chép buổi.
 export default async function AdminCourseContentPage({ params }: { params: { courseId: string } }) {
+  await requireAdminPage()
   const supabase = createClient()
   const [{ data: course }, { data: sessionRows }, { data: lessonRows }, { data: plans }] = await Promise.all([
     supabase.from('courses').select('id, title, status, kind').eq('id', params.courseId).maybeSingle(),

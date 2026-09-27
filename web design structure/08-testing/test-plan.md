@@ -30,7 +30,7 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 10 · **83/83 bước PASS** (xem §3.1). Sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 11 → 13 · **96/96 bước PASS** (xem §3.1). Sau Đợt 10: 83/83; sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
 **63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
@@ -119,7 +119,7 @@ Turnstile chưa kiểm thử tự động (cần khóa Cloudflare) – kiểm tr
 Các TC cũ được mở rộng ở Đợt 3: TC-01 (bảng `registration_events`, `role_events`, cột `review_note`), TC-10 (khách không đọc được 2 bảng lịch sử),
 TC-26 (từ chối kèm lý do), TC-28 (dòng "Lý do: …"), TC-30 (học viên thấy lý do), TC-43 (thu hồi qua ô lý do), TC-50 (lý do không sửa tay được).
 
-### 3.1. Test case phiên bản 0.2 (✅ Đợt 7 → 10 đã chạy · ⬜ Đợt 11 → 13 dự kiến)
+### 3.1. Test case phiên bản 0.2 (✅ Đợt 7 → 13 đã chạy)
 
 Mỗi đợt thêm các bước dưới đây vào `scripts/e2e.mjs`. Vai trò mới: **Staff** (tài khoản `e2e-staff-*`), **Khách** dùng khóa miễn phí.
 Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[E2E]`) phải được dọn khi kết thúc như hiện nay.
@@ -146,16 +146,20 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-82 | 10 | Bệnh nhân | ✅ PASS – Bỏ tick 1 bài Buổi 1 (hộp xác nhận "Buổi sau có thể bị khóa lại") → Buổi 2 khóa lại; tick lại → mở | BR-90 |
 | TC-83 | 10 | Bệnh nhân | ✅ PASS – "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi 2 – Bài 1" mở đúng bài | US-13.05, US-13.06 |
 | TC-84 | 10 | Staff | ✅ PASS – Xem trước mọi buổi (kể cả buổi bệnh nhân chưa mở), không có nút tick, không ghi tiến độ | US-13.07 |
-| TC-85 | 11 | Staff | Tạo bệnh nhân (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện một lần; `source = zalo`, đơn `approved` `source = staff`, người xử lý = staff, lịch sử `new → approved`, hạn đúng | US-14.01, BR-94 → BR-97 |
-| TC-86 | 11 | Bệnh nhân | Đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi; "Để sau" vào học được; đổi mật khẩu → hộp không còn, đăng nhập bằng mật khẩu mới | US-14.02, BR-96 |
-| TC-87 | 11 | Staff | SĐT trùng bị báo; cấp gia hạn cho bệnh nhân có sẵn (cộng dồn); cấp lại mật khẩu → mật khẩu cũ hết hiệu lực, `account_events` ghi; không có nút với tài khoản admin | US-14.03, US-14.04, BR-99 |
-| TC-88 | 11 | Staff | Lọc bệnh nhân theo nguồn Zalo + sắp hết hạn | US-14.05 |
-| TC-89 | 12 | Admin | Thêm câu hỏi thang 0–10 vào mẫu phiếu; staff không sửa được mẫu | US-15.01 |
-| TC-90 | 12 | Bệnh nhân | Gửi phiếu từ trình học → trạng thái Mới; phiếu thứ 6 trong ngày bị chặn; bệnh nhân khác không đọc được | US-15.02, BR-101, BR-103 |
-| TC-91 | 12 | Bệnh nhân | Tick bài cuối buổi cuối đã mua → thẻ chúc mừng có nút phiếu tham vấn | US-15.03 |
-| TC-92 | 12 | Staff | Xem câu trả lời, chuyển Đã liên hệ kèm ghi chú nội bộ; bệnh nhân thấy trạng thái nhưng không thấy ghi chú nội bộ | US-15.04, BR-102 |
-| TC-93 | 13 | Admin | Dashboard: số liệu khớp dữ liệu test (bệnh nhân mới Web/Zalo, đơn chờ, sắp hết hạn, phiếu mới, lead mới); doanh thu theo hình thức | US-16.01, US-16.03 |
-| TC-94 | 13 | Staff | Dashboard không có doanh thu; `revenue_report()` bị từ chối | US-16.03 AC2 |
+| TC-85 | 11 | Staff | ✅ PASS – Tạo bệnh nhân (không email) + cấp gói tiền mặt (số tiền tự điền theo giá gói, sửa được) → mật khẩu 8 ký tự đúng bảng chữ dễ đọc hiện một lần + tin nhắn Zalo; `source = zalo`, `created_by`, `must_change_password`, `consent_at`; đơn `approved` `source = staff`, người tạo / xử lý = staff, lịch sử `new → approved`, hạn = lúc tạo + 1 tháng; `account_events.created`; ghi chú nội bộ vào `patient_notes`; tạo trùng SĐT bị chặn | US-14.01, BR-94 → BR-97 |
+| TC-86 | 11 | Bệnh nhân | ✅ PASS – Đăng nhập bằng SĐT + mật khẩu được cấp (điện thoại) → hộp "Bạn nên đổi mật khẩu"; "Để sau" vào học được, không hỏi lại trong phiên; đổi mật khẩu → cờ tắt, phiên mới không còn hộp | US-14.02, BR-96 |
+| TC-87 | 11 | Staff | ✅ PASS – Hồ sơ bệnh nhân: cấp thêm gói chuyển khoản kèm ảnh → hạn cộng dồn; sửa họ tên + ghi chú; cấp lại mật khẩu → mật khẩu cũ bị từ chối, mới đăng nhập được, cờ nhắc bật lại, nhật ký `created, profile_updated, password_reset`; hồ sơ admin không có nút | US-14.03, US-14.04, BR-99 |
+| TC-88 | 11 | Staff | ✅ PASS – Lọc nguồn Zalo / Web, "Đang học", "Chưa có gói", "Sắp hết hạn" (sau khi đưa hạn về 3 ngày) | US-14.05 |
+| TC-89 | 12 | Admin | ✅ PASS – Thêm câu hỏi thang 0–10, đưa lên trên (↑); staff thêm câu hỏi qua API bị chặn; cuối kịch bản xóa câu hỏi – phiếu đã gửi vẫn giữ câu trả lời | US-15.01 |
+| TC-90 | 12 | Bệnh nhân | ✅ PASS – Từ trình học mở phiếu (chương trình chọn sẵn); gửi thiếu câu bắt buộc (bỏ qua trình duyệt) → server từ chối; gửi đủ → "Phiếu tham vấn của tôi" hiện Mới, phiếu lưu ảnh chụp câu hỏi, SĐT, chương trình; hết 5 lượt / ngày → bị chặn; bệnh nhân khác không đọc được | US-15.02, BR-101, BR-103 |
+| TC-91 | 12 | Bệnh nhân | ✅ PASS – Thẻ chúc mừng (hết buổi đã mở) có "Gửi phiếu tham vấn bác sĩ" (`origin=course_end`) | US-15.03 |
+| TC-92 | 12 | Staff | ✅ PASS – Xem câu trả lời, chuyển "Đã liên hệ" + ghi chú nội bộ (ghi người xử lý); staff sửa câu trả lời qua API bị trigger giữ nguyên; bệnh nhân thấy "Đã liên hệ", không thấy ghi chú (giao diện, `my_consultations()`, đọc bảng trực tiếp = 0 dòng) | US-15.04, BR-102 |
+| TC-93 | 13 | Admin | ✅ PASS – Thẻ Bệnh nhân / Đơn chờ / Sắp hết hạn / Phiếu mới khớp `dashboard_stats()`; bệnh nhân Zalo mới được đếm; việc cần làm có bệnh nhân sắp hết hạn; tiến độ theo chương trình; bấm thẻ → danh sách lọc sẵn; doanh thu có tiền mặt 200.000đ theo hình thức và theo nhân viên | US-16.01 → US-16.03 |
+| TC-94 | 13 | Staff | ✅ PASS – Tổng quan không có khối Doanh thu; `revenue_report()` báo "Chỉ admin…"; khách / bệnh nhân gọi `dashboard_stats()` nhận null | US-16.03 AC2 |
+| TC-95 | + | Admin | ✅ PASS – `/admin/courses` chia 3 nhóm; tab Premium chỉ còn khóa premium, form thêm khóa chọn sẵn loại theo tab (kể cả khi chuyển tab bằng link); sửa chương trình không có ô Giá, lưu không đổi giá (RK-18) | SCR-26, RK-18 |
+| TC-96 | 11 | Hệ thống | ✅ PASS – Qua API, staff không tạo được: đơn nguồn web, đơn chờ, gói của chương trình khác, gói cho chính tài khoản nhân viên (RK-34); bệnh nhân không đọc được `patient_notes`, `account_events`, `consultations`, không gọi được `admin_patients`, `patient_progress`, `_patient_courses` | BR-97, BR-103, T32 |
+| TC-97 | + | Khách / Staff | ✅ PASS – Middleware nhẹ (ADR-016): khách vào `/courses/consultation`, `/admin/patients` → đăng nhập; staff vào `/admin/courses`, `/admin/courses/:id`, `/admin/settings/consultation` → `/admin`; tài khoản bị gỡ quyền admin vào `/admin`, `/admin/patients` → `/courses`; staff không thấy tab "Nhân viên & Admin"; menu staff = Tổng quan, Đơn đăng ký, Bệnh nhân, Phiếu tham vấn, Khách quan tâm | ADR-016, T31 |
+| TC-98 | 12 | Admin / Hệ thống | ✅ PASS – Xóa khóa premium còn khách quan tâm → lead giữ lại, `course_id` về null; xóa tài khoản đã gửi phiếu → phiếu giữ họ tên, SĐT, `user_id` về null (RK-29) | RK-29, database-design §7 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -172,6 +176,17 @@ Kết quả Đợt 10 (27/09/2026, schema mới đã chạy): **83/83 PASS**, d�
 RK-27 (admin không thêm được bài học – `can_view_lesson` phải xét `is_staff()` trước) và RK-28 (bài cũ chưa thuộc buổi nào, VD bài nhập tay của TC-51,
 đứng **đầu** đề cương / "bài tiếp theo" – nay xếp cuối). TC cũ chỉ sửa nhỏ: TC-01 (kiểm tra thêm bảng `course_sessions`, `lesson_progress`), TC-68 (nút "Quản lý buổi – bài"); các bước trình học cũ (TC-21, TC-30, TC-47, TC-51) chạy nguyên trên trình học mới.
 
+Đợt 11 → 13 (phase "9e" → "9h" của `e2e.mjs`, chạy chung một lượt): TC-95 ↔ "[Admin] Trang khóa học chia theo loại…", TC-85 ↔ "[Nhân viên] Tạo bệnh nhân Zalo…",
+TC-96 ↔ "[Hệ thống] Database chặn nhân viên tạo đơn sai quy tắc…", TC-86 ↔ "[Bệnh nhân Zalo] Đăng nhập…", TC-87 ↔ "[Nhân viên] Hồ sơ bệnh nhân…",
+TC-88 ↔ "[Nhân viên] Lọc bệnh nhân…", TC-89 ↔ "[Admin] Mẫu phiếu…", TC-90 ↔ "[Bệnh nhân] Gửi phiếu tham vấn…", TC-91 ↔ "[Bệnh nhân] Hoàn thành các buổi…",
+TC-92 ↔ "[Nhân viên] Phiếu tham vấn…", TC-93 ↔ "[Admin] Tổng quan…", TC-94 ↔ "[Nhân viên] Tổng quan không có doanh thu…", TC-98 ↔ "[Admin] Xóa khóa premium còn khách quan tâm…";
+TC-97 nằm trong các bước cũ đã sửa: "[Khách] Vào /admin, /courses, …", "[Nhân viên] Vào trang quản trị…", "[Admin] Gỡ quyền admin 2…".
+Bước cũ sửa theo giao diện mới: TC-29 (`/admin/users` → `/admin/patients`, trạng thái từng khóa), TC-55 / TC-58 (ô vai trò ở tab Bệnh nhân /
+Nhân viên & Admin), TC-66 (menu nhân viên, `/admin` = Tổng quan), bước chuyển vai trò nhân viên (kiểm tra ở tab Nhân viên & Admin).
+Kết quả Đợt 11 → 13 (27/09/2026, schema mới đã chạy): **96/96 PASS**, dữ liệu test dọn sạch (kể cả phiếu, nhật ký tài khoản, câu hỏi thử,
+bộ đếm phiếu / ngày). Các lần chạy trước đỏ: TC-95 lần 1 là **lỗi thật** (form thêm khóa không đổi loại khi chuyển tab bằng link → thêm `key`), lần 2 do locator
+của test bắt nhầm ô giá trong bảng Gói; TC-88 do từ khóa tìm (SĐT test) trùng dãy số trong email test khác → tìm theo tên. Rà soát code khi viết test phát hiện RK-29, RK-34 (đã sửa, xem project-review §7.6).
+
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),
 TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/admin/patients`, chọn vai trò), TC-42/TC-43 (quyền theo hạn học).
@@ -185,12 +200,12 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 | G-03 | Mã reset hết hạn sau 10 phút; khóa sau 5 lần sai | Trung bình | ⬜ |
 | G-04 | Open redirect `next=//evil.com`, `next=/\evil.com` | Trung bình | 🟡 Đã thăm dò thủ công 26/09/2026: không khai thác được; chưa có bước E2E |
 | G-05 | Xóa khóa học: bài học bị xóa, đơn được giữ | Trung bình | ✅ Đã có (TC-44) |
-| G-06 | Sửa/Xóa bài học, sửa khóa học | Trung bình | ⬜ |
-| G-07 | Tìm kiếm học viên | Thấp | 🟡 Dùng gián tiếp trong TC-29 |
+| G-06 | Sửa/Xóa bài học, sửa khóa học | Trung bình | 🟡 Sửa bài (TC-79), sửa chương trình (TC-95), xóa buổi (TC-79); chưa có xóa bài học |
+| G-07 | Tìm kiếm / lọc bệnh nhân | Thấp | ✅ TC-29, TC-88 |
 | G-08 | Video TikTok / Shorts hiển thị khung dọc | Thấp | 🟡 Lưu link TikTok có trong TC-09, chưa kiểm tra khung hiển thị |
 | G-09 | Ảnh HEIC từ iPhone | Thấp | ⬜ Test thủ công trên thiết bị thật |
 | G-10 | Unit test các hàm thuần trong `lib/` (`normalizePhone`, `isSupportedVideoUrl`…) | Trung bình | ⬜ |
-| G-11 | Các risk case RK-01 → RK-15 (xem project-review.md §7) | Theo mức rủi ro | 🟡 RK-01, 03, 05, 07, 09 có TC-47 → TC-54; RK-11 → RK-14 có TC-55 → TC-58; còn RK-02, 04, 06, 08, 10, 15 |
+| G-11 | Các risk case (xem project-review.md §7) | Theo mức rủi ro | 🟡 RK-01 → 09, 11 → 14 có TC; RK-22, 27, 28, 29, 34 có TC; còn RK-02, 10, 15 (chưa làm) |
 | G-13 | Turnstile bật trên production (widget hiện, token hợp lệ / hết hạn) | Trung bình | ⬜ Thủ công sau khi có khóa (roadmap A-4) |
 | G-12 | Chặn gỡ **admin cuối cùng** (không test được trên database dùng chung vì luôn có admin thật; cần staging – RK-10) | Trung bình | ⬜ Đã kiểm tra bằng đọc code trigger |
 

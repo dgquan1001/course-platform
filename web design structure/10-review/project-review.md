@@ -1,9 +1,23 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 10, xem §7.5)
-- **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng.
-  Chưa chạy lại `build`/`test:e2e` trong lần review này.
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6)
+- **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
+  mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
+
+## 0. Tóm tắt hiện trạng (27/09/2026)
+
+| Hạng mục | Hiện trạng |
+| --- | --- |
+| Chức năng | v0.2 hoàn tất (Đợt 7 → 13): 3 vai trò, 3 loại khóa, gói tháng + hạn học cộng dồn, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard + doanh thu |
+| Kiểm thử | E2E **96/96 PASS**; lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
+| Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
+| Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
+| Còn mở quan trọng | RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RV-20 (giám sát lỗi, backup Storage) |
+| Tiếp theo | Đợt 14 – go-live MVP ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)) |
+
+Điểm đánh giá bên dưới (§1) là của bản 0.1 (26/09); v0.2 cải thiện: Kiểm thử 3.5 → 4.5 (96 bước, có kiểm tra API), Vận hành 3 → 3.5 (git, CI,
+rào chặn E2E, runbook; còn thiếu staging, giám sát).
 
 ## 1. Đánh giá tổng quan
 
@@ -223,17 +237,18 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | --- | --- | --- | --- |
 | 7 | Vai trò `staff` (ADR-011): `is_staff()`, RLS, trigger chỉ admin đổi vai trò, `/admin/registrations`, ô chọn vai trò, menu theo quyền | ✅ `c3d08a5` | E2E 67/67 (TC-65 → TC-67) |
 | 8 | Loại khóa, nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý (RV-17) | ✅ `1251587` (nội dung chính sách chờ A-7) | E2E 73/73 (TC-68 → TC-73) |
-| 10 | Buổi → bài tập (`course_sessions`, `lessons.session_id`), khung N × M, quản lý buổi (↑↓, sao chép, xóa), `lesson_progress`, `can_view_lesson` (RLS bài học), `course_progress`, trình học kiểu Udemy, checklist tick / bỏ tick, mở buổi lần lượt, % tiến độ, "Tiếp tục Buổi X – Bài Y" | ✅ `c713566` + sửa RK-27 `fa16156`, RK-28 `0ff7b35` | E2E 83/83 (TC-79 → TC-84) |
 | 9 | Gói 1/3/6/12 tháng (`course_plans`), chọn gói khi đăng ký, snapshot gói trên đơn, hạn học cộng dồn do trigger tính, chỉ 1 đơn chờ duyệt / khóa, "Gói đã hết hạn" + gia hạn, cột Gói / Hạn học ở bảng đơn | ✅ `b46f232` + sửa RK-22 `da23361` | E2E 78/78 (TC-74 → TC-78) |
+| 10 | Buổi → bài tập (`course_sessions`, `lessons.session_id`), khung N × M, quản lý buổi (↑↓, sao chép, xóa), `lesson_progress`, `can_view_lesson` (RLS bài học), `course_progress`, trình học kiểu Udemy, checklist tick / bỏ tick, mở buổi lần lượt, % tiến độ, "Tiếp tục Buổi X – Bài Y" | ✅ `c713566` + sửa RK-27 `fa16156`, RK-28 `0ff7b35` | E2E 83/83 (TC-79 → TC-84) |
+| 11 → 13 | Xem §7.6 | ✅ | E2E 96/96 (TC-85 → TC-98) |
 
 **Risk case mới phát hiện khi làm v0.2**
 
 | ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
 | --- | --- | --- | --- | --- | --- |
-| RK-16 | 🟡 | Thu hồi một đơn nằm giữa chuỗi gia hạn không dời hạn của các đơn sau → có "khoảng trống" | 📖 trigger tính hạn theo `max(access_until)` lúc duyệt | Bệnh nhân có thể mất vài ngày / tháng hạn học nếu nhân viên thu hồi nhầm rồi duyệt lại | Chấp nhận theo ADR-012; khi cần, nhân viên cấp gói bù (Đợt 11). Ghi vào hướng dẫn vận hành |
+| RK-16 | 🟡 | Thu hồi một đơn nằm giữa chuỗi gia hạn không dời hạn của các đơn sau → có "khoảng trống" | 📖 trigger tính hạn theo `max(access_until)` lúc duyệt | Bệnh nhân có thể mất vài ngày / tháng hạn học nếu nhân viên thu hồi nhầm rồi duyệt lại | Chấp nhận theo ADR-012. ✅ Đợt 11: nhân viên cấp gói bù ở hồ sơ bệnh nhân (số tiền 0đ, ghi chú lý do); runbook §6 |
 | RK-17 | 🔵 | Chuyển hướng trong server component (`redirect()` ở trang khóa khi khách chưa đăng nhập, `/admin` → `/admin/registrations`) được thực hiện **phía trình duyệt** sau khi trang bắt đầu trả về | 👁 E2E Đợt 7, 8 phải chờ URL cuối | Không lộ dữ liệu (nội dung trả phí không render), chỉ thêm 1 bước tải | Chấp nhận. Có thể chuyển các kiểm tra này vào middleware nếu cần mã 307 thật (VD SEO) |
-| RK-18 | 🟡 | `courses.price` của chương trình chỉ dùng để tạo sẵn gói 1 tháng khi tạo khóa; sửa ô "Giá" sau đó **không** đổi giá gói | 📖 `createCourse`, `PlanTable` | Admin có thể nhầm tưởng đã đổi học phí | Nhãn ô Giá đã ghi rõ; Đợt 10: ẩn ô Giá khi sửa chương trình, chỉ sửa ở bảng gói |
-| RK-19 | 🟡 | Chương trình tắt / xóa hết gói → không nhận đăng ký, bệnh nhân không tự gia hạn được trên web | 📖 `getRegistrableCourses` | Mất doanh thu gia hạn nếu admin tắt nhầm | Bảng gói cảnh báo đỏ "chưa có gói"; nhân viên cấp gói qua Zalo (Đợt 11) |
+| RK-18 | 🟡 | `courses.price` của chương trình chỉ dùng để tạo sẵn gói 1 tháng khi tạo khóa; sửa ô "Giá" sau đó **không** đổi giá gói | 📖 `createCourse`, `PlanTable` | Admin có thể nhầm tưởng đã đổi học phí | ✅ 27/09 (chủ dự án chốt): form sửa chương trình không còn ô Giá, `updateCourse` giữ nguyên `price` khi không gửi ô Giá (E2E TC-95) |
+| RK-19 | 🟡 | Chương trình tắt / xóa hết gói → không nhận đăng ký, bệnh nhân không tự gia hạn được trên web | 📖 `getRegistrableCourses` | Mất doanh thu gia hạn nếu admin tắt nhầm | Bảng gói cảnh báo đỏ "chưa có gói". Đợt 11: nhân viên cấp gói được cho cả chương trình đang ẩn, nhưng vẫn cần ít nhất 1 gói đang bán (form cấp gói báo "Chưa có chương trình nào đang bán gói") |
 | RK-20 | 🟠 | Nội dung Chính sách bảo mật do đội phát triển soạn, có cam kết (thời hạn lưu, phản hồi 72 giờ) chưa được trung tâm / pháp lý duyệt | 📖 `app/chinh-sach-bao-mat/page.tsx` | Rủi ro pháp lý khi thu thập dữ liệu sức khỏe | Chủ dự án duyệt trước khi quảng bá (roadmap A-7) |
 | RK-22 | 🔴 | Trigger Đợt 9 khóa cột `plan_id` / `created_by` với người đăng nhập → khi admin xóa chương trình đã có đơn, khóa ngoại `on delete set null` bị trigger trả lại giá trị cũ → **không xóa được khóa học** | 👁 E2E TC-44 đỏ lần chạy đầu Đợt 9 | Admin không xóa được chương trình có đơn / không xóa được tài khoản nhân viên đã tạo đơn | ✅ Đã sửa: 2 cột này được phép về null (như `reviewed_by`); chạy lại schema |
 | RK-27 | 🔴 | `can_view_lesson` tra bài học trong bảng trước khi xét nhân viên / admin; khi admin **thêm** bài, RLS kiểm tra dòng vừa thêm (câu `insert … returning`) mà truy vấn trong hàm chưa thấy dòng đó → "new row violates row-level security policy" → **admin không thêm được bài học** | 👁 E2E Đợt 10 (bước thêm bài khóa A) + 🔬 thử trực tiếp | Không soạn được nội dung | ✅ Đã sửa: xét `is_staff()` trước; policy `lessons_select using (is_staff() or can_view_lesson(id))`; chạy lại schema |
@@ -247,6 +262,40 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 Xác minh Đợt 7, 8, 9, 10: schema đã chạy trên Supabase, E2E PASS (67 → 73 → 78 → 83 bước), dữ liệu test dọn sạch. RK-22 (Đợt 9), RK-27 và RK-28 (Đợt 10) phát hiện nhờ E2E và đã sửa trong cùng đợt.
 Còn mở từ v0.2: RK-18 (ẩn ô Giá khi sửa chương trình – đề xuất làm cùng Đợt 11), RK-23, RK-24 (theo dõi), RK-16/RK-19 (chờ Đợt 11), RK-20 (chờ A-7).
 Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
+
+### 7.6. Review Đợt 11 → 13 + cải tiến (cập nhật 27/09/2026)
+
+| Đợt | Nội dung | Trạng thái | Kiểm thử |
+| --- | --- | --- | --- |
+| 11 | Bệnh nhân từ Zalo (ADR-014): `/admin/patients` (lọc nguồn / trạng thái gói / mới / không tập, % tiến độ), tạo bệnh nhân + mật khẩu tự sinh hiện 1 lần + tin nhắn Zalo, cấp gói / gia hạn (tiền mặt, chuyển khoản, khác, ảnh tùy chọn), sửa thông tin + ghi chú nội bộ (`patient_notes`), cấp lại mật khẩu, nhắc đổi mật khẩu, nhật ký `account_events` | ✅ | TC-85 → TC-88, TC-96 |
+| 12 | Phiếu tham vấn (ADR-015): mẫu câu hỏi do admin soạn, form phiếu (5 / ngày), nút ở trình học / Khóa học của tôi / thẻ chúc mừng / gói sắp hết hạn, "Phiếu tham vấn của tôi" (`my_consultations()`), `/admin/consultations` | ✅ | TC-89 → TC-92 |
+| 13 | Dashboard: `dashboard_stats()`, `revenue_report()` (chỉ admin), 8 thẻ chỉ số, việc cần làm, tiến độ theo chương trình, không tập > 7 ngày, doanh thu 4 chiều | ✅ | TC-93, TC-94 |
+| + | `/admin/courses` chia theo loại; RK-18; hiệu năng middleware / xác thực (ADR-016) | ✅ | TC-95, TC-97, TC-98 |
+
+**Risk case mới – vòng review Đợt 11 → 13**
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
+| --- | --- | --- | --- | --- | --- |
+| RK-29 | 🔴 | Trigger `stamp_lead` (Đợt 8) trả lại `course_id` / `user_id` cũ → khi xóa khóa premium có lead hoặc xóa tài khoản đã để lại lead, khóa ngoại `on delete set null` bị trigger chặn → **không xóa được** (cùng loại RK-22). E2E cũ không bắt được vì bước dọn dữ liệu xóa lead trước | 📖 rà soát trigger khi viết `consultations_stamp` | Admin không xóa được khóa premium / tài khoản | ✅ Đã sửa: 2 cột chỉ được về null; áp dụng cùng quy tắc cho `consultations_stamp`, `patient_notes_stamp`. Thêm mục vào checklist bảo mật §8 + development-guide. E2E TC-98: xóa khóa premium còn lead, xóa tài khoản đã gửi phiếu |
+| RK-30 | 🟡 | `_patient_courses()` tính tiến độ mọi cặp (bệnh nhân, chương trình) mỗi lần mở danh sách bệnh nhân / dashboard | 📖 | Chậm dần khi > vài nghìn bệnh nhân × nhiều bài | Hiện nhỏ, 1 lần gọi. Khi cần: bảng tổng hợp cập nhật bằng trigger `lesson_progress` hoặc materialized view làm mới định kỳ |
+| RK-31 | 🔵 | Sau ADR-016, chuyển hướng theo vai trò (nhân viên mở trang chỉ admin, bệnh nhân mở `/admin`) xảy ra khi trang render (phía trình duyệt) thay vì mã 307 ở middleware | 👁 E2E chờ URL cuối | Không lộ dữ liệu; thêm 1 bước tải | Chấp nhận (đổi lại middleware nhẹ); ghi trong ADR-016 |
+| RK-32 | 🔵 | Doanh thu tính theo `reviewed_at` của đơn đang `approved`: thu hồi rồi duyệt lại → doanh thu chuyển sang tháng duyệt lại; đơn web tính theo giá gói, không phải số tiền thực chuyển | 📖 `revenue_report` | Lệch nhỏ khi đối soát | Chấp nhận; ghi chú dưới số liệu doanh thu. Khi làm R-08 lưu số tiền thực nhận |
+| RK-33 | 🟡 | Không có thông báo khi có đơn / phiếu tham vấn / lead mới – nhân viên phải mở Tổng quan | 📖 | Phiếu tham vấn (dữ liệu sức khỏe, có thể cần gọi sớm) bị chậm xử lý | Backlog ưu tiên 1 (R-01): email tóm tắt / Zalo OA; tạm thời: quy trình mở Tổng quan đầu mỗi ca |
+| RK-34 | 🟡 | Nhân viên gọi thẳng API có thể "cấp gói" cho **tài khoản nhân viên / admin** (giao diện chỉ cho bệnh nhân) → doanh thu ảo, số liệu dashboard sai | 📖 rà soát policy `registrations_staff_insert` | Sai báo cáo doanh thu | ✅ Đã sửa: trigger `registrations_stamp_insert` chỉ nhận tài khoản `role = 'user'` (E2E TC-96) |
+
+Kiểm tra thêm trong vòng này – **không** phải rủi ro:
+
+| Nghi vấn | Kết quả |
+| --- | --- |
+| Bệnh nhân đọc được ghi chú nội bộ qua API | 🔬 E2E: `patient_notes`, `account_events`, `consultations` trả 0 dòng với phiên bệnh nhân; `my_consultations()` không có `staff_note` |
+| Bệnh nhân / khách gọi được hàm quản trị | 🔬 `admin_patients` rỗng, `dashboard_stats` null, `patient_progress` rỗng, `_patient_courses` bị từ chối, `revenue_report` lỗi với nhân viên |
+| Nhân viên sửa câu trả lời phiếu / thông tin khách để lại | 🔬 Trigger giữ nguyên (E2E) |
+| Mật khẩu cũ còn dùng được sau khi cấp lại | 🔬 E2E: mật khẩu cũ bị từ chối, mật khẩu mới đăng nhập được |
+| Form tạo trùng SĐT tạo tài khoản dở dang | 🔬 Kiểm tra trùng trước khi tạo; lỗi sau khi tạo thì xóa tài khoản vừa tạo |
+
+Xác minh Đợt 11 → 13: schema đã chạy trên Supabase, `typecheck` / `lint` / `build` sạch, E2E **96/96 PASS**, dữ liệu test dọn sạch.
+Các lần chạy trước đỏ: (1) **lỗi thật** – form "Thêm khóa học" không đổi loại chọn sẵn khi chuyển tab bằng link (component được giữ lại) → sửa bằng `key` theo tab;
+(2) locator của test bắt nhầm ô giá trong bảng Gói; (3) từ khóa tìm bệnh nhân (SĐT test) trùng dãy số trong email test của bệnh nhân khác → test tìm theo tên. (2), (3) là lỗi của test.
 
 ### Đã kiểm tra – **không** phải rủi ro
 
@@ -272,7 +321,8 @@ Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 | ~~Đợt 8 – Danh mục, premium, chính sách~~ | ✅ 27/09/2026, E2E 73/73 (xem §7.5) | — |
 | ~~Đợt 9 – Gói tháng & hạn học~~ | ✅ 27/09/2026, E2E 78/78, sửa RK-22 (xem §7.5) | — |
 | ~~Đợt 10 – Buổi – bài & trình học~~ | ✅ 27/09/2026, E2E 83/83, sửa RK-27, RK-28 (xem §7.5) | — |
-| **Tiếp theo** | Theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3 và checklist §2.5: 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
+| ~~Đợt 11 → 13~~ | ✅ 27/09/2026, E2E 96/96, sửa RK-18, RK-29, RK-34 (xem §7.6) | — |
+| **Tiếp theo** | **Đợt 14 – Go-live MVP** ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); sau đó backlog ưu tiên roadmap §3.2 (thông báo, giám sát, staging + CI) | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;
 có staging mới test được "admin cuối cùng" (G-12). Sau đó Đợt 5 (chống lạm dụng) trước khi quảng bá rộng.

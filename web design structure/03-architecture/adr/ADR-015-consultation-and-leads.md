@@ -1,6 +1,6 @@
 # ADR-015: Phiếu tham vấn bác sĩ và khách quan tâm premium lưu trên website
 
-- **Trạng thái**: Accepted (thiết kế v0.2, chưa triển khai)
+- **Trạng thái**: Accepted – ✅ khách quan tâm (Đợt 8), ✅ phiếu tham vấn (Đợt 12, 27/09/2026), có điều chỉnh (xem cuối file)
 - **Ngày**: 27/09/2026
 - **Người quyết định**: Chủ dự án
 
@@ -35,3 +35,12 @@
 ## Phương án đã cân nhắc
 - *Câu hỏi cố định trong code*: nhanh nhưng mỗi lần sửa câu hỏi phải deploy; chọn bảng do admin sửa.
 - *Chỉ mở Zalo, không lưu*: không đo được, staff không chủ động gọi lại được.
+
+## Điều chỉnh khi triển khai (Đợt 12, 27/09/2026)
+- Cột nguồn nhắc đặt tên `origin` (`manual` / `course_end` / `expiring`) thay cho `trigger` (tránh trùng từ khóa SQL).
+- **Bệnh nhân không đọc thẳng bảng `consultations`** (RLS chỉ cho nhân viên / admin) mà qua hàm `my_consultations()` trả các cột
+  an toàn (không có `staff_note`, người xử lý) – RLS theo dòng không ẩn được từng cột.
+- Phiếu lưu thêm ảnh chụp `full_name`, `phone` lúc gửi (vẫn liên hệ được khi tài khoản bị xóa, `user_id` về null).
+- Trigger `consultations_stamp` (như `leads_stamp`) chỉ cho đổi trạng thái + ghi chú nội bộ; `user_id` / `course_id` chỉ được về
+  null (khóa ngoại khi xóa tài khoản / khóa học – bài học RK-22, RK-29).
+- Giới hạn 5 phiếu / ngày theo tài khoản (`rate_limits`, khóa `consult:<user_id>`), chỉ tính phiếu đã qua kiểm tra dữ liệu.

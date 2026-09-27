@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { requireStaffPage } from '@/lib/auth'
 import { formatPrice } from '@/lib/site-config'
 import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
@@ -120,6 +121,7 @@ export default async function AdminRegistrationsPage({
 }: {
   searchParams: { status?: string }
 }) {
+  await requireStaffPage()
   const filter = filters.some((f) => f.key === searchParams.status) ? searchParams.status! : 'pending'
   const supabase = createClient()
 

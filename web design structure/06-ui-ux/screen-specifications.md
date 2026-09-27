@@ -309,7 +309,7 @@ Nhân viên xem trang này nhưng cột Vai trò chỉ hiện nhãn, không đ�
 
 ---
 
-# Màn hình phiên bản 0.2 (chốt 27/09/2026 – chưa triển khai)
+# Màn hình phiên bản 0.2 (chốt 27/09/2026 – ✅ đã triển khai Đợt 8 → 13)
 
 Bố cục học tập tham khảo **Udemy**: trang giới thiệu có khung giá dính bên phải, trình học có cột nội dung theo buổi,
 thanh tiến độ nhỏ, nút hành động rõ ràng. Giữ màu ocean/gold và quy tắc mobile-first hiện có.
@@ -393,7 +393,7 @@ Phiếu tham vấn của tôi: 27/09 · Mới │ 10/09 · Hoàn tất
 
 ## SCR-19 – Trình học (thay SCR-09)
 
-> ✅ Đợt 10: đúng bố cục dưới; thanh nút cố định đáy trên điện thoại; khách ở khóa miễn phí thấy "Đăng nhập để lưu tiến độ". Nút "Phiếu tham vấn" ở Đợt 12. Điện thoại: cột nội dung nằm dưới video (chưa tách 2 tab).
+> ✅ Đợt 10: đúng bố cục dưới; thanh nút cố định đáy trên điện thoại; khách ở khóa miễn phí thấy "Đăng nhập để lưu tiến độ". ✅ Đợt 12: nút "📝 Phiếu tham vấn" cạnh thanh tiến độ, thẻ chúc mừng có "Gửi phiếu tham vấn bác sĩ". Điện thoại: cột nội dung nằm dưới video (tách 2 tab: để sau v0.2 – chủ dự án chốt 27/09).
 
 ```text
 ← Chương trình Vẹo ngực       ███████░░░ 18/72 · 25%          [📝 Phiếu tham vấn]
@@ -417,6 +417,8 @@ Buổi 4 · Bài 2/6                              │   [ ] Bài 3 …          
 
 ## SCR-20 – Phiếu tham vấn
 
+> ✅ Đợt 12: đúng bố cục dưới; chọn sẵn chương trình theo `?course=`; thang 0–10 là 11 ô bấm; lỗi hiện `role="alert"` đầu form; thành công → `/courses?consultation=sent` + toast, phiếu hiện ở "Phiếu tham vấn của tôi".
+
 ```text
 Phiếu tham vấn bác sĩ
 Chương trình đang tập: [Vẹo ngực ▾] (tùy chọn)
@@ -430,7 +432,7 @@ Câu `scale` bắt buộc chọn; `check` bắt buộc; `text` không bắt bu�
 
 ## SCR-21 – Hộp nhắc sau đăng nhập
 
-> ✅ Đợt 8: hộp đồng ý chính sách (`ConsentReminder`, chỉ tài khoản học viên, không hiện trên trang chính sách). Nhắc đổi mật khẩu ở Đợt 11.
+> ✅ Đợt 8: hộp đồng ý chính sách. ✅ Đợt 11: gộp thành `LoginReminders` (đồng ý chính sách trước, rồi nhắc đổi mật khẩu); không hiện ở trang chính sách; nhắc đổi mật khẩu không hiện ở `/account`; "Để sau" nhớ trong phiên trình duyệt.
 - **Đổi mật khẩu** (`must_change_password`): "Mật khẩu của bạn do nhân viên cấp. Bạn nên đổi mật khẩu mới để bảo mật." [Đổi ngay → /account#doi-mat-khau] [Để sau].
 - **Đồng ý chính sách** (chưa có `consent_at`): nội dung tóm tắt + link chính sách + [Tôi đồng ý]; không có nút bỏ qua cho tới khi đồng ý (vẫn đăng xuất được).
 
@@ -452,6 +454,8 @@ theo chương trình · theo hình thức (CK / tiền mặt / khác) · theo ng
 ```
 Mỗi thẻ là link tới danh sách đã lọc. Biểu đồ tuân theo design system (không màu mè, số liệu có nhãn).
 
+> ✅ Đợt 13: 8 thẻ (Bệnh nhân · Mới 30 ngày · Đơn chờ duyệt · Gói đang hiệu lực · Sắp hết hạn 7 ngày · Đã hết hạn · Phiếu tham vấn mới · Khách premium mới), "Việc cần làm" (đơn chờ, phiếu mới, lead mới, bệnh nhân sắp hết hạn kèm Gọi / Zalo), "Tiến độ theo chương trình" + "Không tập > 7 ngày"; khối Doanh thu chỉ admin (tháng này so tháng trước, 4 bảng phân tích).
+
 ## SCR-23 – Admin: Tạo bệnh nhân
 
 ```text
@@ -465,17 +469,21 @@ Số tiền đã nhận * [990.000]  Hình thức * (•)Chuyển khoản ( )Ti�
 Ảnh chuyển khoản [chọn ảnh]  Ghi chú thanh toán [____]
 [ Tạo tài khoản ]
 ```
-Thành công → chuyển SCR-24 với khung xanh: "Mật khẩu: **K7m-Pq4x** (chỉ hiện một lần)" + [Chép tin nhắn gửi Zalo]:
+> ✅ Đợt 11: như trên; số tiền tự điền theo giá gói (sửa được). Thành công ở lại trang, hiện khung mật khẩu + [Xem hồ sơ bệnh nhân] [Tạo bệnh nhân khác].
+
+Thành công → khung xanh: "Mật khẩu: **K7mPq4xa** (chỉ hiện một lần)" + [Chép tin nhắn gửi Zalo]:
 "Chào chị Mai, tài khoản tập luyện tại Trung tâm HV: Đăng nhập: <link> · SĐT: 09xx · Mật khẩu: … · Chị nên đổi mật khẩu sau khi đăng nhập."
 
 ## SCR-24 – Admin: Chi tiết bệnh nhân
+
+> ✅ Đợt 11: cột trái – thông tin (nguồn, người tạo, ngày đồng ý, ghi chú nội bộ), Gói & tiến độ, Lịch sử đơn / gói, Phiếu tham vấn, Nhật ký tài khoản; cột phải – Cấp gói / Gia hạn, Sửa thông tin (kèm ghi chú nội bộ), Cấp lại mật khẩu. Tài khoản nhân viên / admin: chỉ hiện thông tin.
 Thông tin (sửa được), nguồn (Web/Zalo), người tạo, ngày đồng ý chính sách; **Gói & hạn học** từng chương trình (lịch sử đơn, số tiền,
 hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (thanh %, buổi đang tập, lần tập gần nhất); **Phiếu tham vấn**;
 [Cấp lại mật khẩu] (xác nhận, hiện mật khẩu một lần); nhật ký `account_events`. Staff không thấy nút đổi vai trò.
 
 ## SCR-25 – Admin: Phiếu tham vấn / Khách quan tâm
 
-> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`): tab kèm số lượng, thẻ khách (gọi, Zalo, khóa, thời điểm, người cập nhật), ô chọn trạng thái + ghi chú nội bộ. Phiếu tham vấn ở Đợt 12.
+> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`). ✅ Đợt 12 phần Phiếu (`/admin/consultations`): tab kèm số lượng; thẻ phiếu có link hồ sơ bệnh nhân, Gọi / Zalo, chương trình, nguồn nhắc, nhãn câu thang điểm đầu tiên (mức đau), câu trả lời mở sẵn ở tab Mới; ô trạng thái + ghi chú nội bộ. % tiến độ xem ở hồ sơ bệnh nhân.
 - Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: bệnh nhân (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
   mở rộng xem toàn bộ câu trả lời; ô ghi chú nội bộ + nút chuyển trạng thái; người xử lý.
 - Lead: tab Mới · Đã liên hệ · Đã chốt · Đóng; cột khóa premium, họ tên, SĐT, đã đăng nhập hay chưa, thời điểm; dòng thống kê
@@ -486,6 +494,8 @@ hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (than
 > ✅ Đợt 8: loại, nhóm bệnh, ảnh bìa (nén trên trình duyệt, xem trước, "Xóa ảnh bìa hiện tại"), mô tả ngắn, "Bạn sẽ đạt được"; thẻ khóa có ảnh nhỏ, nhãn loại, nút "Xem trang giới thiệu"; khóa premium không có "Quản lý bài học". ✅ Đợt 9: bảng **Gói theo thời hạn** trong thẻ chương trình (sửa giá / số buổi / đang bán, xóa có xác nhận, thêm gói còn thiếu; cảnh báo đỏ khi chưa có gói); tạo chương trình có học phí → tự có gói 1 tháng. Số buổi × số bài ở Đợt 10.
 Form khóa thêm: Loại (Miễn phí / Chương trình / Premium), Nhóm (Vẹo lưng / Vẹo ngực / Không), Ảnh bìa (xem trước 16:9), Mô tả ngắn,
 "Bạn sẽ đạt được" (mỗi dòng một ý), Giá (chỉ premium). Khi tạo chương trình: ô **Số buổi** và **Số bài mỗi buổi** (mặc định 12 × 6).
+
+> ✅ Sau Đợt 10 (27/09): danh sách chia theo loại – nút lọc Tất cả / Chương trình / Miễn phí / Premium (kèm số lượng), chế độ Tất cả chia 3 nhóm có tiêu đề; form thêm khóa chọn sẵn loại theo tab. RK-18: sửa chương trình không còn ô Giá (giá bán sửa ở bảng Gói).
 Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổi · Đang bán / Tắt · [Sửa] [Xóa].
 
 ## SCR-27 – Admin: Nội dung buổi – bài (thay SCR-13)
@@ -502,4 +512,6 @@ Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổ
 ```
 
 ## SCR-28 – Admin: Mẫu phiếu tham vấn
+
+> ✅ Đợt 12: như mô tả; thêm câu hỏi ở khung bên phải; câu đang tắt hiện mờ kèm nhãn "Đang tắt".
 Danh sách câu hỏi (kéo lên/xuống bằng nút ↑↓), loại, bật/tắt, [Sửa] [Xóa]; form thêm câu hỏi; ghi chú "Sửa câu hỏi không ảnh hưởng phiếu đã gửi".

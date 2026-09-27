@@ -15,7 +15,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
   - **Staff** *(v0.2)* – nhân viên, `role = staff`: duyệt đơn, tạo tài khoản bệnh nhân, cấp gói, theo dõi, xử lý phiếu tham vấn và lead (ADR-011).
   - **Hệ thống** – server Next.js, Supabase, dịch vụ email.
 
-> Từ v0.2, học viên được gọi là **bệnh nhân** trên giao diện. Yêu cầu v0.2 ở §2.11 → §2.19 (chưa triển khai, trạng thái ⬜);
+> Từ v0.2, học viên được gọi là **bệnh nhân** trên giao diện. Yêu cầu v0.2 ở §2.11 → §2.19 (✅ đã triển khai Đợt 7 → 13, 27/09/2026);
 > các FR cũ bị thay đổi được liệt kê ở §2.20.
 
 ## 2. Yêu cầu chức năng (FR)
@@ -122,7 +122,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
-| FR-080 | `/admin/users` liệt kê tài khoản (mới nhất trước, tối đa 500): tên, badge Admin, email, SĐT, các khóa đã đăng ký + trạng thái, ngày tạo | M | ✅ |
+| FR-080 | ✅ Đợt 11: `/admin/patients` (thay `/admin/users`, đường dẫn cũ tự chuyển) liệt kê bệnh nhân (mới nhất trước, tối đa 200 – lọc/tìm để thu hẹp): tên, nguồn Web/Zalo, người tạo, email, SĐT, các khóa + trạng thái + hạn, % tiến độ, ngày tạo; tab "Nhân viên & Admin" (chỉ admin) | M | ✅ |
 | FR-081 | Tìm kiếm theo tên / email / SĐT (không phân biệt hoa thường) | M | ✅ |
 | FR-082 | Máy tính dạng bảng, điện thoại dạng thẻ | S | ✅ |
 
@@ -210,7 +210,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-152 | Buổi mở lần lượt: buổi k+1 mở khi tick đủ mọi bài của buổi k; buổi bị khóa hiện 🔒 và lý do ("Hoàn thành Buổi k để mở", "Gia hạn để mở"); áp dụng ở database | M | 10 | ✅ |
 | FR-153 | Thanh tiến độ nhỏ: "Đã hoàn thành 18/72 bài · 25%" ở trình học, trang khóa, thẻ khóa trong "Khóa học của tôi" | M | 10 | ✅ |
 | FR-154 | Nút hành động nổi bật: "Tiếp tục Buổi X – Bài Y" (thẻ khóa, trang khóa), "Hoàn thành & bài tiếp theo" (trình học), "Bắt đầu Buổi X+1" khi xong buổi | M | 10 | ✅ |
-| FR-155 | Hoàn thành buổi cuối đã mua: thẻ chúc mừng + nút "Gửi phiếu tham vấn bác sĩ" + "Gia hạn để tập tiếp" | M | 12 | ⬜ |
+| FR-155 | Hoàn thành buổi cuối đã mua: thẻ chúc mừng + nút "Gửi phiếu tham vấn bác sĩ" + "Gia hạn để tập tiếp" | M | 12 | ✅ Đợt 10 (thẻ chúc mừng, Gia hạn) + Đợt 12 (nút "Gửi phiếu tham vấn bác sĩ", `origin=course_end`) |
 | FR-156 | Staff/admin xem trước mọi buổi (không bị khóa, không ghi tiến độ) | S | 10 | ✅ |
 | FR-157 | Video chỉ đọc được khi `can_view_lesson` đúng (Đợt 10: RLS theo dòng trên `lessons` thay cho RPC `get_lesson_video`, xem ADR-013 §Điều chỉnh); đề cương công khai không chứa link video | M | 10 | ✅ |
 
@@ -218,22 +218,22 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-160 | `/admin/patients/new`: họ tên*, SĐT*, email, ghi chú, "Bệnh nhân đã đồng ý chính sách bảo mật"*; tùy chọn cấp gói: chương trình + gói + số tiền* (mặc định giá gói) + hình thức thanh toán* + ảnh chuyển khoản (tùy chọn) + ghi chú thanh toán | M | 11 | ⬜ |
-| FR-161 | Mật khẩu hệ thống sinh 8 ký tự dễ đọc; hiện **một lần** sau khi tạo, nút "Chép tin nhắn gửi Zalo" | M | 11 | ⬜ |
-| FR-162 | Tài khoản tạo bởi nhân viên: `source = zalo`, `created_by`, `must_change_password = true`; đơn cấp gói `approved` ngay, người xử lý = nhân viên | M | 11 | ⬜ |
-| FR-163 | Trang chi tiết bệnh nhân `/admin/patients/[id]`: thông tin, nguồn, người tạo, các gói & hạn học, tiến độ từng khóa, phiếu tham vấn, lịch sử; nút Sửa thông tin, Cấp gói / Gia hạn, Cấp lại mật khẩu | M | 11 | ⬜ |
-| FR-164 | Cấp lại mật khẩu (staff, admin) cho tài khoản bệnh nhân: sinh mật khẩu mới, hiện một lần, đặt lại cờ đổi mật khẩu | M | 11 | ⬜ |
-| FR-165 | Đăng nhập với `must_change_password = true`: hộp nhắc "Bạn nên đổi mật khẩu" [Đổi ngay] / [Để sau]; đổi thành công (Supabase Auth) thì tắt cờ | M | 11 | ⬜ |
-| FR-166 | Danh sách bệnh nhân lọc theo nguồn (Web / Zalo), trạng thái gói (đang học / sắp hết hạn / hết hạn / chưa có gói), tìm theo tên/SĐT/email | M | 11 | ⬜ |
+| FR-160 | `/admin/patients/new`: họ tên*, SĐT*, email, ghi chú, "Bệnh nhân đã đồng ý chính sách bảo mật"*; tùy chọn cấp gói: chương trình + gói + số tiền* (mặc định giá gói) + hình thức thanh toán* + ảnh chuyển khoản (tùy chọn) + ghi chú thanh toán | M | 11 | ✅ Đợt 11 – `/admin/patients/new`, `createPatientAction` (số tiền điền sẵn theo giá gói, sửa được) |
+| FR-161 | Mật khẩu hệ thống sinh 8 ký tự dễ đọc; hiện **một lần** sau khi tạo, nút "Chép tin nhắn gửi Zalo" | M | 11 | ✅ Đợt 11 – `lib/generate-password.ts`, `OneTimeSecret` |
+| FR-162 | Tài khoản tạo bởi nhân viên: `source = zalo`, `created_by`, `must_change_password = true`; đơn cấp gói `approved` ngay, người xử lý = nhân viên | M | 11 | ✅ Đợt 11 – trigger `registrations_stamp_insert` + `registrations_log_insert` (lịch sử `new → approved`) |
+| FR-163 | Trang chi tiết bệnh nhân `/admin/patients/[id]`: thông tin, nguồn, người tạo, các gói & hạn học, tiến độ từng khóa, phiếu tham vấn, lịch sử; nút Sửa thông tin, Cấp gói / Gia hạn, Cấp lại mật khẩu | M | 11 | ✅ Đợt 11 – `/admin/patients/[id]` (RPC `patient_progress`); ghi chú nội bộ ở `patient_notes` |
+| FR-164 | Cấp lại mật khẩu (staff, admin) cho tài khoản bệnh nhân: sinh mật khẩu mới, hiện một lần, đặt lại cờ đổi mật khẩu | M | 11 | ✅ Đợt 11 – `resetPatientPasswordAction`, ghi `account_events` |
+| FR-165 | Đăng nhập với `must_change_password = true`: hộp nhắc "Bạn nên đổi mật khẩu" [Đổi ngay] / [Để sau]; đổi thành công (Supabase Auth) thì tắt cờ | M | 11 | ✅ Đợt 11 – `components/LoginReminders.tsx` ("Để sau" lưu theo phiên trình duyệt); `changePasswordAction` tắt cờ |
+| FR-166 | Danh sách bệnh nhân lọc theo nguồn (Web / Zalo), trạng thái gói (đang học / sắp hết hạn / hết hạn / chưa có gói), tìm theo tên/SĐT/email | M | 11 | ✅ Đợt 11 – RPC `admin_patients` (thêm lọc "Không tập > 7 ngày", "Mới 7/30 ngày") |
 
 ### 2.17. Phiếu tham vấn & khách quan tâm premium (ADR-015)
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-170 | Admin soạn **mẫu phiếu tham vấn chung**: câu hỏi dạng có/không, thang 0–10, trả lời ngắn; sắp thứ tự, bật/tắt | M | 12 | ⬜ |
-| FR-171 | Bệnh nhân đã đăng nhập gửi phiếu **bất cứ lúc nào**: nút "Gửi phiếu tham vấn" ở trình học, Khóa học của tôi; được nhắc khi hoàn thành buổi cuối đã mua hoặc gói còn ≤ 7 ngày | M | 12 | ⬜ |
-| FR-172 | Phiếu lưu snapshot câu hỏi + câu trả lời, khóa đang học, ghi chú; bệnh nhân xem lại phiếu đã gửi và trạng thái | M | 12 | ⬜ |
-| FR-173 | `/admin/consultations`: danh sách phiếu (Mới / Đã liên hệ / Hoàn tất / Hủy), xem câu trả lời, gọi/Zalo bệnh nhân, đổi trạng thái kèm ghi chú nội bộ, người xử lý | M | 12 | ⬜ |
+| FR-170 | Admin soạn **mẫu phiếu tham vấn chung**: câu hỏi dạng có/không, thang 0–10, trả lời ngắn; sắp thứ tự, bật/tắt | M | 12 | ✅ Đợt 12 – `/admin/settings/consultation` |
+| FR-171 | Bệnh nhân đã đăng nhập gửi phiếu **bất cứ lúc nào**: nút "Gửi phiếu tham vấn" ở trình học, Khóa học của tôi; được nhắc khi hoàn thành buổi cuối đã mua hoặc gói còn ≤ 7 ngày | M | 12 | ✅ Đợt 12 – nút ở trình học, Khóa học của tôi (đầu trang + thẻ khóa còn ≤ 7 ngày), thẻ chúc mừng |
+| FR-172 | Phiếu lưu snapshot câu hỏi + câu trả lời, khóa đang học, ghi chú; bệnh nhân xem lại phiếu đã gửi và trạng thái | M | 12 | ✅ Đợt 12 – `answers` jsonb; "Phiếu tham vấn của tôi" qua `my_consultations()` |
+| FR-173 | `/admin/consultations`: danh sách phiếu (Mới / Đã liên hệ / Hoàn tất / Hủy), xem câu trả lời, gọi/Zalo bệnh nhân, đổi trạng thái kèm ghi chú nội bộ, người xử lý | M | 12 | ✅ Đợt 12 – `/admin/consultations`, `setConsultationStatus` (không ghi đè) |
 | FR-174 | Khóa premium: nút "Liên hệ Zalo nhận ưu đãi" mở hộp Họ tên + SĐT (điền sẵn nếu đăng nhập) → lưu lead → mở Zalo tab mới; nút phụ "Mở Zalo ngay" vẫn lưu lượt bấm ẩn danh | M | 8 | ✅ |
 | FR-175 | `/admin/leads`: danh sách lead theo khóa premium, trạng thái Mới / Đã liên hệ / Đã chốt / Đóng, ghi chú, người xử lý; lượt bấm ẩn danh chỉ đếm | M | 8 | ✅ |
 
@@ -241,17 +241,17 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-180 | `/admin` là **Tổng quan**; bảng đơn chuyển sang `/admin/registrations` | M | 13 | ⬜ |
-| FR-181 | Thẻ chỉ số: tổng bệnh nhân; bệnh nhân mới 7/30 ngày tách theo nguồn Web / Zalo; đơn chờ duyệt; gói đang hiệu lực; gói hết hạn trong 7 ngày; gói đã hết hạn chưa gia hạn; phiếu tham vấn mới; lead premium mới | M | 13 | ⬜ |
-| FR-182 | Danh sách việc cần làm: đơn chờ duyệt lâu nhất, bệnh nhân sắp hết hạn (gọi nhắc gia hạn), phiếu tham vấn mới, lead mới, bệnh nhân không tập > 7 ngày | M | 13 | ⬜ |
-| FR-183 | Tiến độ bệnh nhân: tiến độ trung bình theo chương trình; danh sách bệnh nhân kèm % và lần tập gần nhất | M | 13 | ⬜ |
-| FR-184 | Chỉ admin: doanh thu tháng này / tháng trước theo chương trình, theo hình thức thanh toán, theo nguồn, theo nhân viên cấp | M | 13 | ⬜ |
+| FR-180 | `/admin` là **Tổng quan**; bảng đơn chuyển sang `/admin/registrations` | M | 13 | ✅ Đợt 13 – `/admin` Tổng quan; `/admin?status=` chuyển sang bảng đơn |
+| FR-181 | Thẻ chỉ số: tổng bệnh nhân; bệnh nhân mới 7/30 ngày tách theo nguồn Web / Zalo; đơn chờ duyệt; gói đang hiệu lực; gói hết hạn trong 7 ngày; gói đã hết hạn chưa gia hạn; phiếu tham vấn mới; lead premium mới | M | 13 | ✅ Đợt 13 – `dashboard_stats()`, thẻ bấm được tới danh sách lọc sẵn |
+| FR-182 | Danh sách việc cần làm: đơn chờ duyệt lâu nhất, bệnh nhân sắp hết hạn (gọi nhắc gia hạn), phiếu tham vấn mới, lead mới, bệnh nhân không tập > 7 ngày | M | 13 | ✅ Đợt 13 |
+| FR-183 | Tiến độ bệnh nhân: tiến độ trung bình theo chương trình; danh sách bệnh nhân kèm % và lần tập gần nhất | M | 13 | ✅ Đợt 13 – tiến độ trung bình theo chương trình, danh sách không tập > 7 ngày; % từng bệnh nhân ở `/admin/patients` |
+| FR-184 | Chỉ admin: doanh thu tháng này / tháng trước theo chương trình, theo hình thức thanh toán, theo nguồn, theo nhân viên cấp | M | 13 | ✅ Đợt 13 – `revenue_report()` (chỉ admin), theo người duyệt / cấp gói |
 
 ### 2.19. Chuyển đổi dữ liệu
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-190 | ✅ (Đợt 8) Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi go-live | M | 8–10 | ⬜ |
+| FR-190 | Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi go-live | M | 8–10 | ✅ Chuyển đổi trong `schema.sql` (Đợt 8–10) · ⬜ dọn dữ liệu test trước go-live (roadmap Đợt 14) |
 
 ### 2.20. FR cũ thay đổi ở v0.2
 
@@ -266,7 +266,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-063, FR-064 | Thay bằng FR-150 → FR-154 | 10 |
 | FR-066 | Quyền xem theo `can_view_lesson` (hạn học + mở tuần tự + khóa miễn phí) | 10 |
 | FR-070 → FR-079 | ✅ Đợt 7: chuyển sang `/admin/registrations`; staff được thao tác. `/admin` thành Tổng quan ở Đợt 13 | 7, 13 |
-| FR-080 → FR-082 | Thành "Bệnh nhân" + chi tiết bệnh nhân (FR-163, FR-166) | 11 |
+| FR-080 → FR-082 | ✅ Thành "Bệnh nhân" + chi tiết bệnh nhân (FR-163, FR-166) | 11 |
 | FR-090 → FR-093 | Thêm loại, nhóm, ảnh bìa, gói, buổi (FR-120, FR-130, FR-140) | 8 → 10 |
 
 ## 3. Yêu cầu phi chức năng (NFR)

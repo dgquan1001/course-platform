@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth'
+import { requireUserPage } from '@/lib/auth'
 import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
 import { ArrowRightIcon, BookIcon, CheckIcon, ClockIcon } from '@/components/icons'
 import { daysLeft, formatDate, type OutlineRow } from '@/lib/courses'
 import { getCourseProgress, type CourseProgress } from '@/lib/progress'
 import ProgressBar from '@/components/ProgressBar'
+import StatusBadge from '@/components/StatusBadge'
+import { formatDay } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Khóa học của tôi' }
 
@@ -20,7 +22,7 @@ type CourseRow = {
 }
 
 // Khóa đã mở kèm hạn học: null = không thời hạn (đơn cũ không có gói, hoặc nhân viên / admin xem trước)
-type OwnedCourse = CourseRow & { accessUntil: string | null; progress?: CourseProgress; nextLabel?: string | null }
+type OwnedCourse = CourseRow & { accessUntil: string | null; progress?: CourseProgress; nextLabel?: string | null; preview?: boolean }
 
 // "Buổi X – Bài Y" của bài tiếp theo (theo đề cương course_outline)
 async function withProgress(supabase: ReturnType<typeof createClient>, course: OwnedCourse): Promise<OwnedCourse> {
@@ -72,7 +74,13 @@ function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolea
             <BookIcon className="h-4 w-4" /> {course.lessons?.[0]?.count ?? 0} bài học
           </span>
         )}
-        <span className="flex gap-2">
+        <span className="flex flex-wrap gap-2">
+          {/* Gói còn ≤ 7 ngày: nhắc gửi phiếu tham vấn trước khi hết hạn (FR-171) */}
+          {!expired && !course.preview && (daysLeft(course.accessUntil) ?? 99) <= 7 && (
+            <Link href={`/courses/consultation?course=${course.id}&origin=expiring`} className="btn-outline btn-sm">
+              Phiếu tham vấn
+            </Link>
+          )}
           {renewable && (
             <Link href={`/register?course=${course.id}`} className={expired ? 'btn-gold btn-sm' : 'btn-outline btn-sm'}>
               {expired ? 'Gia hạn để tập tiếp' : 'Gia hạn'}
@@ -101,20 +109,22 @@ export default async function CoursesPage({
   searchParams: { registered?: string }
 }) {
   const supabase = createClient()
-  const user = (await getCurrentUser())!
+  const user = await requireUserPage('/courses')
 
   let unlocked: OwnedCourse[] = []
   let expired: OwnedCourse[] = []
   type RegistrationRow = { id: string; title: string; amount: number | null; note: string | null; course: CourseRow | null }
   let pending: RegistrationRow[] = []
   let rejected: RegistrationRow[] = []
+  type MyConsultation = { id: string; course_title: string | null; status: string; created_at: string }
+  let consultations: MyConsultation[] = []
 
   const courseFields = 'id, title, description, price, kind, lessons(count)'
 
   // Nhân viên và admin xem trước được mọi khóa học
   if (user.isStaff) {
     const { data } = await supabase.from('courses').select(courseFields).order('sort_order')
-    unlocked = ((data as CourseRow[]) ?? []).map((c) => ({ ...c, accessUntil: null }))
+    unlocked = ((data as CourseRow[]) ?? []).map((c) => ({ ...c, accessUntil: null, preview: true }))
   } else {
     const { data } = await supabase
       .from('registrations')
@@ -155,14 +165,25 @@ export default async function CoursesPage({
     }
     pending = rows.filter((r) => r.status === 'pending')
     rejected = rows.filter((r) => r.status === 'rejected')
+    const { data: mine } = await supabase.rpc('my_consultations', { p_limit: 10 })
+    consultations = (mine ?? []) as MyConsultation[]
   }
 
   return (
     <main>
       <section className="border-b border-ocean-100 bg-gradient-to-b from-ocean-50 to-white">
         <div className="container-page py-8 sm:py-10">
-          <p className="text-sm text-slate-500">Xin chào, {user.fullName || user.email || user.phone}</p>
-          <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Khóa học của tôi</h1>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm text-slate-500">Xin chào, {user.fullName || user.email || user.phone}</p>
+              <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Khóa học của tôi</h1>
+            </div>
+            {!user.isStaff && (
+              <Link href="/courses/consultation" className="btn-outline">
+                📝 Gửi phiếu tham vấn
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
@@ -265,6 +286,21 @@ export default async function CoursesPage({
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {!!consultations.length && (
+          <section aria-label="Phiếu tham vấn của tôi">
+            <h2 className="mb-3 text-lg font-bold">Phiếu tham vấn của tôi</h2>
+            <ul className="card divide-y divide-slate-100">
+              {consultations.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                  <span className="text-slate-500">{formatDay(c.created_at)}</span>
+                  <span className="flex-1 font-medium text-ocean-900">{c.course_title ?? 'Phiếu tham vấn'}</span>
+                  <StatusBadge status={`consult_${c.status}`} />
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

@@ -3,12 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-// adminOnly: nhân viên (staff) không thấy tab này (middleware cũng chặn)
+// adminOnly: nhân viên (staff) không thấy tab này (trang cũng tự chặn bằng requireAdminPage)
+// exact: "Tổng quan" (/admin) chỉ sáng khi đúng trang, không sáng theo các trang con
 const tabs = [
+  { href: '/admin', label: 'Tổng quan', adminOnly: false, exact: true },
   { href: '/admin/registrations', label: 'Đơn đăng ký', adminOnly: false },
-  { href: '/admin/users', label: 'Học viên', adminOnly: false },
+  { href: '/admin/patients', label: 'Bệnh nhân', adminOnly: false },
+  { href: '/admin/consultations', label: 'Phiếu tham vấn', adminOnly: false },
   { href: '/admin/leads', label: 'Khách quan tâm', adminOnly: false },
   { href: '/admin/courses', label: 'Khóa học', adminOnly: true },
+  { href: '/admin/settings/consultation', label: 'Mẫu phiếu', adminOnly: true },
 ]
 
 export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
@@ -18,7 +22,7 @@ export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
       {tabs
         .filter((t) => isAdmin || !t.adminOnly)
         .map((t) => {
-          const active = pathname === t.href || pathname.startsWith(`${t.href}/`)
+          const active = pathname === t.href || (!t.exact && pathname.startsWith(`${t.href}/`))
           return (
             <Link
               key={t.href}

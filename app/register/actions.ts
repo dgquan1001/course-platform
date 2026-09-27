@@ -9,7 +9,7 @@ import { setFlash } from '@/lib/flash'
 import { isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail, realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
-import { detectImageType, type ImageType } from '@/lib/image-type'
+import { detectImageType, IMAGE_EXT } from '@/lib/image-type'
 import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { siteConfig } from '@/lib/site-config'
@@ -18,12 +18,6 @@ import { CONSENT_VERSION } from '@/lib/consent'
 export type RegisterState = { error: string | null }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
-const IMAGE_EXT: Record<ImageType, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/heic': 'heic',
-}
 
 export async function registerAction(
   _prev: RegisterState,

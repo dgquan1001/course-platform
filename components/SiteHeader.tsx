@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateProfile, useProfile } from '@/lib/use-profile'
 import { realEmail } from '@/lib/phone'
 import { siteConfig } from '@/lib/site-config'
 import {
@@ -32,49 +33,32 @@ const navLinks = [
 export default function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<HeaderUser | undefined>(undefined)
+  // Đọc phiên đăng nhập ở trình duyệt (dùng chung với hộp nhắc, có cache), nhờ vậy các trang công khai
+  // vẫn được cache tĩnh; kiểm tra lại mỗi lần chuyển trang (login/logout qua server action)
+  const profile = useProfile()
+  const [signedOut, setSignedOut] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
 
-  // Đọc phiên đăng nhập từ cookie ở trình duyệt, nhờ vậy các trang công khai
-  // vẫn được cache tĩnh; kiểm tra lại mỗi lần chuyển trang (login/logout qua server action)
   useEffect(() => {
-    const supabase = createClient()
-    let cancelled = false
-
-    async function load() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        if (!cancelled) setUser(null)
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name, phone')
-        .eq('id', session.user.id)
-        .single()
-      const contact = realEmail(session.user.email) ?? profile?.phone ?? ''
-      if (!cancelled) {
-        setUser({
-          // Nhân viên và admin đều vào được trang quản trị
-          isStaff: profile?.role === 'admin' || profile?.role === 'staff',
-          name: profile?.full_name || contact || 'Tài khoản',
-          subtitle: contact,
-        })
-      }
-    }
-
-    load()
     setNavOpen(false)
     setAccountOpen(false)
-    return () => {
-      cancelled = true
-    }
   }, [pathname])
+  // Vừa đăng xuất: ẩn menu tài khoản ngay, tới khi đọc lại phiên (profile mới) thì bỏ cờ
+  useEffect(() => setSignedOut(false), [profile])
+
+  let user: HeaderUser | undefined = profile === undefined ? undefined : null
+  if (profile && !signedOut) {
+    const contact = realEmail(profile.authEmail) ?? profile.phone ?? ''
+    user = {
+      // Nhân viên và admin đều vào được trang quản trị
+      isStaff: profile.role === 'admin' || profile.role === 'staff',
+      name: profile.full_name || contact || 'Tài khoản',
+      subtitle: contact,
+    }
+  }
 
   // Đóng menu tài khoản khi bấm ra ngoài
   useEffect(() => {
@@ -94,7 +78,8 @@ export default function SiteHeader() {
       toast(`Đăng xuất không thành công: ${error.message}`, 'error')
       return
     }
-    setUser(null)
+    invalidateProfile()
+    setSignedOut(true)
     setAccountOpen(false)
     toast('Đã đăng xuất')
     router.push('/')

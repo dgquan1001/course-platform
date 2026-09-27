@@ -1,5 +1,5 @@
 // Các ô nhập dùng chung cho form thêm/sửa khóa học và bài học
-import { COURSE_CATEGORIES, COURSE_KINDS } from '@/lib/courses'
+import { COURSE_CATEGORIES, COURSE_KINDS, type CourseKind } from '@/lib/courses'
 import CoverInput from './CoverInput'
 
 type CourseValues = {
@@ -15,8 +15,10 @@ type CourseValues = {
   cover_image?: string | null
 }
 
-// isNew: form tạo khóa (có ô tạo nhanh khung buổi tập)
-export function CourseFields({ values = {}, isNew = false }: { values?: CourseValues; isNew?: boolean }) {
+// isNew: form tạo khóa (có ô tạo nhanh khung buổi tập); defaultKind: loại chọn sẵn theo tab đang xem.
+// Sửa chương trình: không có ô Giá – giá bán nằm ở bảng Gói (RK-18), ô Giá chỉ để tạo sẵn gói 1 tháng khi tạo mới.
+export function CourseFields({ values = {}, isNew = false, defaultKind = 'program' }: { values?: CourseValues; isNew?: boolean; defaultKind?: CourseKind }) {
+  const editingProgram = !isNew && values.kind === 'program'
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -25,7 +27,7 @@ export function CourseFields({ values = {}, isNew = false }: { values?: CourseVa
       </div>
       <div>
         <label className="label">Loại khóa</label>
-        <select name="kind" defaultValue={values.kind ?? 'program'} className="input">
+        <select name="kind" defaultValue={values.kind ?? defaultKind} className="input">
           {COURSE_KINDS.map((k) => (
             <option key={k.value} value={k.value}>
               {k.label}
@@ -72,10 +74,14 @@ export function CourseFields({ values = {}, isNew = false }: { values?: CourseVa
         <label className="label">Giới thiệu chi tiết</label>
         <textarea name="description" rows={3} defaultValue={values.description ?? ''} className="input" />
       </div>
-      <div>
-        <label className="label">Giá (VNĐ) – chương trình: giá gói 1 tháng khi tạo mới; premium: giá hiển thị</label>
-        <input name="price" type="number" min={0} step={1000} defaultValue={values.price ?? 0} className="input" />
-      </div>
+      {editingProgram ? (
+        <p className="self-end rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Giá bán của chương trình sửa ở bảng <strong>Gói theo thời hạn</strong> phía trên.</p>
+      ) : (
+        <div>
+          <label className="label">Giá (VNĐ) – chương trình: giá gói 1 tháng khi tạo mới; premium: giá hiển thị</label>
+          <input name="price" type="number" min={0} step={1000} defaultValue={values.price ?? 0} className="input" />
+        </div>
+      )}
       <div>
         <label className="label">Thứ tự hiển thị</label>
         <input name="sort_order" type="number" defaultValue={values.sort_order ?? 0} className="input" />

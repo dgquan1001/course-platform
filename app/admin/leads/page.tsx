@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { requireStaffPage } from '@/lib/auth'
 import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
@@ -38,6 +39,7 @@ const formatDateTime = (value: string) =>
 // Khách bấm "Liên hệ Zalo nhận ưu đãi" ở khóa premium và để lại SĐT: nhân viên gọi / nhắn Zalo rồi cập nhật trạng thái.
 // Lượt bấm "Mở Zalo ngay" (ẩn danh, không có SĐT) chỉ được đếm.
 export default async function AdminLeadsPage({ searchParams }: { searchParams: { status?: string } }) {
+  await requireStaffPage()
   const status = tabs.some((t) => t.key === searchParams.status) ? searchParams.status! : 'new'
   const supabase = createClient()
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()

@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Bảo vệ /courses (Khóa học của tôi), /account (cần đăng nhập) và /admin (nhân viên hoặc admin;
-// quản lý khóa học chỉ admin). Trang khóa / bài học /courses/[id]/** chỉ làm mới phiên vì khóa miễn phí
-// ai cũng xem được: trang tự chuyển tới đăng nhập với khóa khác. Quyền xem bài học kiểm soát bằng RLS.
-const ADMIN_ONLY = ['/admin/courses', '/admin/settings']
+// Middleware chạy trước mọi trang /courses, /account, /admin nên phải nhẹ:
+// - Chỉ đọc phiên từ cookie (getSession): không gọi mạng, trừ khi access token hết hạn thì làm mới và ghi lại cookie.
+// - Không truy vấn vai trò: trang quản trị tự kiểm tra bằng requireStaffPage / requireAdminPage (lib/auth.ts,
+//   xác thực phiên với Supabase Auth và đã cache theo request), RLS là lớp bảo vệ cuối.
+// Khách chưa đăng nhập vào trang cần đăng nhập → /login?next=. Trang khóa / bài học /courses/<id>/** công khai với
+// khóa miễn phí nên chỉ làm mới phiên (trang tự chuyển tới đăng nhập với khóa khác).
+const PUBLIC_COURSE_PAGE = /^\/courses\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\/|$)/i
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
@@ -32,34 +35,14 @@ export async function middleware(request: NextRequest) {
   )
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
   const path = request.nextUrl.pathname
-
-  // Trang khóa / bài học: chỉ làm mới phiên, trang tự quyết định (khóa miễn phí không cần đăng nhập)
-  const isCoursePage = path.startsWith('/courses/')
-
-  if (!user && !isCoursePage) {
+  if (!session && !PUBLIC_COURSE_PAGE.test(path)) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('next', path)
+    loginUrl.searchParams.set('next', `${path}${request.nextUrl.search}`)
     return NextResponse.redirect(loginUrl)
-  }
-
-  if (user && path.startsWith('/admin')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    const role = profile?.role
-    if (role !== 'admin' && role !== 'staff') {
-      return NextResponse.redirect(new URL('/courses', request.url))
-    }
-    if (role === 'staff' && ADMIN_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
   }
 
   return response

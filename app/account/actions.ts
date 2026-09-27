@@ -79,8 +79,14 @@ export async function changePasswordAction(formData: FormData): Promise<ActionRe
   const { error: wrong } = await verifier.auth.signInWithPassword({ email: user.authEmail, password: current })
   if (wrong) return fail('Mật khẩu hiện tại không đúng.')
 
-  const { error } = await createAdminClient().auth.admin.updateUserById(user.id, { password: next })
+  const admin = createAdminClient()
+  const { error } = await admin.auth.admin.updateUserById(user.id, { password: next })
   if (error) return fail(error.message)
+  // Mật khẩu do nhân viên cấp đã được đổi: tắt hộp nhắc đổi mật khẩu (BR-96)
+  if (user.mustChangePassword) {
+    await admin.from('profiles').update({ must_change_password: false }).eq('id', user.id)
+    revalidatePath('/account')
+  }
 
   return { ok: true, message: 'Đã đổi mật khẩu thành công.' }
 }

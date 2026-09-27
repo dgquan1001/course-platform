@@ -21,7 +21,7 @@
 | Mã đặt lại mật khẩu | Reset code / `password_resets` | Mã 6 chữ số gửi qua email, hiệu lực 10 phút |
 | Hotline | `siteConfig.hotline` | SĐT hỗ trợ của trung tâm |
 
-### Thuật ngữ v0.2 (27/09/2026, chưa triển khai)
+### Thuật ngữ v0.2 (27/09/2026, ✅ đã triển khai)
 
 | Thuật ngữ | Tiếng Anh / trong code | Định nghĩa |
 | --- | --- | --- |

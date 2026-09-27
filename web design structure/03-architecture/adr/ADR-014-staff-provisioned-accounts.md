@@ -1,6 +1,6 @@
 # ADR-014: Nhân viên tạo tài khoản cho bệnh nhân đến từ Zalo (mật khẩu hệ thống sinh)
 
-- **Trạng thái**: Accepted (thiết kế v0.2, chưa triển khai)
+- **Trạng thái**: Accepted – ✅ triển khai Đợt 11 (27/09/2026), có điều chỉnh (xem cuối file)
 - **Ngày**: 27/09/2026
 - **Người quyết định**: Chủ dự án
 
@@ -39,3 +39,15 @@ Khách đi qua lại giữa Zalo và website. Khách đến từ website tự đ
 - *Staff tự nhập mật khẩu*: dễ đặt mật khẩu yếu / trùng nhau cho mọi khách; không chọn.
 - *Bắt buộc đổi mật khẩu lần đầu*: an toàn hơn nhưng gây khó cho người lớn tuổi; chủ dự án chọn "nên đổi".
 - *Gửi link kích hoạt qua SMS/Zalo ZNS*: tốn phí, cần tài khoản OA; để sau.
+
+## Điều chỉnh khi triển khai (Đợt 11, 27/09/2026)
+- **Ghi chú nội bộ** không đặt ở `profiles.staff_note` (bệnh nhân đọc được dòng profile của mình) mà ở bảng riêng `patient_notes`
+  (RLS chỉ nhân viên / admin; trigger ghi người sửa, thời điểm).
+- Không có cột `consent_source`: `consent_at` + `consent_version` ghi lúc nhân viên tạo, kèm `account_events.created` biết ai tạo.
+- Trigger đơn cấp gói: `registrations_stamp_insert` (**before insert**: bắt buộc `source = 'staff'`, `status = 'approved'`; tự lấy
+  `plan_months`, `plan_sessions`, `course_title` từ `plan_id` **của đúng chương trình**, ghi người tạo / người xử lý, tính hạn học
+  cộng dồn) + `registrations_log_insert` (**after insert**: lịch sử `new → approved`, vì bảng lịch sử tham chiếu khóa ngoại tới đơn).
+- Mật khẩu sinh ở `lib/generate-password.ts` (chỉ chạy ở server, tách khỏi `lib/password.ts` vốn dùng cả ở trình duyệt).
+- "Để sau" của hộp nhắc đổi mật khẩu lưu `sessionStorage` (hết khi đóng trình duyệt) thay cho cookie.
+- Danh sách / chi tiết bệnh nhân đọc qua hàm `admin_patients()` và `patient_progress()` (security definer, kiểm tra `is_staff()`),
+  không tải toàn bộ bảng đơn.

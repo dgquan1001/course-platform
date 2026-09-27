@@ -18,8 +18,9 @@ tiến độ và phiếu tham vấn. Nhân viên không được sửa nội dun
 - **Chỉ admin**: thêm/sửa/xóa khóa học, buổi, bài tập, gói giá; sửa mẫu phiếu tham vấn; cấp/gỡ quyền `staff`/`admin`;
   xem doanh thu; sửa thông tin tài khoản staff/admin.
 - Server: `requireAdmin()` được bổ sung `requireStaff()` (`lib/auth.ts`); `getCurrentUser()` trả `role`.
-- Middleware: `/admin/**` cho staff và admin; các trang chỉ-admin (`/admin/courses/**`, `/admin/settings/**`) chặn staff.
-  Database vẫn là lớp kiểm tra cuối (ADR-002).
+- ~~Middleware: `/admin/**` cho staff và admin; các trang chỉ-admin (`/admin/courses/**`, `/admin/settings/**`) chặn staff.~~
+  Từ Đợt 11 (ADR-016): middleware chỉ kiểm tra đăng nhập; layout `/admin` và từng trang gọi `requireStaffPage()`,
+  trang chỉ-admin gọi `requireAdminPage()` (nhân viên về `/admin`). Database vẫn là lớp kiểm tra cuối (ADR-002).
 - Trigger `guard_role_change` mở rộng: chỉ admin đổi được `role`; giữ luật không tự đổi quyền mình và luôn còn ≥ 1 admin;
   ghi `role_events` như cũ.
 

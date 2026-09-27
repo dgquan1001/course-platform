@@ -60,7 +60,8 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-Tab gạch chân (`nav aria-label="Menu quản trị"`): **Đơn đăng ký** (`/admin/registrations`) · **Học viên** (`/admin/users`) · **Khách quan tâm** (`/admin/leads`, Đợt 8) · **Khóa học** (`/admin/courses`, chỉ admin).
+Tab gạch chân (`nav aria-label="Menu quản trị"`, từ Đợt 11 – 13): **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`) · **Bệnh nhân** (`/admin/patients`) · **Phiếu tham vấn** (`/admin/consultations`) · **Khách quan tâm** (`/admin/leads`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
+Trang Khóa học có bộ lọc loại: Tất cả (chia 3 nhóm) · Chương trình · Miễn phí · Premium. Trang Bệnh nhân có tab Nhân viên & Admin (chỉ admin).
 Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên).
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
 
@@ -69,7 +70,7 @@ Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duy
 Tên + tên đầy đủ + tagline + mô tả · Liên kết (Khóa học, Đăng ký học, Đăng nhập) ·
 Liên hệ (hotline `tel:`, email `mailto:`, Zalo) · Chính sách bảo mật · Dòng miễn trừ y khoa.
 
-## 6. Phiên bản 0.2 (chốt 27/09/2026, chưa triển khai)
+## 6. Phiên bản 0.2 (chốt 27/09/2026, ✅ đã triển khai Đợt 7 → 13)
 
 ### 6.1. Sitemap v0.2
 

@@ -19,7 +19,7 @@ import {
 } from './icons'
 import { toast } from './Toaster'
 
-type HeaderUser = { isAdmin: boolean; name: string; subtitle: string } | null
+type HeaderUser = { isStaff: boolean; name: string; subtitle: string } | null
 
 const navLinks = [
   { href: '/#bac-si', label: 'Bác sĩ' },
@@ -59,7 +59,8 @@ export default function SiteHeader() {
       const contact = realEmail(session.user.email) ?? profile?.phone ?? ''
       if (!cancelled) {
         setUser({
-          isAdmin: profile?.role === 'admin',
+          // Nhân viên và admin đều vào được trang quản trị
+          isStaff: profile?.role === 'admin' || profile?.role === 'staff',
           name: profile?.full_name || contact || 'Tài khoản',
           subtitle: contact,
         })
@@ -143,7 +144,7 @@ export default function SiteHeader() {
             <Link href="/courses" role="menuitem" className={menuItem('/courses')} {...current('/courses')}>
               <BookIcon className="h-4 w-4" /> Khóa học của tôi
             </Link>
-            {user.isAdmin && (
+            {user.isStaff && (
               <Link href="/admin" role="menuitem" className={menuItem('/admin')}>
                 <ShieldIcon className="h-4 w-4" /> Quản trị
               </Link>
@@ -203,7 +204,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex min-h-[44px] items-center gap-1 sm:gap-2">
-          {user?.isAdmin && (
+          {user?.isStaff && (
             <Link
               href="/admin"
               className={`btn-ghost hidden lg:inline-flex ${isActive('/admin') ? 'nav-active' : ''}`}

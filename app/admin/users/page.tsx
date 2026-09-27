@@ -27,30 +27,40 @@ function CourseName({ r }: { r: UserRegistration }) {
   )
 }
 
-// Cấp / gỡ quyền admin (không áp dụng cho chính mình)
-function RoleButton({ user, meId }: { user: Profile; meId: string }) {
+const roleOptions = [
+  { value: 'user', label: 'Học viên' },
+  { value: 'staff', label: 'Nhân viên' },
+  { value: 'admin', label: 'Admin' },
+]
+
+// Chọn vai trò: chỉ admin đổi được, không áp dụng cho chính mình; nhân viên chỉ xem
+function RoleForm({ user, meId, canEdit }: { user: Profile; meId: string; canEdit: boolean }) {
   if (user.id === meId) return <span className="text-xs text-slate-400">Tài khoản của bạn</span>
+  if (!canEdit) return <StatusBadge status={user.role} />
   const name = user.full_name || user.email || user.phone || 'tài khoản này'
-  const isAdmin = user.role === 'admin'
   return (
-    <ActionForm action={setUserRole.bind(null, user.id, isAdmin ? 'user' : 'admin')}>
+    <ActionForm key={user.role} action={setUserRole.bind(null, user.id)} className="flex items-center gap-2">
+      <label htmlFor={`role-${user.id}`} className="sr-only">
+        Vai trò của {name}
+      </label>
+      <select id={`role-${user.id}`} name="role" defaultValue={user.role} className="input w-32 py-1.5 text-sm">
+        {roleOptions.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
       <SubmitButton
-        className={`btn btn-sm whitespace-nowrap border ${
-          isAdmin ? 'border-red-200 bg-white text-red-600 hover:bg-red-50' : 'border-ocean-200 bg-white text-ocean-700 hover:bg-ocean-50'
-        }`}
-        confirmMessage={
-          isAdmin
-            ? `Gỡ quyền admin của ${name}? Người này sẽ không vào được trang quản trị nữa.`
-            : `Cấp quyền admin cho ${name}? Người này sẽ duyệt đơn, sửa khóa học và phân quyền như bạn.`
-        }
+        className="btn btn-sm whitespace-nowrap border border-ocean-200 bg-white text-ocean-700 hover:bg-ocean-50"
+        confirmMessage={`Đổi vai trò của ${name}? Nhân viên: duyệt đơn, xem học viên. Admin: toàn quyền, kể cả sửa khóa học và phân quyền. Học viên: không vào được trang quản trị.`}
       >
-        {isAdmin ? 'Gỡ quyền admin' : 'Cấp quyền admin'}
+        Lưu vai trò
       </SubmitButton>
     </ActionForm>
   )
 }
 
-// Ai đã cấp quyền admin (lần gần nhất)
+// Ai đã cấp vai trò nhân viên / admin (lần gần nhất)
 function GrantedBy({ event }: { event?: RoleEvent }) {
   if (!event) return null
   return (
@@ -67,7 +77,8 @@ export default async function AdminUsersPage({
   searchParams: { q?: string; role?: string }
 }) {
   const q = (searchParams.q ?? '').trim()
-  const onlyAdmins = searchParams.role === 'admin'
+  // Tab "Nhân viên & Admin": rà soát ai đang có quyền vào trang quản trị
+  const onlyTeam = searchParams.role === 'team'
   const supabase = createClient()
   const me = (await getCurrentUser())!
 
@@ -80,16 +91,17 @@ export default async function AdminUsersPage({
     const term = q.replace(/[%,()]/g, '')
     query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
   }
-  if (onlyAdmins) query = query.eq('role', 'admin')
+  if (onlyTeam) query = query.in('role', ['staff', 'admin'])
 
-  const [{ data, error }, { data: regs }, { count: adminCount }, { data: roleEvents }] = await Promise.all([
+  const [{ data, error }, { data: regs }, { count: teamCount }, { data: roleEvents }] = await Promise.all([
     query,
     supabase.from('registrations').select('user_id, status, course_title, courses(title)'),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['staff', 'admin']),
+    // Nhật ký phân quyền chỉ admin đọc được (nhân viên nhận danh sách rỗng)
     supabase
       .from('role_events')
       .select('user_id, actor_name, created_at')
-      .eq('to_role', 'admin')
+      .in('to_role', ['staff', 'admin'])
       .order('created_at', { ascending: false }),
   ])
   if (error) throw new Error(error.message)
@@ -104,9 +116,10 @@ export default async function AdminUsersPage({
   for (const e of (roleEvents ?? []) as RoleEvent[]) if (!grantedBy.has(e.user_id)) grantedBy.set(e.user_id, e)
 
   const tabs = [
-    { href: '/admin/users', label: 'Tất cả tài khoản', active: !onlyAdmins },
-    { href: '/admin/users?role=admin', label: `Admin (${adminCount ?? 0})`, active: onlyAdmins },
+    { href: '/admin/users', label: 'Tất cả tài khoản', active: !onlyTeam },
+    { href: '/admin/users?role=team', label: `Nhân viên & Admin (${teamCount ?? 0})`, active: onlyTeam },
   ]
+  const isTeam = (u: Profile) => u.role === 'staff' || u.role === 'admin'
 
   return (
     <div className="space-y-5">
@@ -126,7 +139,7 @@ export default async function AdminUsersPage({
       </div>
 
       <form className="flex gap-2">
-        {onlyAdmins && <input type="hidden" name="role" value="admin" />}
+        {onlyTeam && <input type="hidden" name="role" value="team" />}
         <input
           name="q"
           defaultValue={q}
@@ -147,7 +160,7 @@ export default async function AdminUsersPage({
               <th className="px-4 py-3">Số điện thoại</th>
               <th className="px-4 py-3">Khóa học</th>
               <th className="px-4 py-3">Ngày tạo</th>
-              <th className="px-4 py-3">Quyền</th>
+              <th className="px-4 py-3">Vai trò</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -155,10 +168,10 @@ export default async function AdminUsersPage({
               <tr key={u.id} className="align-top">
                 <td className="px-4 py-3">
                   <p className="font-semibold text-ocean-900">
-                    {u.full_name || '—'} {u.role === 'admin' && <StatusBadge status="admin" />}
+                    {u.full_name || '—'} {isTeam(u) && <StatusBadge status={u.role} />}
                   </p>
                   <p className="text-slate-500">{u.email ?? <span className="italic text-slate-400">Không có email</span>}</p>
-                  {u.role === 'admin' && <GrantedBy event={grantedBy.get(u.id)} />}
+                  {isTeam(u) && <GrantedBy event={grantedBy.get(u.id)} />}
                 </td>
                 <td className="px-4 py-3">
                   {u.phone ? <a href={`tel:${u.phone}`} className="text-ocean-700 hover:underline">{u.phone}</a> : '—'}
@@ -177,7 +190,7 @@ export default async function AdminUsersPage({
                   {new Date(u.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                 </td>
                 <td className="px-4 py-3">
-                  <RoleButton user={u} meId={me.id} />
+                  <RoleForm user={u} meId={me.id} canEdit={me.isAdmin} />
                 </td>
               </tr>
             ))}
@@ -189,11 +202,11 @@ export default async function AdminUsersPage({
         {users.map((u) => (
           <div key={u.id} className="card p-4 text-sm">
             <p className="font-semibold text-ocean-900">
-              {u.full_name || '—'} {u.role === 'admin' && <StatusBadge status="admin" />}
+              {u.full_name || '—'} {isTeam(u) && <StatusBadge status={u.role} />}
             </p>
             <p className="text-slate-500">{u.email ?? <span className="italic text-slate-400">Không có email</span>}</p>
             {u.phone && <a href={`tel:${u.phone}`} className="text-ocean-700">{u.phone}</a>}
-            {u.role === 'admin' && <GrantedBy event={grantedBy.get(u.id)} />}
+            {isTeam(u) && <GrantedBy event={grantedBy.get(u.id)} />}
             <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2">
               {regsByUser.get(u.id)?.map((r, i) => (
                 <li key={i} className="flex flex-wrap items-center gap-2">
@@ -203,7 +216,7 @@ export default async function AdminUsersPage({
               )) ?? <li className="text-slate-400">Chưa đăng ký khóa học</li>}
             </ul>
             <div className="mt-3 border-t border-slate-100 pt-3">
-              <RoleButton user={u} meId={me.id} />
+              <RoleForm user={u} meId={me.id} canEdit={me.isAdmin} />
             </div>
           </div>
         ))}

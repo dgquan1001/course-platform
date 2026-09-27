@@ -25,7 +25,7 @@ erDiagram
     text email "email thật, null nếu chỉ có SĐT"
     text full_name
     text phone "unique khi not null"
-    text role "user | admin"
+    text role "user | staff | admin"
     timestamptz created_at
   }
   COURSES {
@@ -89,7 +89,7 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `email` | text | ✓ | — | Email thật (chữ thường). `null` với tài khoản chỉ có SĐT. **Không** unique ở DB (unique do Auth) |
 | `full_name` | text | ✓ | — | Họ tên |
 | `phone` | text | ✓ | — | SĐT chuẩn hóa `0xxxxxxxxx`. Unique index một phần `profiles_phone_key … where phone is not null` |
-| `role` | text | ✗ | `'user'` | `check (role in ('user','admin'))` |
+| `role` | text | ✗ | `'user'` | Constraint `profiles_role_check`: `role in ('user','staff','admin')` (staff từ Đợt 7 – ADR-011) |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
 ### 2.2. `public.courses`
@@ -204,9 +204,10 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | `handle_new_user()` | trigger function | `security definer`, `search_path = public` | Sau khi insert `auth.users`: tạo profile với `email` (bỏ email nội bộ), `full_name`, `phone` từ `raw_user_meta_data`; `on conflict (id) do nothing` |
 | `on_auth_user_created` | trigger | — | `after insert on auth.users for each row` |
 | `is_admin()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role = 'admin')` |
-| `has_course_access(target_course uuid)` | SQL, `stable` | `security definer` | `is_admin() or exists(registrations where user_id = auth.uid() and course_id = target_course and status = 'approved')`. Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
+| `is_staff()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role in ('staff','admin'))` (Đợt 7) |
+| `has_course_access(target_course uuid)` | SQL, `stable` | `security definer` | `is_staff() or exists(registrations where user_id = auth.uid() and course_id = target_course and status = 'approved')` (nhân viên, admin xem trước mọi khóa). Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
 | `stamp_registration_review()` | trigger function | `security definer`, `search_path = public` | Khi `status` đổi: về `pending` → xóa `reviewed_at/by/by_name`; trạng thái khác → `now()`, `auth.uid()`, tên admin từ `profiles`. Khi `status` không đổi → giữ nguyên giá trị cũ (không sửa tay được; riêng `reviewed_by` được về `null` để khóa ngoại hoạt động khi xóa admin) |
-| `guard_role_change()` | trigger function | `security definer`, `search_path = public` | Khi `profiles.role` đổi: chặn tự gỡ quyền admin của mình; `pg_advisory_xact_lock` rồi chặn gỡ admin cuối cùng; ghi `role_events` |
+| `guard_role_change()` | trigger function | `security definer`, `search_path = public` | Khi `profiles.role` đổi: người có phiên đăng nhập mà không phải admin → "Chỉ admin được thay đổi vai trò tài khoản." (service role/script vẫn đổi được); chặn tự gỡ quyền admin của mình; `pg_advisory_xact_lock` rồi chặn gỡ admin cuối cùng; ghi `role_events` |
 | `profiles_guard_role` | trigger | — | `before update of role on profiles for each row` |
 | `registrations_stamp_review` | trigger | — | `before update on registrations for each row`. Mỗi lần đổi `status` ghi thêm 1 dòng `registration_events` (kèm `review_note`). Cập nhật bằng service role (không có phiên) → `reviewed_by` null |
 
@@ -217,20 +218,21 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 
 | Bảng | Thao tác | Policy | Điều kiện |
 | --- | --- | --- | --- |
-| profiles | SELECT | `profiles_select` | `auth.uid() = id or is_admin()` |
+| profiles | SELECT | `profiles_select` | `auth.uid() = id or is_staff()` |
 | profiles | UPDATE | `profiles_admin_update` | `is_admin()` |
+| profiles | UPDATE | `profiles_staff_update` | using `is_staff() and role = 'user'`, with check `role = 'user'` (nhân viên chỉ sửa tài khoản học viên; đổi vai trò bị trigger chặn) |
 | profiles | INSERT/DELETE | — | Không ai (chỉ trigger/service role) |
-| courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_admin()`; học viên đã duyệt đọc được khóa đang ẩn) |
+| courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_staff()`; học viên đã duyệt đọc được khóa đang ẩn) |
 | courses | INSERT / UPDATE / DELETE | `courses_admin_*` | `is_admin()` |
 | lessons | SELECT | `lessons_select` | `has_course_access(course_id)` |
 | lessons | INSERT / UPDATE / DELETE | `lessons_admin_*` | `is_admin()` |
-| registrations | SELECT | `registrations_select` | `auth.uid() = user_id or is_admin()` |
-| registrations | UPDATE | `registrations_admin_update` | `is_admin()` |
+| registrations | SELECT | `registrations_select` | `auth.uid() = user_id or is_staff()` |
+| registrations | UPDATE | `registrations_staff_update` | `is_staff()` |
 | registrations | INSERT/DELETE | — | Chỉ service role |
 | password_resets | Mọi thao tác | — (RLS bật, không policy) | Chỉ service role |
-| registration_events | SELECT | `registration_events_admin_select` | `is_admin()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
+| registration_events | SELECT | `registration_events_staff_select` | `is_staff()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
 | role_events | SELECT | `role_events_admin_select` | `is_admin()`. Không có policy ghi/sửa/xóa (chỉ trigger) |
-| storage.objects (`payment-proofs`) | SELECT | `payment_proofs_admin_select` | `bucket_id = 'payment-proofs' and is_admin()` |
+| storage.objects (`payment-proofs`) | SELECT | `payment_proofs_staff_select` | `bucket_id = 'payment-proofs' and is_staff()` |
 | storage.objects (`payment-proofs`) | INSERT/UPDATE/DELETE | — | Chỉ service role |
 
 Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security/security-design.md#3-ma-trận-phân-quyền).
@@ -397,7 +399,7 @@ erDiagram
 
 | Bảng | Thay đổi | Đợt |
 | --- | --- | --- |
-| `profiles` | `role` check thêm `staff`; thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
+| `profiles` | ✅ Đợt 7: `role` check thêm `staff`. Còn lại: thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
 | `courses` | thêm `kind text not null default 'program' check in ('free','program','premium')`, `category text check in ('veo_lung','veo_nguc')`, `audience text not null default 'patient' check in ('patient','expert')`, `summary text`, `outcomes text[] not null default '{}'`; dùng `cover_image` | 8 |
 | `lessons` | thêm `session_id uuid → course_sessions on delete cascade`; `video_url` **bỏ `not null`**; `revoke select (video_url)` khỏi `anon`, `authenticated` | 10 |
 | `registrations` | thêm `plan_id → course_plans on delete set null`, `plan_months int`, `plan_sessions int`, `source text not null default 'web' check in ('web','staff')`, `payment_method text not null default 'bank_transfer' check in (...)`, `payment_note text`, `created_by uuid → profiles on delete set null`, `access_starts_at`, `access_until timestamptz`; `payment_proof_path` bỏ `not null` + `check (source = 'staff' or payment_proof_path is not null)`; unique index `registrations_active_key` **thay bằng** `registrations_pending_key (user_id, course_id) where status = 'pending'` | 9, 11 |
@@ -419,8 +421,8 @@ erDiagram
 
 | Hàm | Mô tả |
 | --- | --- |
-| `is_staff()` | `exists(profiles where id = auth.uid() and role in ('staff','admin'))`, `security definer`, `stable` |
-| `has_course_access(course)` | **Sửa**: `is_staff() or exists(registrations approved của mình cho course với access_until is null or access_until > now())` |
+| `is_staff()` | ✅ Đợt 7 – `exists(profiles where id = auth.uid() and role in ('staff','admin'))`, `security definer`, `stable` |
+| `has_course_access(course)` | **Sửa** (✅ phần `is_staff()` ở Đợt 7; phần hạn học ở Đợt 9): `is_staff() or exists(registrations approved của mình cho course với access_until is null or access_until > now())` |
 | `purchased_sessions(course)` | Tổng `plan_sessions` của đơn approved (đơn không có gói → `null` = không giới hạn) |
 | `session_position(session)` | Thứ tự 1-based của buổi trong khóa (`row_number() over (order by sort_order, created_at)`) |
 | `session_completed(user, session)` | Mọi bài của buổi đã có trong `lesson_progress` của user (buổi rỗng = true) |
@@ -435,7 +437,7 @@ erDiagram
 | Trigger | Thay đổi |
 | --- | --- |
 | `registrations_stamp_review` | Chạy cả `before insert` (đơn tạo thẳng `approved`: ghi người xử lý, lịch sử `new → approved`) và `before update`. Khi chuyển sang `approved`: tính `access_starts_at`, `access_until` theo BR-80 (khóa `pg_advisory_xact_lock` theo `user_id + course_id` để 2 lần duyệt đồng thời không cộng sai); rời `approved` → xóa 2 cột này. Đơn không có `plan_months` (v0.1) → `access_until = null` |
-| `guard_role_change` | Chặn nếu người đổi không phải `is_admin()` (trừ service role/script); giữ các luật cũ; nhận `staff` |
+| `guard_role_change` | ✅ Đợt 7 – Chặn nếu người đổi không phải `is_admin()` (trừ service role/script); giữ các luật cũ; nhận `staff` |
 | `lesson_progress_fill` (mới) | `before insert`: điền `course_id` từ bài học |
 | `consultations_stamp` (mới) | Khi đổi `status`: ghi `handled_by`, `handled_by_name`, `handled_at` theo phiên (như BR-37) |
 | `leads_stamp` (mới) | Như trên cho `leads` |

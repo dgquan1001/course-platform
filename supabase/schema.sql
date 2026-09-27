@@ -12,10 +12,13 @@ create table if not exists public.profiles (
   email text,
   full_name text,
   phone text,
-  role text not null default 'user' check (role in ('user', 'admin')),
+  role text not null default 'user',
   created_at timestamptz not null default now()
 );
 alter table public.profiles add column if not exists phone text;
+-- Vai trò: user (bệnh nhân / học viên), staff (nhân viên), admin (quyền cao nhất)
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('user', 'staff', 'admin'));
 -- Số điện thoại dùng để đăng nhập nên không được trùng
 create unique index if not exists profiles_phone_key on public.profiles (phone) where phone is not null;
 
@@ -220,8 +223,9 @@ create trigger registrations_stamp_review
   for each row execute procedure public.stamp_registration_review();
 
 -- ------------------------------------------------------------
--- Phân quyền admin: admin cấp/gỡ quyền cho nhau trên giao diện.
+-- Phân quyền: chỉ admin đổi vai trò (user / staff / admin) của tài khoản khác trên giao diện.
 -- Không tự gỡ quyền của mình, luôn còn ít nhất 1 admin; mỗi lần đổi quyền được ghi lại.
+-- Script / service role (không có phiên đăng nhập) vẫn đổi được, VD npm run create-admin.
 -- ------------------------------------------------------------
 create table if not exists public.role_events (
   id uuid primary key default gen_random_uuid(),
@@ -244,6 +248,9 @@ as $$
 begin
   if new.role is not distinct from old.role then
     return new;
+  end if;
+  if auth.uid() is not null and not public.is_admin() then
+    raise exception 'Chỉ admin được thay đổi vai trò tài khoản.';
   end if;
   if old.role = 'admin' then
     if new.id = auth.uid() then
@@ -350,7 +357,21 @@ as $$
   );
 $$;
 
--- User được xem bài học của khóa khi có đơn đăng ký đã duyệt (admin xem tất cả)
+-- Nhân viên hoặc admin: duyệt đơn, quản lý bệnh nhân, xem trước nội dung khóa học
+create or replace function public.is_staff()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role in ('staff', 'admin')
+  );
+$$;
+
+-- User được xem bài học của khóa khi có đơn đăng ký đã duyệt (nhân viên, admin xem tất cả)
 create or replace function public.has_course_access(target_course uuid)
 returns boolean
 language sql
@@ -358,7 +379,7 @@ security definer
 stable
 set search_path = public
 as $$
-  select public.is_admin() or exists (
+  select public.is_staff() or exists (
     select 1 from public.registrations
     where user_id = auth.uid() and course_id = target_course and status = 'approved'
   );
@@ -372,16 +393,21 @@ alter table public.courses enable row level security;
 alter table public.lessons enable row level security;
 alter table public.registrations enable row level security;
 
--- profiles
+-- profiles: nhân viên xem mọi tài khoản nhưng chỉ sửa tài khoản bệnh nhân (role = user);
+-- đổi vai trò do trigger guard_role_change kiểm tra (chỉ admin)
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select
-  using (auth.uid() = id or public.is_admin());
+  using (auth.uid() = id or public.is_staff());
 drop policy if exists "profiles_admin_update" on public.profiles;
 create policy "profiles_admin_update" on public.profiles for update
   using (public.is_admin());
+drop policy if exists "profiles_staff_update" on public.profiles;
+create policy "profiles_staff_update" on public.profiles for update
+  using (public.is_staff() and role = 'user')
+  with check (role = 'user');
 
 -- courses: ai cũng xem được khóa đang hiển thị; khóa đang ẩn (ngừng nhận đăng ký) vẫn hiện
--- với học viên đã được duyệt khóa đó; admin toàn quyền (has_course_access đã gồm is_admin)
+-- với học viên đã được duyệt khóa đó; nhân viên xem tất cả, chỉ admin sửa (has_course_access đã gồm is_staff)
 drop policy if exists "courses_select" on public.courses;
 create policy "courses_select" on public.courses for select
   using (status = 'published' or public.has_course_access(id));
@@ -395,7 +421,7 @@ drop policy if exists "courses_admin_delete" on public.courses;
 create policy "courses_admin_delete" on public.courses for delete
   using (public.is_admin());
 
--- lessons: chỉ học viên đã được duyệt khóa đó (hoặc admin)
+-- lessons: chỉ học viên đã được duyệt khóa đó (hoặc nhân viên, admin xem trước)
 drop policy if exists "lessons_select" on public.lessons;
 create policy "lessons_select" on public.lessons for select
   using (public.has_course_access(course_id));
@@ -409,22 +435,25 @@ drop policy if exists "lessons_admin_delete" on public.lessons;
 create policy "lessons_admin_delete" on public.lessons for delete
   using (public.is_admin());
 
--- registrations: user xem đơn của mình, admin xem & duyệt tất cả
+-- registrations: user xem đơn của mình, nhân viên và admin xem & duyệt tất cả
 drop policy if exists "Ai cũng gửi được đơn đăng ký" on public.registrations;
 drop policy if exists "Admin xem đơn đăng ký" on public.registrations;
 drop policy if exists "Admin cập nhật đơn đăng ký" on public.registrations;
 drop policy if exists "registrations_select" on public.registrations;
 create policy "registrations_select" on public.registrations for select
-  using (auth.uid() = user_id or public.is_admin());
+  using (auth.uid() = user_id or public.is_staff());
 drop policy if exists "registrations_admin_update" on public.registrations;
-create policy "registrations_admin_update" on public.registrations for update
-  using (public.is_admin());
+drop policy if exists "registrations_staff_update" on public.registrations;
+create policy "registrations_staff_update" on public.registrations for update
+  using (public.is_staff());
 
--- Lịch sử xử lý đơn & phân quyền: admin chỉ đọc; chỉ trigger ghi (không có policy insert/update/delete)
+-- Lịch sử xử lý đơn (nhân viên, admin đọc) & phân quyền (admin đọc): chỉ trigger ghi
+-- (không có policy insert/update/delete)
 alter table public.registration_events enable row level security;
 drop policy if exists "registration_events_admin_select" on public.registration_events;
-create policy "registration_events_admin_select" on public.registration_events for select
-  using (public.is_admin());
+drop policy if exists "registration_events_staff_select" on public.registration_events;
+create policy "registration_events_staff_select" on public.registration_events for select
+  using (public.is_staff());
 alter table public.role_events enable row level security;
 drop policy if exists "role_events_admin_select" on public.role_events;
 create policy "role_events_admin_select" on public.role_events for select
@@ -432,7 +461,7 @@ create policy "role_events_admin_select" on public.role_events for select
 
 -- ------------------------------------------------------------
 -- Storage: bucket riêng tư chứa ảnh chuyển khoản (tối đa 5MB, chỉ ảnh)
--- Upload từ server bằng service role; chỉ admin được xem.
+-- Upload từ server bằng service role; chỉ nhân viên và admin được xem.
 -- ------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -446,8 +475,9 @@ on conflict (id) do nothing;
 
 drop policy if exists "Admin xem ảnh chuyển khoản" on storage.objects;
 drop policy if exists "payment_proofs_admin_select" on storage.objects;
-create policy "payment_proofs_admin_select" on storage.objects for select
-  using (bucket_id = 'payment-proofs' and public.is_admin());
+drop policy if exists "payment_proofs_staff_select" on storage.objects;
+create policy "payment_proofs_staff_select" on storage.objects for select
+  using (bucket_id = 'payment-proofs' and public.is_staff());
 
 -- Làm mới cache schema của API
 notify pgrst, 'reload schema';

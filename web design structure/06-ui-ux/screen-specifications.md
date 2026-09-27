@@ -15,7 +15,7 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-07 | Khóa học của tôi | `/courses` | US-02.08, 04.01 |
 | SCR-08 | Chi tiết khóa học | `/courses/:id` | US-04.02 |
 | SCR-09 | Xem bài học | `/courses/:id/:lessonId` | US-04.03 |
-| SCR-10 | Admin – Đơn đăng ký | `/admin` | US-05.x |
+| SCR-10 | Admin – Đơn đăng ký | `/admin/registrations` | US-05.x |
 | SCR-11 | Admin – Học viên | `/admin/users` | US-06.x |
 | SCR-12 | Admin – Khóa học | `/admin/courses` | US-07.01–07.04, 07.06 |
 | SCR-13 | Admin – Bài học | `/admin/courses/:id` | US-07.05 |
@@ -238,7 +238,7 @@ Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc k
 ## SCR-10 – Admin: Đơn đăng ký
 
 ```text
-Bảng quản trị
+Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân viên], không có tab Khóa học
  Đơn đăng ký | Học viên | Khóa học
 [Chờ duyệt (3)] [Đã duyệt (40)] [Từ chối (2)] [Tất cả (45)]
 ┌────┬──────┬──────────┬─────────┬──────────┬────────┬─────────┬──────────┬─────────┬──────────┬───────────┬────────────────┐
@@ -254,7 +254,7 @@ Bảng quản trị
 | Không có ảnh | Ô xám "Không có ảnh" |
 | Từ chối / Thu hồi | Bấm nút mở ô "Lý do (học viên sẽ thấy, không bắt buộc)" + nút "Xác nhận từ chối" / "Xác nhận thu hồi" (thay cho hộp xác nhận) |
 | Trạng thái | Badge + dòng "Lý do: …" (nếu có) + "Lịch sử (n)" thu gọn: thời điểm, người xử lý, trạng thái trước → sau, lý do |
-| Admin khác vừa xử lý | Toast lỗi "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang." |
+| Người khác vừa xử lý | Toast lỗi "Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang." |
 | Người xử lý | Tên admin đã duyệt/từ chối/thu hồi gần nhất (họ tên → email → SĐT); "—" với đơn chờ duyệt hoặc đơn xử lý trước khi có cột này |
 | Khóa đang ẩn | Dòng nhỏ "(khóa đang ẩn)" dưới tên khóa; vẫn có nút Duyệt |
 | Tài khoản đã xóa | Dòng nhỏ "(tài khoản đã xóa)" dưới họ tên; không có nút Duyệt |
@@ -265,17 +265,18 @@ Bảng quản trị
 ## SCR-11 – Admin: Học viên
 
 ```text
-[Tất cả tài khoản] [Admin (2)]
+[Tất cả tài khoản] [Nhân viên & Admin (3)]
 [Tìm theo tên, email hoặc số điện thoại_______] [Tìm]
 37 tài khoản
-┌ Học viên ─────────────────┬ SĐT ──────┬ Khóa học ─────────────────┬ Ngày tạo ─┬ Quyền ────────────┐
-│ Nguyễn A [Admin]          │ 0912…     │ Khóa A [Đã duyệt]         │ 26/09/2026│ [Gỡ quyền admin]  │
+┌ Học viên ─────────────────┬ SĐT ──────┬ Khóa học ─────────────────┬ Ngày tạo ─┬ Vai trò ────────────────────┐
+│ Nguyễn A [Admin]          │ 0912…     │ Khóa A [Đã duyệt]         │ 26/09/2026│ [Admin ▾] [Lưu vai trò]     │
 │ a@gmail.com               │           │ Khóa B [Chờ duyệt]        │           │                   │
 │ Cấp quyền bởi Admin B · 26/09/2026                                                                 │
 │ Admin B [Admin]           │ …         │ Chưa đăng ký              │ …         │ Tài khoản của bạn │
 ```
 Mobile (< md): mỗi tài khoản là một thẻ, nút quyền ở cuối thẻ. Rỗng: "Không tìm thấy tài khoản."
-Cấp / gỡ quyền có hộp xác nhận; dòng của chính mình không có nút.
+Admin đổi vai trò bằng ô chọn Học viên / Nhân viên / Admin + [Lưu vai trò] (hộp xác nhận nêu quyền từng vai trò); dòng của chính mình không có ô chọn.
+Nhân viên xem trang này nhưng cột Vai trò chỉ hiện nhãn, không đổi được.
 
 ## SCR-12 – Admin: Khóa học
 

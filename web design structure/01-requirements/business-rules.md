@@ -8,8 +8,8 @@ nhiều tầng, phải sửa đồng bộ tất cả các tầng.
 | ID | Quy tắc | Thực thi tại |
 | --- | --- | --- |
 | BR-01 | Mỗi người dùng có đúng 1 profile, tạo tự động khi có user mới | Trigger `on_auth_user_created` → `handle_new_user()` |
-| BR-02 | Vai trò chỉ gồm `user` (mặc định) và `admin` | `check (role in ('user','admin'))` |
-| BR-03 | Admin đầu tiên tạo bằng script `npm run create-admin`. Sau đó admin cấp/gỡ quyền admin cho tài khoản khác ở trang Học viên (các admin quyền ngang nhau). **Không** tự đổi quyền của chính mình; luôn còn **ít nhất 1 admin** (database xếp hàng các lần gỡ quyền đồng thời). Mỗi lần đổi quyền ghi vào `role_events` (ai cấp/gỡ, lúc nào) | `scripts/create-admin.mjs`, `setUserRole`, trigger `profiles_guard_role` (RK-13) |
+| BR-02 | ~~Vai trò chỉ gồm `user` (mặc định) và `admin`~~ → thay bằng **BR-70** (Đợt 7) | `profiles_role_check` |
+| BR-03 | Admin đầu tiên tạo bằng script `npm run create-admin`. Sau đó admin đổi vai trò (Học viên / Nhân viên / Admin – BR-71) cho tài khoản khác ở trang Học viên (các admin quyền ngang nhau). **Không** tự đổi quyền của chính mình; luôn còn **ít nhất 1 admin** (database xếp hàng các lần gỡ quyền đồng thời). Mỗi lần đổi quyền ghi vào `role_events` (ai cấp/gỡ, lúc nào) | `scripts/create-admin.mjs`, `setUserRole`, trigger `profiles_guard_role` (RK-13) |
 | BR-04 | Số điện thoại là định danh đăng nhập: chuẩn hóa về dạng `0xxxxxxxxx` (10–11 số) | `lib/phone.ts#normalizePhone` |
 | BR-05 | Email không bắt buộc. Tài khoản không có email dùng email đăng nhập nội bộ `<SĐT>@sdt.hv.invalid`; email nội bộ **không bao giờ** lưu vào `profiles.email`, không hiển thị ra giao diện, và **không được nhập tay** ở form đăng ký / trang Tài khoản (RK-01) | `lib/phone.ts` (`isValidEmail` từ chối đuôi `@sdt.hv.invalid`), trigger, `registerAction`, `updateProfileAction`, `realEmail()` |
 | BR-06 | Email được lưu chữ thường | `registerAction`, `updateProfileAction`, `create-admin` |
@@ -44,7 +44,7 @@ nhiều tầng, phải sửa đồng bộ tất cả các tầng.
 | BR-35 | Đơn chỉ được tạo từ server bằng service role; client không có quyền insert | Không có policy insert trên `registrations` |
 | BR-48 | Mỗi IP gửi tối đa **20 đơn / giờ** (tính các lần đã qua kiểm tra dữ liệu); nếu bật Turnstile thì phải qua xác minh chống bot. Yêu cầu mã quên mật khẩu tối đa 10 lần / giờ / IP | `registerAction`, `requestCode`, `lib/rate-limit.ts`, `lib/turnstile.ts` (RK-06) |
 | BR-49 | Đơn **chờ duyệt** của khóa **đã xóa**: học viên thấy "Khóa học đã ngừng… để được hỗ trợ hoàn tiền"; admin có tab "Khóa đã xóa – cần hoàn tiền" (chỉ hiện khi có đơn), liên hệ hoàn tiền rồi Từ chối kèm lý do | `app/courses/page.tsx`, `app/admin/page.tsx` (RK-04) |
-| BR-36 | Chuyển trạng thái đơn: xem sơ đồ dưới. Chỉ admin được chuyển. Admin chỉ chuyển được từ **trạng thái đang thấy trên trang**: nếu admin khác vừa xử lý đơn thì thao tác bị từ chối ("Đơn đã thay đổi…"), không ghi đè (RK-11) | RLS `registrations_admin_update`, `setRegistrationStatus` (`.eq('status', expected)`) |
+| BR-36 | Chuyển trạng thái đơn: xem sơ đồ dưới. Chỉ nhân viên và admin được chuyển. Admin chỉ chuyển được từ **trạng thái đang thấy trên trang**: nếu admin khác vừa xử lý đơn thì thao tác bị từ chối ("Đơn đã thay đổi…"), không ghi đè (RK-11) | RLS `registrations_staff_update`, `setRegistrationStatus` (`.eq('status', expected)`) |
 | BR-46 | Từ chối / Thu hồi có ô **lý do** (không bắt buộc, ≤ 500 ký tự); học viên thấy lý do ở "Đơn chưa được xác nhận". Duyệt hoặc về "Chờ duyệt" thì xóa lý do; lý do không sửa được nếu trạng thái không đổi | `setRegistrationStatus`, trigger `registrations_stamp_review`, cột `review_note` (R-05) |
 | BR-47 | Mỗi lần đổi trạng thái đơn ghi 1 dòng lịch sử (người xử lý, trạng thái trước → sau, lý do, thời điểm). Chỉ database ghi; admin chỉ đọc, không ai sửa/xóa qua API. Bảng admin có mục "Lịch sử (n)" | Bảng `registration_events` + trigger (RK-12) |
 | BR-37 | `reviewed_at` = thời điểm duyệt/từ chối/thu hồi gần nhất; `reviewed_by` / `reviewed_by_name` = admin đã thực hiện (tên lưu kèm để vẫn biết khi tài khoản admin bị xóa). Database tự ghi theo phiên đăng nhập, không sửa tay được; về `pending` thì xóa cả ba. Bảng admin hiện cột **Người xử lý** (các admin quyền ngang nhau) | Trigger `registrations_stamp_review` |
@@ -68,10 +68,10 @@ stateDiagram-v2
 | ID | Quy tắc | Thực thi tại |
 | --- | --- | --- |
 | BR-40 | Học viên được xem bài học của khóa X ⇔ tồn tại ≥ 1 đơn `approved` của học viên cho khóa X | Hàm `has_course_access()` + RLS `lessons_select` |
-| BR-41 | Admin xem được mọi khóa và bài học | `is_admin()` |
+| BR-41 | Nhân viên và admin xem được mọi khóa và bài học (xem trước) | `is_staff()` trong `has_course_access()` |
 | BR-42 | Thu hồi (approved → rejected) làm mất quyền xem ngay lập tức | RLS đánh giá mỗi truy vấn |
 | BR-43 | Học viên chỉ xem được đơn và profile của chính mình | RLS `registrations_select`, `profiles_select` |
-| BR-44 | Ảnh chuyển khoản chỉ admin xem được | Storage policy `payment_proofs_admin_select` |
+| BR-44 | Ảnh chuyển khoản chỉ nhân viên và admin xem được | Storage policy `payment_proofs_staff_select` |
 
 | BR-45 | Khóa đang ẩn vẫn đọc được bởi học viên đã được duyệt khóa đó (xem BR-20); khách và học viên chưa mua nhận trang 404 | RLS `courses_select` |
 
@@ -87,10 +87,10 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-70 | Vai trò gồm `user` (bệnh nhân, mặc định), `staff`, `admin`. Admin là quyền cao nhất | BR-02 | `check (role in ('user','staff','admin'))` |
-| BR-71 | Chỉ **admin** đổi vai trò của tài khoản khác; không tự đổi quyền mình; luôn còn ≥ 1 admin; mỗi lần đổi ghi `role_events` | BR-03 | `setUserRole`, trigger `guard_role_change` |
-| BR-72 | Staff được: duyệt/từ chối/thu hồi đơn; tạo, sửa thông tin, cấp gói, cấp lại mật khẩu cho tài khoản `role = 'user'`; xử lý phiếu tham vấn, lead; xem dashboard không có doanh thu; xem trước nội dung khóa | BR-25, BR-36, BR-41 | `requireStaff`, `is_staff()`, policy `*_staff_*` |
-| BR-73 | Chỉ admin được: thêm/sửa/xóa khóa, buổi, bài, gói, ảnh bìa; sửa mẫu phiếu tham vấn; xem doanh thu; sửa tài khoản staff/admin | BR-25 | `requireAdmin`, `is_admin()` |
+| BR-70 | ✅ Vai trò gồm `user` (bệnh nhân, mặc định), `staff`, `admin`. Admin là quyền cao nhất | BR-02 | `profiles_role_check`, `lib/auth.ts` (`Role`) |
+| BR-71 | ✅ Chỉ **admin** đổi vai trò của tài khoản khác; không tự đổi quyền mình; luôn còn ≥ 1 admin; mỗi lần đổi ghi `role_events`. Script/service role vẫn đổi được | BR-03 | `setUserRole` (`requireAdmin`), trigger `guard_role_change` ("Chỉ admin được thay đổi vai trò tài khoản.") |
+| BR-72 | 🟡 (Đợt 7: duyệt/từ chối/thu hồi đơn, xem học viên, xem ảnh chuyển khoản, xem trước khóa học, sửa profile `role = user` ở database; các quyền còn lại theo đợt tương ứng) Staff được: duyệt/từ chối/thu hồi đơn; tạo, sửa thông tin, cấp gói, cấp lại mật khẩu cho tài khoản `role = 'user'`; xử lý phiếu tham vấn, lead; xem dashboard không có doanh thu; xem trước nội dung khóa | BR-25, BR-36, BR-41 | `requireStaff`, `run({ staff: true })`, `is_staff()`, policy `profiles_staff_update`, `registrations_staff_update`, `registration_events_staff_select`, `payment_proofs_staff_select`; middleware |
+| BR-73 | ✅ (Đợt 7 cho khóa học/bài học/phân quyền) Chỉ admin được: thêm/sửa/xóa khóa, buổi, bài, gói, ảnh bìa; sửa mẫu phiếu tham vấn; xem doanh thu; sửa tài khoản staff/admin | BR-25 | `requireAdmin`, `is_admin()` |
 
 ### Loại khóa & gói (ADR-012)
 

@@ -44,7 +44,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | FR-013 | Sau đăng nhập chuyển tới tham số `next` (chỉ đường dẫn nội bộ), mặc định `/courses` | M | ✅ |
 | FR-014 | Đăng xuất từ menu Tài khoản, hiện toast, về trang chủ | M | ✅ |
 | FR-015 | Truy cập `/courses*`, `/account*` khi chưa đăng nhập → chuyển tới `/login?next=<path>` | M | ✅ |
-| FR-016 | Truy cập `/admin*` khi không phải admin → chuyển tới `/courses` | M | ✅ |
+| FR-016 | Truy cập `/admin*` khi không phải nhân viên / admin → chuyển tới `/courses`; nhân viên vào trang chỉ-admin → `/admin` (Đợt 7) | M | ✅ |
 
 ### 2.3. Đăng ký khóa học
 
@@ -96,7 +96,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
 | FR-060 | `/courses` hiển thị 3 nhóm: Đang chờ xác nhận, Khóa học đã mở (kèm số bài), Đơn chưa được xác nhận (bị từ chối, kèm hotline) | M | ✅ |
-| FR-061 | Admin vào `/courses` thấy **tất cả** khóa học | S | ✅ |
+| FR-061 | Nhân viên, admin vào `/courses` thấy **tất cả** khóa học (xem trước) | S | ✅ |
 | FR-062 | `?registered=1` hiển thị banner "Đăng ký thành công!" | S | ✅ |
 | FR-063 | `/courses/[courseId]`: có quyền → danh sách bài + "Bắt đầu học"; không có quyền → thông báo khóa chưa mở + nút "Đăng ký khóa học này" | M | ✅ |
 | FR-064 | `/courses/[courseId]/[lessonId]`: nhúng video, "Bài x/n", mô tả, danh sách bài bên cạnh, nút Bài trước / Bài tiếp theo | M | ✅ |
@@ -107,7 +107,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
-| FR-070 | `/admin` hiển thị bảng đơn với 4 tab: Chờ duyệt (mặc định, cũ nhất trước), Đã duyệt, Từ chối, Tất cả (mới nhất trước) kèm số lượng | M | ✅ |
+| FR-070 | `/admin/registrations` (từ Đợt 7; `/admin?status=` chuyển hướng sang đây) hiển thị bảng đơn với 4 tab: Chờ duyệt (mặc định, cũ nhất trước), Đã duyệt, Từ chối, Tất cả (mới nhất trước) kèm số lượng | M | ✅ |
 | FR-071 | Cột: STT, Ảnh chuyển khoản (thumbnail, bấm mở ảnh lớn), Họ tên, Email ("Không có email"), SĐT (link `tel:`), Khóa học (kèm "(khóa học đã xóa)" / "(khóa đang ẩn)" nếu có), Học phí (theo snapshot lúc đăng ký), Ngày đăng ký, Trạng thái, Ngày xử lý, Người xử lý, Thao tác. Họ tên kèm "(tài khoản đã xóa)" nếu có | M | ✅ |
 | FR-072 | Cột Thao tác cố định bên phải khi bảng cuộn ngang | S | ✅ |
 | FR-073 | Thao tác: Duyệt (khi ≠ approved), Từ chối (khi pending), Thu hồi (khi approved, có hộp xác nhận) | M | ✅ |
@@ -147,7 +147,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | FR-101 | Thanh tiến trình trên đầu trang khi chuyển trang | S | ✅ |
 | FR-102 | Nút submit hiển thị vòng xoay & bị vô hiệu khi đang xử lý | M | ✅ |
 | FR-103 | Header tô nổi bật trang đang mở (`aria-current="page"`) | S | ✅ |
-| FR-104 | Menu Tài khoản: rê chuột (thiết bị có hover) hoặc bấm (cảm ứng); gồm Tài khoản của tôi, Khóa học của tôi, Quản trị (admin), Đăng xuất | M | ✅ |
+| FR-104 | Menu Tài khoản: rê chuột (thiết bị có hover) hoặc bấm (cảm ứng); gồm Tài khoản của tôi, Khóa học của tôi, Quản trị (nhân viên, admin), Đăng xuất | M | ✅ |
 | FR-105 | Trang 404 tùy biến; trang admin có `loading` và `error` boundary | S | ✅ |
 
 ---
@@ -160,11 +160,11 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-110 | Vai trò `user`, `staff`, `admin`. Admin có mọi quyền của staff và thêm: quản lý khóa học/buổi/bài/gói, mẫu phiếu tham vấn, phân quyền, doanh thu | M | 7 | ⬜ |
-| FR-111 | `/admin/**` cho staff và admin; `/admin/courses/**`, `/admin/settings/**` chỉ admin (staff → `/admin`) | M | 7 | ⬜ |
-| FR-112 | Menu quản trị và các nút thao tác hiển thị theo vai trò (staff không thấy nút sửa/xóa khóa học, phân quyền, doanh thu) | M | 7 | ⬜ |
-| FR-113 | Admin đổi vai trò tài khoản bằng ô chọn `Bệnh nhân / Nhân viên / Admin` (có xác nhận); không tự đổi quyền mình; luôn còn ≥ 1 admin; ghi `role_events` | M | 7 | ⬜ |
-| FR-114 | Mọi thao tác kiểm tra vai trò ở server (`requireStaff` / `requireAdmin`) **và** RLS (`is_staff` / `is_admin`) | M | 7 | ⬜ |
+| FR-110 | Vai trò `user`, `staff`, `admin`. Admin có mọi quyền của staff và thêm: quản lý khóa học/buổi/bài/gói, mẫu phiếu tham vấn, phân quyền, doanh thu | M | 7 | ✅ |
+| FR-111 | `/admin/**` cho staff và admin; `/admin/courses/**`, `/admin/settings/**` chỉ admin (staff → `/admin`) | M | 7 | ✅ |
+| FR-112 | Menu quản trị và các nút thao tác hiển thị theo vai trò (staff không thấy nút sửa/xóa khóa học, phân quyền, doanh thu) | M | 7 | ✅ |
+| FR-113 | Admin đổi vai trò tài khoản bằng ô chọn `Học viên / Nhân viên / Admin` (có xác nhận; "Học viên" đổi thành "Bệnh nhân" ở Đợt 11); không tự đổi quyền mình; luôn còn ≥ 1 admin; ghi `role_events` | M | 7 | ✅ |
+| FR-114 | Mọi thao tác kiểm tra vai trò ở server (`requireStaff` / `requireAdmin`) **và** RLS (`is_staff` / `is_admin`) | M | 7 | ✅ |
 
 ### 2.12. Danh mục khóa học & trang công khai (ADR-012)
 
@@ -258,13 +258,13 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR cũ | Thay đổi | Đợt |
 | --- | --- | --- |
 | FR-002, FR-003, FR-004 | Danh sách khóa theo 3 nhóm; giá theo gói; "Đăng ký" dẫn tới trang giới thiệu khóa / box đăng ký chọn sẵn chương trình + gói | 8, 9 |
-| FR-015, FR-016 | `/courses/[id]/**` không còn bắt đăng nhập ở middleware (khóa miễn phí công khai); `/admin` cho cả staff | 7, 8 |
+| FR-015, FR-016 | `/courses/[id]/**` không còn bắt đăng nhập ở middleware (khóa miễn phí công khai – Đợt 8); ✅ `/admin` cho cả staff (Đợt 7) | 7, 8 |
 | FR-023, FR-025 | Thêm chọn gói và ô đồng ý | 8, 9 |
 | FR-032 | Chặn khi có đơn **chờ duyệt**; đã sở hữu thì được gia hạn | 9 |
-| FR-061 | Staff/admin thấy mọi khóa ở "Khóa học của tôi" (xem trước) | 10 |
+| FR-061 | ✅ Staff/admin thấy mọi khóa ở "Khóa học của tôi" (xem trước) – làm sớm ở Đợt 7 | 7 |
 | FR-063, FR-064 | Thay bằng FR-150 → FR-154 | 10 |
 | FR-066 | Quyền xem theo `can_view_lesson` (hạn học + mở tuần tự + khóa miễn phí) | 10 |
-| FR-070 → FR-079 | Chuyển sang `/admin/registrations`; staff được thao tác | 7, 13 |
+| FR-070 → FR-079 | ✅ Đợt 7: chuyển sang `/admin/registrations`; staff được thao tác. `/admin` thành Tổng quan ở Đợt 13 | 7, 13 |
 | FR-080 → FR-082 | Thành "Bệnh nhân" + chi tiết bệnh nhân (FR-163, FR-166) | 11 |
 | FR-090 → FR-093 | Thêm loại, nhóm, ảnh bìa, gói, buổi (FR-120, FR-130, FR-140) | 8 → 10 |
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser, requireAdmin } from '@/lib/auth'
+import { getCurrentUser, requireAdmin, requireStaff, type Role } from '@/lib/auth'
 import { isSupportedVideoUrl } from '@/lib/video'
 import type { ActionResult } from '@/lib/action-result'
 
@@ -12,6 +12,8 @@ type RunOptions = {
   notFound?: string
   // Thông báo riêng theo mã lỗi Postgres của từng thao tác (VD 23505: trùng dữ liệu)
   errors?: Record<string, string>
+  // Thao tác nhân viên cũng làm được (duyệt đơn); mặc định chỉ admin (khóa học, bài học, phân quyền)
+  staff?: boolean
 }
 type Parsed<T> = { value: T; error: null } | { value: null; error: string }
 
@@ -22,16 +24,16 @@ const MAX_PRICE = 1_000_000_000
 const MAX_SORT_ORDER = 100_000
 const MAX_NOTE = 500
 
-// Chạy thao tác admin: kiểm tra quyền, dừng nếu dữ liệu nhập không hợp lệ, báo lỗi nếu database lỗi
+// Chạy thao tác quản trị: kiểm tra quyền, dừng nếu dữ liệu nhập không hợp lệ, báo lỗi nếu database lỗi
 // hoặc không có dòng nào bị ảnh hưởng (VD: dữ liệu đã bị xóa), làm mới toàn bộ trang khi thành công.
 async function run(
   message: string,
   op: () => PromiseLike<DbResult>,
   invalid: string | null = null,
-  { notFound = 'Không tìm thấy dữ liệu, vui lòng tải lại trang.', errors = {} }: RunOptions = {}
+  { notFound = 'Không tìm thấy dữ liệu, vui lòng tải lại trang.', errors = {}, staff = false }: RunOptions = {}
 ): Promise<ActionResult> {
   try {
-    await requireAdmin()
+    await (staff ? requireStaff() : requireAdmin())
     if (invalid) return { ok: false, error: invalid }
     const { data, error } = await op()
     if (error) return { ok: false, error: (error.code && errors[error.code]) || error.message }
@@ -114,7 +116,8 @@ type RegistrationStatus = keyof typeof statusMessages
 
 const isRegistrationStatus = (s: string): s is RegistrationStatus => Object.hasOwn(statusMessages, s)
 
-// `expected` là trạng thái admin đang thấy trên trang: nếu admin khác vừa xử lý đơn (trạng thái đã đổi)
+// Nhân viên và admin đều xử lý được đơn.
+// `expected` là trạng thái đang thấy trên trang: nếu người khác vừa xử lý đơn (trạng thái đã đổi)
 // thì không ghi đè. `note` là lý do từ chối / thu hồi (học viên thấy được).
 export async function setRegistrationStatus(
   registrationId: string,
@@ -143,23 +146,34 @@ export async function setRegistrationStatus(
     },
     invalid,
     {
-      notFound: 'Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang.',
+      notFound: 'Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang.',
       errors: { '23505': 'Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này.' },
+      staff: true,
     }
   )
 }
 
 // ---------- Phân quyền ----------
 
-// Cấp / gỡ quyền admin. Database chặn tự gỡ quyền của mình và gỡ admin cuối cùng (trigger guard_role_change).
-export async function setUserRole(userId: string, role: 'admin' | 'user') {
+const roleMessages: Record<Role, string> = {
+  admin: 'Đã cấp quyền admin.',
+  staff: 'Đã chuyển vai trò thành Nhân viên.',
+  user: 'Đã chuyển vai trò thành Học viên.',
+}
+
+const isRole = (s: string): s is Role => Object.hasOwn(roleMessages, s)
+
+// Chỉ admin đổi vai trò. Database chặn tự đổi quyền của mình, gỡ admin cuối cùng và
+// người không phải admin đổi vai trò (trigger guard_role_change).
+export async function setUserRole(userId: string, formData: FormData) {
+  const role = text(formData, 'role')
   const me = await getCurrentUser()
   const invalid =
     checkId(userId, 'tài khoản') ??
-    (role === 'admin' || role === 'user' ? null : 'Quyền không hợp lệ.') ??
+    (isRole(role) ? null : 'Vai trò không hợp lệ.') ??
     (userId === me?.id ? 'Bạn không thể tự thay đổi quyền của chính mình.' : null)
   return run(
-    role === 'admin' ? 'Đã cấp quyền admin.' : 'Đã gỡ quyền admin.',
+    isRole(role) ? roleMessages[role] : '',
     () => createClient().from('profiles').update({ role }).eq('id', userId).select('id'),
     invalid
   )

@@ -34,12 +34,14 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   danh sách bài, nút bài trước/bài tiếp theo
 - Học viên đã có tài khoản có thể đăng nhập và đăng ký thêm khóa khác
 
-**Admin** (`/admin`)
-- Đơn đăng ký: **bảng** dùng chung cho cả 4 tab Chờ duyệt / Đã duyệt / Từ chối / Tất cả,
+**Quản trị** (`/admin`) – vai trò **Admin** (toàn quyền) và **Nhân viên** (duyệt đơn, xem học viên; không sửa khóa học, không phân quyền)
+- Đơn đăng ký (`/admin/registrations`, nhân viên và admin): **bảng** dùng chung cho cả 4 tab Chờ duyệt / Đã duyệt / Từ chối / Tất cả,
   các cột: STT, Ảnh chuyển khoản, Họ và tên, Email, Số điện thoại, Khóa học, Học phí,
   Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác (Duyệt / Từ chối / Thu hồi). Cột Thao tác
   luôn cố định bên phải khi bảng phải cuộn ngang trên màn hình nhỏ
-- Học viên: danh sách tài khoản, số điện thoại, các khóa đã đăng ký và trạng thái, tìm kiếm
+- Học viên: danh sách tài khoản, số điện thoại, các khóa đã đăng ký và trạng thái, tìm kiếm; admin đổi **vai trò**
+  (Học viên / Nhân viên / Admin), tab "Nhân viên & Admin" để rà soát ai có quyền vào trang quản trị
+- Khóa học, bài học: **chỉ admin**
 - Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên.
   **Ẩn** = ngừng nhận đăng ký (học viên đã được duyệt vẫn học bình thường).
   **Xóa** = xóa khóa và bài học, nhưng **giữ nguyên đơn đăng ký** (tên khóa & học phí lúc đăng ký) làm lịch sử thanh toán
@@ -136,6 +138,7 @@ mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
 | `[Hệ thống]` | Bảng, bucket, trigger; RLS: khách không đọc được bài học, đơn đăng ký, mã đặt lại mật khẩu, khóa đang ẩn; email mã 6 số, mã lưu dạng băm, chặn gửi lại liên tục |
 | `[Khách]` | Trang cần đăng nhập bị chặn (`/admin`, `/courses`, `/account`); box đăng ký 3 bước; nút "Đăng ký" cuộn tới form và chọn sẵn khóa; dropdown chỉ có khóa đang mở; QR đúng số tiền; chặn file không phải ảnh; nén ảnh lớn; báo lỗi SĐT sai; đăng ký có email (điện thoại) và **không email** (máy tính); chặn email trùng, SĐT trùng |
 | `[Học viên]` | Khóa chưa duyệt bị khóa; không vào được admin; đăng ký thêm khóa khi đã đăng nhập; chặn đăng ký trùng khóa đang chờ; xem video sau khi duyệt; đăng nhập bằng email, bằng SĐT (cả dạng `+84`); menu Tài khoản (rê chuột / bấm); sửa thông tin, thêm email; đổi mật khẩu; quên mật khẩu (không email → báo hotline; có email → mã sai bị chặn, mã đúng đặt được mật khẩu mới, mật khẩu cũ hết hiệu lực) |
+| `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang Khóa học, duyệt đơn; không tự nâng quyền / sửa khóa học / sửa tài khoản admin qua API |
 | `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (mở/ẩn), bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; hiển thị "Không có email"; danh sách học viên; ẩn khóa học |
 
     npm run build
@@ -181,7 +184,8 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
       account/                  Tài khoản của tôi: sửa thông tin, đổi mật khẩu
       courses/                  Khóa học của tôi, chi tiết khóa, xem bài học
       admin/
-        page.tsx                Đơn đăng ký
+        page.tsx                Chuyển tới registrations (Tổng quan sau này)
+        registrations/          Đơn đăng ký (nhân viên, admin)
         users/                  Học viên
         courses/                Khóa học; courses/[courseId] là bài học của từng khóa
         actions.ts              Server action của admin (trả kết quả để hiện toast)
@@ -203,7 +207,7 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
       flash.ts                  Gửi thông báo sang trang tiếp theo sau khi redirect
       video.ts                  Chuyển link YouTube/TikTok sang link nhúng
       supabase/                 Client: server (cookie), client (trình duyệt), public (trang tĩnh), admin (service role)
-    middleware.ts               /courses, /account cần đăng nhập; /admin cần quyền admin
+    middleware.ts               /courses, /account cần đăng nhập; /admin cần nhân viên/admin (khóa học chỉ admin)
     public/images/              Ảnh bác sĩ, ảnh giới thiệu trung tâm
     supabase/schema.sql         Toàn bộ bảng, RLS, trigger, storage bucket
     scripts/

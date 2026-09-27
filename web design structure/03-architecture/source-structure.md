@@ -26,7 +26,8 @@ course-platform/
 │  │     └─ [lessonId]/page.tsx      # Xem bài học
 │  └─ admin/
 │     ├─ layout.tsx, AdminNav.tsx, loading.tsx, error.tsx
-│     ├─ page.tsx                    # Bảng đơn đăng ký
+│     ├─ page.tsx                    # Chuyển tới registrations (Tổng quan ở Đợt 13)
+│     ├─ registrations/page.tsx      # Bảng đơn đăng ký (nhân viên, admin)
 │     ├─ actions.ts                  # Toàn bộ server action của admin
 │     ├─ users/page.tsx              # Học viên
 │     └─ courses/
@@ -43,7 +44,7 @@ course-platform/
 │  └─ icons.tsx                      # Icon SVG nội bộ
 ├─ lib/                              # Nghiệp vụ & hạ tầng (không chứa JSX)
 │  ├─ site-config.ts                 # Thương hiệu, liên hệ, ngân hàng, vietQrUrl, formatPrice
-│  ├─ auth.ts                        # getCurrentUser, requireAdmin
+│  ├─ auth.ts                        # getCurrentUser (role, isStaff), requireAdmin, requireStaff
 │  ├─ accounts.ts                    # findAccount, isPhoneTaken, isEmailTaken (service role)
 │  ├─ phone.ts                       # normalizePhone, phoneToAuthEmail, realEmail, isValidEmail
 │  ├─ mailer.ts                      # sendMail, resetCodeEmail
@@ -51,7 +52,7 @@ course-platform/
 │  ├─ action-result.ts               # type ActionResult
 │  ├─ video.ts                       # getVideoEmbed
 │  └─ supabase/ {server, client, public, admin}.ts
-├─ middleware.ts                     # Bảo vệ /courses, /account, /admin
+├─ middleware.ts                     # Bảo vệ /courses, /account, /admin (staff/admin; khóa học chỉ admin)
 ├─ supabase/schema.sql               # Toàn bộ DB: bảng, index, hàm, trigger, RLS, storage
 ├─ scripts/
 │  ├─ env.mjs                        # Đọc .env.local cho script
@@ -79,7 +80,7 @@ app/
 │     └─ LessonPlayer.tsx             # 'use client' tick + chuyển bài             – Đợt 10
 ├─ admin/
 │  ├─ page.tsx                        # Tổng quan (dashboard)                      – Đợt 13
-│  ├─ registrations/page.tsx          # Bảng đơn (chuyển từ admin/page.tsx)        – Đợt 7
+│  ├─ registrations/page.tsx          # ✅ Bảng đơn (chuyển từ admin/page.tsx)     – Đợt 7
 │  ├─ patients/{page, new/page, [id]/page, actions}.tsx|ts # thay users/     – Đợt 11
 │  ├─ consultations/{page.tsx, actions.ts}                                         – Đợt 12
 │  ├─ leads/{page.tsx, actions.ts}                                                 – Đợt 8

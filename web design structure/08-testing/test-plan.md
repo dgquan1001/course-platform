@@ -126,9 +126,9 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 
 | TC | Đợt | Vai trò | Kịch bản | Truy vết |
 | --- | --- | --- | --- | --- |
-| TC-65 | 7 | Hệ thống | `role` nhận `staff`; staff gọi API đổi vai trò / sửa khóa học / sửa profile admin bị chặn; admin đổi vai trò qua UI ghi `role_events` | US-10.01, BR-70 → BR-73 |
-| TC-66 | 7 | Staff | Vào `/admin` thấy menu đúng quyền; `/admin/courses` chuyển về `/admin`; duyệt đơn → người xử lý là staff | US-10.02, US-10.03 |
-| TC-67 | 7 | Hệ thống | `/admin?status=approved` chuyển sang `/admin/registrations?status=approved` | FR-180 |
+| TC-65 | 7 | Admin / Hệ thống | ✍️ Đã viết (bước "[Admin] Chuyển tài khoản sang vai trò Nhân viên…"): admin đổi vai trò qua UI ghi `role_events`; staff gọi API tự nâng quyền (0 dòng), cấp quyền cho học viên ("Chỉ admin…"), sửa profile admin / sửa khóa học (0 dòng) bị chặn; staff đọc được đơn | US-10.01, BR-70 → BR-73 |
+| TC-66 | 7 | Staff | ✍️ Đã viết (2 bước): vào `/admin` → `/admin/registrations`, menu chỉ có Đơn đăng ký + Học viên, `/admin/courses` bị chuyển về, không có ô đổi vai trò; duyệt đơn trên UI → `reviewed_by` = staff | US-10.02, US-10.03 |
+| TC-67 | 7 | Hệ thống | ✍️ Đã viết: `/admin?status=approved` chuyển sang `/admin/registrations?status=approved`, tab Đã duyệt được chọn | FR-070 |
 | TC-68 | 8 | Admin | Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
 | TC-69 | 8 | Khách | Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
 | TC-70 | 8 | Khách | Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
@@ -156,6 +156,9 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-92 | 12 | Staff | Xem câu trả lời, chuyển Đã liên hệ kèm ghi chú nội bộ; bệnh nhân thấy trạng thái nhưng không thấy ghi chú nội bộ | US-15.04, BR-102 |
 | TC-93 | 13 | Admin | Dashboard: số liệu khớp dữ liệu test (bệnh nhân mới Web/Zalo, đơn chờ, sắp hết hạn, phiếu mới, lead mới); doanh thu theo hình thức | US-16.01, US-16.03 |
 | TC-94 | 13 | Staff | Dashboard không có doanh thu; `revenue_report()` bị từ chối | US-16.03 AC2 |
+
+✍️ = đã có bước trong `scripts/e2e.mjs`, chờ chạy (cần `supabase/schema.sql` mới). Đợt 7 đã sửa sẵn các TC cũ: TC-01 (hàm `is_staff`), TC-24/25/28/56/57… (route `/admin/registrations`),
+TC-55/TC-58 (ô chọn vai trò, tab "Nhân viên & Admin"), TC-56 (thông báo "có thể người khác vừa xử lý").
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),

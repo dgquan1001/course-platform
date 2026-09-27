@@ -21,7 +21,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 5 | Chống lạm dụng & dữ liệu | RK-06 / RV-04 (giới hạn tần suất + Turnstile tùy chọn), RK-08, RK-04, RV-16 | ✅ Xong (Turnstile chờ A-4) | 26/09/2026 | TC-60 → TC-64 | 63/63 PASS |
 | — | Định vị lại v0.2 (tài liệu) | Yêu cầu V-01 → V-12, ADR-011 → ADR-015, FR-110 → FR-190, BR-70 → BR-107, EP-10 → EP-16, SCR-15 → SCR-28 | ✅ Tài liệu | 27/09/2026 | TC-65 → TC-94 (dự kiến) | — |
 | 6 | Hạ tầng (song song) | A-1 → A-5 | ⬜ Chờ chủ dự án | — | — | — |
-| 7 | Vai trò staff | R-12 | ⬜ | — | TC-65 → TC-67 | — |
+| 7 | Vai trò staff | R-12 | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-65 → TC-67 | Chờ chạy |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ⬜ | — | TC-68 → TC-73 | — |
 | 9 | Gói tháng & hạn học | — | ⬜ | — | TC-74 → TC-78 | — |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
@@ -110,13 +110,13 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau)
 - [ ] R-10 Video riêng tư
 - [ ] R-11 Cấu hình trung tâm trên giao diện
-- [ ] R-12 Vai trò nhân viên → **Đợt 7**
+- [ ] R-12 Vai trò nhân viên → **Đợt 7** (🟡 chờ E2E)
 - [ ] R-13 Mã giảm giá / combo
 
 ### 2.4. Phiên bản 0.2 (V-01 → V-12)
 
 - [x] Chốt yêu cầu & cập nhật tài liệu (27/09/2026)
-- [ ] Đợt 7 – Vai trò staff (V-09)
+- [ ] Đợt 7 – Vai trò staff (V-09) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
 - [ ] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11)
 - [ ] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
 - [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)

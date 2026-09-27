@@ -19,8 +19,9 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | `/courses` | Đăng nhập | `?registered=1` | Động | Khóa học của tôi |
 | `/courses/[courseId]` | Đăng nhập | `courseId: uuid` | Động | Chi tiết khóa; 404 nếu không đọc được khóa |
 | `/courses/[courseId]/[lessonId]` | Đăng nhập + quyền khóa | `courseId, lessonId: uuid` | Động | Xem bài học |
-| `/admin` | Admin | `?status=pending\|approved\|rejected\|all` (mặc định pending) | Động | Đơn đăng ký |
-| `/admin/users` | Admin | `?q=<từ khóa>` | Động | Học viên |
+| `/admin` | Nhân viên, admin | `?status=` (giữ lại) | Động | Chuyển hướng tới `/admin/registrations` (thành Tổng quan ở Đợt 13) |
+| `/admin/registrations` | Nhân viên, admin | `?status=pending\|approved\|rejected\|all\|refund` (mặc định pending) | Động | Đơn đăng ký |
+| `/admin/users` | Nhân viên (chỉ xem), admin | `?q=<từ khóa>`, `?role=team` (Nhân viên & Admin) | Động | Học viên; admin đổi vai trò |
 | `/admin/courses` | Admin | — | Động | Khóa học |
 | `/admin/courses/[courseId]` | Admin | `courseId: uuid` | Động | Bài học của khóa |
 | `/icon.svg` | Công khai | — | Tĩnh | Favicon |
@@ -34,7 +35,8 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | Điều kiện | Kết quả |
 | --- | --- |
 | Không có user | `302 → /login?next=<pathname>` |
-| Path bắt đầu `/admin` và `profiles.role ≠ 'admin'` | `302 → /courses` |
+| Path bắt đầu `/admin` và `profiles.role ∉ {staff, admin}` | `302 → /courses` |
+| `role = staff` và path thuộc `/admin/courses`, `/admin/settings` | `302 → /admin` |
 | Còn lại | Cho qua |
 
 ## 3. Server Actions
@@ -130,18 +132,18 @@ Cập nhật `profiles`, `revalidatePath('/', 'layout')`. Thành công: "Đã c�
 
 ### 3.6. Admin actions – `app/admin/actions.ts`
 
-Tất cả đi qua `run(message, op, invalid)`: `requireAdmin()` → nếu dữ liệu không hợp lệ trả `invalid` → thực thi bằng **server client (RLS)** với `.select('id')` →
+Tất cả đi qua `run(message, op, invalid, { staff?, errors?, notFound? })`: `requireAdmin()` (hoặc `requireStaff()` khi `staff: true` – chỉ `setRegistrationStatus`) → nếu dữ liệu không hợp lệ trả `invalid` → thực thi bằng **server client (RLS)** với `.select('id')` →
 lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui lòng tải lại trang."; thành công →
 `revalidatePath('/', 'layout')` và `{ ok: true, message }`.
 
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
-| `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể admin khác vừa xử lý), vui lòng tải lại trang."); trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
+| `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang."). Quyền: nhân viên hoặc admin; trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
 | `createCourse` | — | `title, description, price, sort_order, status` | insert `courses` | `Đã thêm khóa học "<title>".` |
 | `updateCourse` | `courseId` | như trên | update `courses` | "Đã lưu thông tin khóa học." |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
-| `setUserRole` | `userId` (UUID, khác chính mình), `role` ∈ admin/user | — | update `profiles.role`; trigger `profiles_guard_role` chặn tự gỡ quyền / gỡ admin cuối cùng ("Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã gỡ quyền admin." |
+| `setUserRole` | `userId` (UUID, khác chính mình) | `role` ∈ user/staff/admin ("Vai trò không hợp lệ.") | update `profiles.role` (chỉ admin); trigger `profiles_guard_role` chặn người không phải admin, tự gỡ quyền, gỡ admin cuối cùng ("Chỉ admin được thay đổi vai trò tài khoản." / "Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã chuyển vai trò thành Nhân viên." / "Đã chuyển vai trò thành Học viên." |
 | `createLesson` | `courseId` | `title, video_url, description, sort_order` | insert `lessons` | `Đã thêm bài học "<title>".` |
 | `updateLesson` | `lessonId` | như trên | update `lessons` | "Đã lưu bài học." |
 | `deleteLesson` | `lessonId` | — | delete `lessons` | "Đã xóa bài học." |
@@ -200,7 +202,7 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 | `/courses/[courseId]/[lessonId]` | Công khai (khóa free) / theo `can_view_lesson` | Trình học; bài bị khóa hiện lý do | 10 |
 | `/courses/consultation` | Đăng nhập | Form phiếu tham vấn (`?course=` tùy chọn) | 12 |
 | `/admin` | Staff, admin | **Tổng quan** (dashboard) | 13 |
-| `/admin/registrations` | Staff, admin | Đơn đăng ký (chuyển từ `/admin`; `/admin?status=` chuyển hướng sang đây) | 7 |
+| `/admin/registrations` | Staff, admin | ✅ Đơn đăng ký (chuyển từ `/admin`; `/admin?status=` chuyển hướng sang đây) | 7 |
 | `/admin/patients` (thay `/admin/users`) | Staff, admin | Bệnh nhân: lọc nguồn, trạng thái gói; admin có tab Nhân viên & Admin | 11 |
 | `/admin/patients/new` | Staff, admin | Tạo bệnh nhân + cấp gói | 11 |
 | `/admin/patients/[id]` | Staff, admin | Chi tiết bệnh nhân | 11 |
@@ -213,14 +215,14 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 
 - Matcher: `/courses` (đúng path), `/courses/consultation`, `/account/:path*`, `/admin/:path*`.
   `/courses/[id]/**` **không** còn chặn ở middleware: trang tự kiểm tra (khóa free công khai; khóa khác → `/login?next=`).
-- `/admin/**`: `role ∈ {staff, admin}`, ngược lại → `/courses`. `/admin/courses/**`, `/admin/settings/**`: chỉ admin, staff → `/admin`.
+- ✅ (Đợt 7) `/admin/**`: `role ∈ {staff, admin}`, ngược lại → `/courses`. `/admin/courses/**`, `/admin/settings/**`: chỉ admin, staff → `/admin`.
 
 ### 7.3. Server actions mới / thay đổi
 
 | Action | File | Quyền | Tóm tắt |
 | --- | --- | --- | --- |
-| `requireStaff()` | `lib/auth.ts` | — | Như `requireAdmin` cho `staff`/`admin`; `getCurrentUser()` trả thêm `role`, `mustChangePassword`, `consentAt` |
-| `setUserRole(userId, role)` | `app/admin/actions.ts` | Admin | `role ∈ user/staff/admin` |
+| `requireStaff()` | `lib/auth.ts` | — | ✅ Đợt 7: như `requireAdmin` cho `staff`/`admin`; `getCurrentUser()` trả thêm `role`, `isStaff` (`mustChangePassword`, `consentAt` ở Đợt 8, 11) |
+| `setUserRole(userId, formData)` | `app/admin/actions.ts` | Admin | ✅ Đợt 7 – `role ∈ user/staff/admin` (xem §3.6) |
 | `registerAction` | `app/register/actions.ts` | Công khai | Thêm `planId`, `consent` (khách mới); tính giá theo gói; chặn khi có đơn pending (BR-84) |
 | `createCourse` / `updateCourse` | admin | Admin | Thêm `kind`, `category`, `summary`, `outcomes`, `cover` (file ≤ 2MB, magic bytes) |
 | `upsertPlan(courseId, formData)`, `deletePlan(planId)` | admin | Admin | `months`, `sessions`, `price`, `active` |

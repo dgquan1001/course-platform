@@ -5,6 +5,8 @@ const styles: Record<string, { label: string; className: string }> = {
   published: { label: 'Đang hiển thị', className: 'bg-emerald-100 text-emerald-700' },
   draft: { label: 'Đang ẩn', className: 'bg-slate-100 text-slate-600' },
   admin: { label: 'Admin', className: 'bg-ocean-100 text-ocean-700' },
+  staff: { label: 'Nhân viên', className: 'bg-violet-100 text-violet-700' },
+  user: { label: 'Học viên', className: 'bg-slate-100 text-slate-600' },
 }
 
 export default function StatusBadge({ status }: { status: string }) {

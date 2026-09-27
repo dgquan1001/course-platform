@@ -164,7 +164,7 @@ export async function registerAction(
     await supabase.auth.signInWithPassword({ email: authEmail, password })
   }
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/registrations')
   setFlash('Đã gửi đăng ký thành công!')
   redirect('/courses?registered=1')
 }

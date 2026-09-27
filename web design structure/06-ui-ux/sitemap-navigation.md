@@ -21,8 +21,8 @@ flowchart TB
     crs --> cd --> ls
   end
 
-  subgraph Admin – cần role admin
-    adm["/admin (Đơn đăng ký)"]
+  subgraph Quản trị – nhân viên hoặc admin
+    adm["/admin → /admin/registrations (Đơn đăng ký)"]
     au["/admin/users"]
     ac["/admin/courses"]
     acl["/admin/courses/:courseId"]
@@ -41,7 +41,7 @@ flowchart TB
 | `/account`, `/courses` | ❌ | ✅ | ✅ | → `/login?next=…` |
 | `/courses/:id` | ❌ | ✅ (thông báo "chưa mở" nếu chưa được duyệt) | ✅ | → `/login?next=…`; khóa ẩn → 404 |
 | `/courses/:id/:lessonId` | ❌ | ✅ nếu được duyệt khóa | ✅ | Thông báo "Không tìm thấy bài học hoặc khóa học chưa được mở" |
-| `/admin/**` | ❌ | ❌ | ✅ | Khách → `/login`; học viên → `/courses` |
+| `/admin/**` | ❌ | ❌ | ✅ (nhân viên: trừ `/admin/courses/**`) | Khách → `/login`; học viên → `/courses`; nhân viên vào trang chỉ-admin → `/admin` |
 
 ## 3. Header (`components/SiteHeader.tsx`)
 
@@ -50,7 +50,7 @@ flowchart TB
 | Logo | Icon cột sống + "Trung tâm HV" + tagline, về `/` | Như máy tính |
 | Menu neo | Bác sĩ · Khóa học · Cách đăng ký · Liên hệ | Trong menu hamburger |
 | Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold) | Trong menu hamburger |
-| Đã đăng nhập | [Quản trị] (admin) · Avatar chữ cái + "Tài khoản" ▾ | Avatar ▾ (ẩn chữ "Tài khoản" < sm) |
+| Đã đăng nhập | [Quản trị] (nhân viên, admin) · Avatar chữ cái + "Tài khoản" ▾ | Avatar ▾ (ẩn chữ "Tài khoản" < sm) |
 | Menu Tài khoản | Tên + email/SĐT · Tài khoản của tôi · Khóa học của tôi · Quản trị (admin) · Đăng xuất (đỏ) | Như máy tính, mở bằng chạm |
 
 Quy tắc:
@@ -60,7 +60,8 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-Tab gạch chân: **Đơn đăng ký** (`/admin`) · **Học viên** (`/admin/users`) · **Khóa học** (`/admin/courses`).
+Tab gạch chân (`nav aria-label="Menu quản trị"`): **Đơn đăng ký** (`/admin/registrations`) · **Học viên** (`/admin/users`) · **Khóa học** (`/admin/courses`, chỉ admin).
+Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên).
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
 
 ## 5. Footer (`#lien-he`)

@@ -1,6 +1,6 @@
 # ADR-011: Ba vai trò user / staff / admin
 
-- **Trạng thái**: Accepted (thiết kế v0.2, chưa triển khai)
+- **Trạng thái**: Accepted – triển khai ở Đợt 7 (27/09/2026)
 - **Ngày**: 27/09/2026
 - **Người quyết định**: Chủ dự án
 

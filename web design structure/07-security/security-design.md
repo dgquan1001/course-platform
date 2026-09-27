@@ -46,9 +46,12 @@
 | password_resets | ❌ | ❌ | ❌ | ✅ |
 | Storage payment-proofs – đọc | ❌ | ❌ | ✅ | ✅ |
 | Storage payment-proofs – ghi | ❌ | ❌ | ❌ | ✅ |
-| Đổi `role` | ❌ | ❌ | ✅ (qua SQL, chưa có UI) | ✅ |
+| Đổi `role` | ❌ | ❌ | ✅ (trang Học viên; nhân viên không đổi được – xem §3.1) | ✅ |
 
-### 3.1. Ma trận phân quyền phiên bản 0.2 (chốt 27/09/2026, chưa triển khai – ADR-011)
+### 3.1. Ma trận phân quyền phiên bản 0.2 (ADR-011)
+
+> Đợt 7 đã triển khai: vai trò staff, duyệt đơn, đọc đơn / lịch sử / ảnh chuyển khoản / học viên, xem trước khóa học, sửa profile `role = user`
+> ở database, chặn đổi vai trò & sửa khóa học. Các dòng khác áp dụng khi đợt tương ứng hoàn thành.
 
 | Tài nguyên / thao tác | Khách | Bệnh nhân | Staff | Admin |
 | --- | --- | --- | --- | --- |
@@ -109,7 +112,7 @@
 | T21 | File giả dạng ảnh (đổi đuôi) | Tampering | ✅ Kiểm tra magic bytes, lưu MIME theo nội dung (RK-08) | Thấp |
 | T22 | Clickjacking, nhúng script lạ, lộ công nghệ | Tampering / Info disclosure | ✅ CSP (`frame-ancestors 'none'`, `object-src 'none'`, nguồn script/frame/ảnh giới hạn), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS, tắt `X-Powered-By` (RV-16) | Thấp. `script-src` còn `'unsafe-inline'` (Next.js); nâng cấp dùng nonce khi cần |
 | T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
-| T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | Trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` | Thấp |
+| T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | ✅ Đợt 7: trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` (E2E TC-65) | Thấp |
 | T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (đơn approved không ảnh) | Repudiation / Fraud | Bắt buộc số tiền + hình thức; `created_by`, người xử lý, lịch sử do trigger ghi; admin xem doanh thu theo nhân viên | Trung bình – quy trình đối soát định kỳ |
 | T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | Hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
 | T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | `video_url` không cấp `select` cho client; chỉ `get_lesson_video` + `can_view_lesson`; RLS `lesson_progress` | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |

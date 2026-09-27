@@ -30,7 +30,8 @@ export default async function CoursesPage({
 
   const courseFields = 'id, title, description, price, lessons(count)'
 
-  if (user.isAdmin) {
+  // Nhân viên và admin xem trước được mọi khóa học
+  if (user.isStaff) {
     const { data } = await supabase.from('courses').select(courseFields).order('sort_order')
     unlocked = (data as CourseRow[]) ?? []
   } else {
@@ -171,7 +172,7 @@ export default async function CoursesPage({
           </section>
         )}
 
-        {!!unlocked.length && !user.isAdmin && (
+        {!!unlocked.length && !user.isStaff && (
           <div className="text-center">
             <Link href="/register" className="btn-outline">
               Đăng ký thêm khóa học

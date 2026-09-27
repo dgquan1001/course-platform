@@ -9,6 +9,7 @@
 //   [Khách]     người chưa đăng nhập
 //   [Học viên]  người đã có tài khoản
 //   [Admin]     quản trị viên (trình duyệt máy tính)
+//   [Nhân viên] vai trò staff: duyệt đơn, xem học viên; không sửa khóa học, không phân quyền
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -58,6 +59,8 @@ const REJECT_NOTE = 'Ảnh chuyển khoản bị mờ, không đọc được s�
 // Admin thứ 2 (quyền ngang nhau) được admin 1 cấp quyền trên giao diện
 const ADMIN2 = { email: `e2e-admin2-${stamp}@example.com`, password: 'Admin2#123456', name: 'Admin Hai E2E' }
 const RACE = {} // đơn dùng cho kịch bản 2 admin cùng xử lý
+// Nhân viên (vai trò staff, v0.2) được admin chuyển vai trò trên giao diện
+const STAFF = { email: `e2e-staff-${stamp}@example.com`, password: 'Staff#123456', name: 'Nhân Viên E2E' }
 
 const OUT = fileURLToPath(new URL('../test-results/', import.meta.url))
 const OUTBOX = `${OUT}mail-outbox`
@@ -174,6 +177,18 @@ async function createCourseViaUI(page, course) {
   const { data } = await db.from('courses').select('id, price, status').eq('title', course.title).single()
   assert(data?.price === Number(course.price) && data.status === course.status, `Dữ liệu khóa học sai: ${JSON.stringify(data)}`)
   return data.id
+}
+
+// Admin đổi vai trò tài khoản ở trang Học viên (ô chọn vai trò + xác nhận), trả về nội dung hộp xác nhận
+async function setRoleViaUI(page, email, role, message) {
+  await page.goto(`${BASE}/admin/users?q=${encodeURIComponent(email)}`)
+  const row = page.locator('tr', { hasText: email })
+  await row.locator('select[name=role]').selectOption(role)
+  let dialogText = ''
+  page.once('dialog', (d) => { dialogText = d.message(); d.accept() })
+  await row.getByRole('button', { name: 'Lưu vai trò' }).click()
+  await toast(page, message)
+  return dialogText
 }
 
 // Điền Bước 3 của form đăng ký (khách chưa đăng nhập)
@@ -294,6 +309,9 @@ try {
     assert(!colError, `Bảng registrations thiếu cột course_title/amount: ${colError?.message} (hãy chạy lại supabase/schema.sql)`)
     const { error: reviewerError } = await db.from('registrations').select('reviewed_by, reviewed_by_name, review_note').limit(1)
     assert(!reviewerError, `Bảng registrations thiếu cột người xử lý: ${reviewerError?.message} (hãy chạy lại supabase/schema.sql)`)
+    // v0.2 – Đợt 7: vai trò staff
+    const { error: staffFnError } = await db.rpc('is_staff')
+    assert(!staffFnError, `Thiếu hàm is_staff: ${staffFnError?.message} (hãy chạy lại supabase/schema.sql)`)
   })
 
   await step('[Hệ thống] Database chặn học phí âm (ràng buộc courses_price_nonnegative)', async () => {
@@ -354,7 +372,7 @@ try {
     assert(bg !== 'rgba(0, 0, 0, 0)', `Nút Quản trị không đổi màu (background: ${bg})`)
   })
 
-  await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; tab "Admin" ghi người cấp; không tự đổi quyền mình', async () => {
+  await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; tab "Nhân viên & Admin" ghi người cấp; không tự đổi quyền mình', async () => {
     const { data, error } = await db.auth.admin.createUser({
       email: ADMIN2.email, password: ADMIN2.password, email_confirm: true, user_metadata: { full_name: ADMIN2.name },
     })
@@ -362,12 +380,7 @@ try {
     ADMIN2.id = data.user.id
     created.userIds.push(ADMIN2.id)
 
-    await admin.goto(`${BASE}/admin/users?q=${encodeURIComponent(ADMIN2.email)}`)
-    const row = admin.locator('tr', { hasText: ADMIN2.email })
-    admin.once('dialog', (d) => d.accept())
-    await row.getByRole('button', { name: 'Cấp quyền admin' }).click()
-    await toast(admin, 'Đã cấp quyền admin')
-    await row.getByRole('button', { name: 'Gỡ quyền admin' }).waitFor()
+    await setRoleViaUI(admin, ADMIN2.email, 'admin', 'Đã cấp quyền admin')
     const { data: profile } = await db.from('profiles').select('role').eq('id', ADMIN2.id).single()
     assert(profile.role === 'admin', `Quyền chưa đổi: ${profile.role}`)
     const { data: events } = await db.from('role_events').select('actor, actor_name, from_role, to_role').eq('user_id', ADMIN2.id)
@@ -376,13 +389,13 @@ try {
       `Nhật ký phân quyền sai: ${JSON.stringify(events)}`
     )
 
-    // Tab "Admin": có cả 2 admin test, ghi "Cấp quyền bởi Admin E2E"; dòng của chính mình không có nút đổi quyền
-    await admin.goto(`${BASE}/admin/users?role=admin&q=e2e-admin`)
-    await admin.getByRole('link', { name: /^Admin \(\d+\)/ }).and(admin.locator('[aria-current=page]')).waitFor()
+    // Tab "Nhân viên & Admin": có cả 2 admin test, ghi "Cấp quyền bởi Admin E2E"; dòng của chính mình không có ô đổi vai trò
+    await admin.goto(`${BASE}/admin/users?role=team&q=e2e-admin`)
+    await admin.getByRole('link', { name: /^Nhân viên & Admin \(\d+\)/ }).and(admin.locator('[aria-current=page]')).waitFor()
     await admin.locator('tr', { hasText: ADMIN2.email }).getByText('Cấp quyền bởi Admin E2E').waitFor()
     const me = admin.locator('tr', { hasText: ADMIN.email })
     await me.getByText('Tài khoản của bạn').waitFor()
-    assert((await me.getByRole('button').count()) === 0, 'Dòng của chính mình vẫn có nút đổi quyền')
+    assert((await me.getByRole('button').count()) === 0 && (await me.locator('select').count()) === 0, 'Dòng của chính mình vẫn đổi được vai trò')
 
     // Database chặn tự gỡ quyền kể cả khi gọi thẳng API bằng phiên admin
     ADMIN.session = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
@@ -653,7 +666,7 @@ try {
     await student.getByRole('heading', { name: 'Đang chờ xác nhận' }).waitFor()
     await student.goto(`${BASE}/courses/${created.courseIds.A}`)
     await student.getByText('Khóa học chưa được mở cho tài khoản của bạn').waitFor()
-    await student.goto(`${BASE}/admin`)
+    await student.goto(`${BASE}/admin/registrations`)
     assert(new URL(student.url()).pathname === '/courses', `Học viên vào được admin: ${student.url()}`)
   })
 
@@ -701,7 +714,7 @@ try {
 
   await step('[Admin] Đơn đăng ký hiển thị dạng bảng với đủ cột ở cả 4 tab', async () => {
     for (const tab of ['Tất cả', 'Từ chối', 'Đã duyệt', 'Chờ duyệt']) {
-      await admin.goto(`${BASE}/admin`)
+      await admin.goto(`${BASE}/admin/registrations`)
       await admin.getByRole('link', { name: new RegExp(`^${tab}`) }).click()
       await admin.getByRole('link', { name: new RegExp(`^${tab}`) }).and(admin.locator('[aria-current=page]')).waitFor()
       const headers = (await regTable().locator('thead th').allTextContents()).map((h) => h.trim())
@@ -717,7 +730,7 @@ try {
   })
 
   await step('[Admin] Thấy đơn kèm ảnh chuyển khoản (tải được) và duyệt khóa A', async () => {
-    await admin.goto(`${BASE}/admin`)
+    await admin.goto(`${BASE}/admin/registrations`)
     const card = regCard(STUDENT.email, COURSE_A)
     const proof = card.getByAltText(`Chuyển khoản của ${STUDENT.name}`)
     await proof.scrollIntoViewIfNeeded()
@@ -770,7 +783,7 @@ try {
   })
 
   await step('[Admin] Tab "Đã duyệt", "Từ chối", "Tất cả" hiển thị đúng trạng thái, ngày xử lý và nút', async () => {
-    await admin.goto(`${BASE}/admin?status=approved`)
+    await admin.goto(`${BASE}/admin/registrations?status=approved`)
     let row = regCard(STUDENT.email, COURSE_A)
     await row.getByText('Đã duyệt', { exact: true }).waitFor()
     assert(/\d{2}\/\d{2}\/\d{4}/.test(await row.locator('td').nth(9).textContent()), 'Thiếu ngày xử lý')
@@ -778,7 +791,7 @@ try {
     await rejectToggle(row, 'Thu hồi').waitFor()
     assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Đơn đã duyệt vẫn có nút Duyệt')
 
-    await admin.goto(`${BASE}/admin?status=rejected`)
+    await admin.goto(`${BASE}/admin/registrations?status=rejected`)
     row = regCard(STUDENT.email, COURSE_B)
     await row.getByText('Từ chối', { exact: true }).waitFor()
     // Lý do hiện dưới trạng thái (bản thứ 2 nằm trong "Lịch sử" đang thu gọn)
@@ -786,7 +799,7 @@ try {
     await row.getByRole('button', { name: 'Duyệt' }).waitFor()
     assert((await rejectToggle(row, 'Từ chối').count()) === 0, 'Đơn bị từ chối vẫn có nút Từ chối')
 
-    await admin.goto(`${BASE}/admin?status=all`)
+    await admin.goto(`${BASE}/admin/registrations?status=all`)
     for (const [who, course, status] of [
       [STUDENT.email, COURSE_A, 'Đã duyệt'],
       [STUDENT.email, COURSE_B, 'Từ chối'],
@@ -810,13 +823,13 @@ try {
   await step('[Admin] 2 admin cùng xử lý 1 đơn: admin 2 duyệt trước, admin 1 (trang cũ) từ chối bị chặn, không ghi đè', async () => {
     // Đơn chờ duyệt của học viên 2 cho khóa đang ẩn (không ảnh hưởng các bước sau)
     RACE.id = await insertRegistration({ user_id: STUDENT2.id, course_id: created.courseIds.hidden, full_name: STUDENT2.name, phone: STUDENT2.phone })
-    await Promise.all([admin.goto(`${BASE}/admin`), admin2.goto(`${BASE}/admin`)])
+    await Promise.all([admin.goto(`${BASE}/admin/registrations`), admin2.goto(`${BASE}/admin/registrations`)])
     const row1 = regCard(STUDENT2.phone, COURSE_HIDDEN)
     const row2 = admin2.getByRole('table', { name: 'Danh sách đơn đăng ký' }).locator('tbody tr', { hasText: COURSE_HIDDEN.title })
     await row2.getByRole('button', { name: 'Duyệt' }).click()
     await toast(admin2, 'Đã duyệt đơn')
     await rejectVia(row1, 'Từ chối', 'Bấm từ trang cũ')
-    await alertText(admin, 'Đơn đã thay đổi (có thể admin khác vừa xử lý)')
+    await alertText(admin, 'Đơn đã thay đổi (có thể người khác vừa xử lý)')
     const { data } = await db.from('registrations').select('status, reviewed_by, reviewed_by_name, review_note').eq('id', RACE.id).single()
     assert(
       data.status === 'approved' && data.reviewed_by === ADMIN2.id && data.reviewed_by_name === ADMIN2.name && !data.review_note,
@@ -825,11 +838,11 @@ try {
   })
 
   await step('[Admin] Lịch sử xử lý đơn: Duyệt (admin 2) → Thu hồi kèm lý do (admin 1) → Duyệt lại (admin 1) đủ 3 dòng đúng người', async () => {
-    await admin.goto(`${BASE}/admin?status=approved`)
+    await admin.goto(`${BASE}/admin/registrations?status=approved`)
     let row = regCard(STUDENT2.phone, COURSE_HIDDEN)
     await rejectVia(row, 'Thu hồi', 'Chuyển khoản chưa về tài khoản')
     await toast(admin, 'Từ chối')
-    await admin.goto(`${BASE}/admin?status=rejected`)
+    await admin.goto(`${BASE}/admin/registrations?status=rejected`)
     row = regCard(STUDENT2.phone, COURSE_HIDDEN)
     await row.getByRole('button', { name: 'Duyệt' }).click()
     await toast(admin, 'Đã duyệt đơn')
@@ -853,7 +866,7 @@ try {
     assert(reg.review_note === null, `Duyệt lại vẫn còn lý do thu hồi: ${reg.review_note}`)
 
     // Giao diện: mở "Lịch sử (3)" thấy đủ người xử lý và lý do
-    await admin.goto(`${BASE}/admin?status=approved`)
+    await admin.goto(`${BASE}/admin/registrations?status=approved`)
     row = regCard(STUDENT2.phone, COURSE_HIDDEN)
     await row.locator('summary', { hasText: 'Lịch sử (3)' }).click()
     await row.locator('li', { hasText: 'Lý do: Chuyển khoản chưa về tài khoản' }).waitFor()
@@ -1057,7 +1070,7 @@ try {
   await step('[Admin] Đơn chờ duyệt của khóa đang ẩn vẫn duyệt được → học viên vào học được', async () => {
     // Đơn gửi trước khi khóa A bị ẩn (khách đã chuyển khoản); sau khi ẩn không tạo được đơn mới
     await insertRegistration({ user_id: STUDENT2.id, course_id: created.courseIds.A, full_name: STUDENT2.name, phone: STUDENT2.phone })
-    await admin.goto(`${BASE}/admin`)
+    await admin.goto(`${BASE}/admin/registrations`)
     const row = regCard(STUDENT2.phone, COURSE_A)
     await row.getByText('(khóa đang ẩn)').waitFor()
     await row.getByRole('button', { name: 'Duyệt' }).click()
@@ -1077,14 +1090,14 @@ try {
     const { data: reg } = await db.from('registrations').select('user_id, full_name, amount').eq('id', id).maybeSingle()
     assert(reg && reg.user_id === null && reg.full_name === name && reg.amount === 199000, `Đơn sau khi xóa tài khoản: ${JSON.stringify(reg)}`)
 
-    await admin.goto(`${BASE}/admin`)
+    await admin.goto(`${BASE}/admin/registrations`)
     const row = regTable().locator('tbody tr', { hasText: name })
     await row.getByText('(tài khoản đã xóa)').waitFor()
     assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Vẫn có nút Duyệt cho tài khoản đã xóa')
   })
 
   await step('[Admin] Thu hồi quyền học khóa A → học viên không xem được nữa', async () => {
-    await admin.goto(`${BASE}/admin?status=approved`)
+    await admin.goto(`${BASE}/admin/registrations?status=approved`)
     const card = regCard(STUDENT.email, COURSE_A)
     await rejectVia(card, 'Thu hồi')
     await toast(admin, 'Từ chối')
@@ -1117,7 +1130,7 @@ try {
     )
 
     // Bảng admin vẫn hiện đơn với tên khóa, học phí đã lưu; không còn nút Duyệt cho khóa đã xóa
-    await admin.goto(`${BASE}/admin?status=all`)
+    await admin.goto(`${BASE}/admin/registrations?status=all`)
     const row = regCard(STUDENT2.phone, COURSE_B)
     await row.getByText('(khóa học đã xóa)').waitFor()
     await row.getByText('299.000đ').waitFor()
@@ -1136,7 +1149,7 @@ try {
     await student2.goto(`${BASE}/courses`)
     await student2.locator('.card', { hasText: COURSE_B.title }).getByText('Khóa học đã ngừng').waitFor()
 
-    await admin.goto(`${BASE}/admin`)
+    await admin.goto(`${BASE}/admin/registrations`)
     await admin.getByRole('link', { name: /^Khóa đã xóa – cần hoàn tiền/ }).click()
     await admin.waitForURL(/status=refund/)
     const row = regCard(STUDENT2.phone, COURSE_B)
@@ -1149,17 +1162,86 @@ try {
   })
 
   await step('[Admin] Gỡ quyền admin 2 → admin 2 không vào được trang quản trị nữa; nhật ký ghi lại', async () => {
-    await admin.goto(`${BASE}/admin/users?role=admin&q=${encodeURIComponent(ADMIN2.email)}`)
-    const row = admin.locator('tr', { hasText: ADMIN2.email })
-    let dialogText = ''
-    admin.once('dialog', (d) => { dialogText = d.message(); d.accept() })
-    await row.getByRole('button', { name: 'Gỡ quyền admin' }).click()
-    await toast(admin, 'Đã gỡ quyền admin')
+    const dialogText = await setRoleViaUI(admin, ADMIN2.email, 'user', 'Đã chuyển vai trò thành Học viên')
     assert(dialogText.includes('không vào được trang quản trị'), `Hộp xác nhận: ${dialogText}`)
     await admin2.goto(`${BASE}/admin`)
     assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được: ${admin2.url()}`)
     const { data: events } = await db.from('role_events').select('from_role, to_role, actor_name').eq('user_id', ADMIN2.id).order('created_at')
     assert(events.map((e) => `${e.from_role}>${e.to_role}`).join(',') === 'user>admin,admin>user', `Nhật ký phân quyền: ${JSON.stringify(events)}`)
+  })
+
+  // =====================================================================
+  phase('9b. NHÂN VIÊN – vai trò staff (v0.2, Đợt 7)')
+  // =====================================================================
+  const staffCtx = await newContext({ viewport: { width: 1366, height: 900 } })
+  const staff = watch(await staffCtx.newPage(), 'nhan-vien')
+
+  await step('[Admin] Chuyển tài khoản sang vai trò "Nhân viên"; nhân viên không tự đổi vai trò / sửa khóa học / sửa tài khoản admin qua API', async () => {
+    const { data, error } = await db.auth.admin.createUser({
+      email: STAFF.email, password: STAFF.password, email_confirm: true, user_metadata: { full_name: STAFF.name },
+    })
+    assert(!error, error?.message)
+    STAFF.id = data.user.id
+    created.userIds.push(STAFF.id)
+
+    await setRoleViaUI(admin, STAFF.email, 'staff', 'Đã chuyển vai trò thành Nhân viên')
+    await admin.locator('tr', { hasText: STAFF.email }).locator('.badge', { hasText: 'Nhân viên' }).waitFor()
+    const { data: events } = await db.from('role_events').select('actor, from_role, to_role').eq('user_id', STAFF.id)
+    assert(events.length === 1 && events[0].actor === ADMIN.id && events[0].to_role === 'staff', `Nhật ký phân quyền: ${JSON.stringify(events)}`)
+
+    STAFF.session = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+    const { error: loginError } = await STAFF.session.auth.signInWithPassword({ email: STAFF.email, password: STAFF.password })
+    assert(!loginError, loginError?.message)
+    // Dòng của nhân viên không nằm trong phạm vi sửa (chỉ tài khoản học viên) → không dòng nào bị đổi
+    const { data: selfRows } = await STAFF.session.from('profiles').update({ role: 'admin' }).eq('id', STAFF.id).select('id')
+    assert(!selfRows?.length, 'Nhân viên tự nâng quyền admin được!')
+    // Tài khoản học viên sửa được thông tin nhưng không đổi được vai trò (trigger guard_role_change)
+    const { error: promoteError } = await STAFF.session.from('profiles').update({ role: 'staff' }).eq('id', STUDENT.id)
+    assert(promoteError?.message.includes('Chỉ admin'), `Nhân viên cấp quyền cho học viên được: ${promoteError?.message ?? 'không lỗi'}`)
+    const { data: adminRows } = await STAFF.session.from('profiles').update({ full_name: 'Bị sửa' }).eq('id', ADMIN.id).select('id')
+    assert(!adminRows?.length, 'Nhân viên sửa được tài khoản admin!')
+    const { data: courseRows } = await STAFF.session.from('courses').update({ title: 'Bị sửa' }).eq('id', created.courseIds.hidden).select('id')
+    assert(!courseRows?.length, 'Nhân viên sửa được khóa học!')
+    const { data: profiles } = await db.from('profiles').select('id, role, full_name').in('id', [STAFF.id, STUDENT.id, ADMIN.id])
+    const byId = Object.fromEntries(profiles.map((p) => [p.id, p]))
+    assert(byId[STAFF.id].role === 'staff' && byId[STUDENT.id].role === 'user' && byId[ADMIN.id].full_name === 'Admin E2E', `Dữ liệu bị đổi: ${JSON.stringify(profiles)}`)
+    // Nhân viên đọc được đơn đăng ký và lịch sử xử lý (cần để duyệt đơn)
+    const { data: regs } = await STAFF.session.from('registrations').select('id').eq('user_id', STUDENT.id)
+    assert(regs?.length >= 2, `Nhân viên không đọc được đơn: ${regs?.length}`)
+  })
+
+  await step('[Nhân viên] Vào trang quản trị: chỉ có Đơn đăng ký, Học viên; trang Khóa học bị chặn; không đổi được vai trò', async () => {
+    await login(staff, STAFF.email, STAFF.password, '/admin')
+    await staff.waitForURL(`${BASE}/admin/registrations`)
+    await staff.getByRole('heading', { name: 'Bảng quản trị' }).waitFor()
+    await staff.getByRole('link', { name: 'Quản trị', exact: true }).waitFor()
+    const nav = staff.getByRole('navigation', { name: 'Menu quản trị' })
+    const tabs = (await nav.getByRole('link').allTextContents()).map((t) => t.trim())
+    assert(JSON.stringify(tabs) === JSON.stringify(['Đơn đăng ký', 'Học viên']), `Menu của nhân viên: ${tabs}`)
+    await staff.goto(`${BASE}/admin/courses`)
+    assert(new URL(staff.url()).pathname === '/admin/registrations', `Nhân viên vào được trang khóa học: ${staff.url()}`)
+    await staff.goto(`${BASE}/admin/users?q=${encodeURIComponent(STUDENT.email)}`)
+    await staff.locator('tr', { hasText: STUDENT.email }).waitFor()
+    assert((await staff.locator('select[name=role]').count()) === 0, 'Nhân viên thấy ô đổi vai trò')
+  })
+
+  await step('[Nhân viên] Duyệt đơn trên bảng đơn đăng ký; database ghi nhân viên là người xử lý', async () => {
+    const who = `Đơn Nhân Viên Duyệt ${tail}`
+    const id = await insertRegistration({ user_id: STAFF.id, course_id: created.courseIds.hidden, full_name: who, phone: '0390000001', amount: 99000 })
+    await staff.goto(`${BASE}/admin/registrations`)
+    const row = staff.getByRole('table', { name: 'Danh sách đơn đăng ký' }).locator('tbody tr', { hasText: who })
+    await row.getByRole('button', { name: 'Duyệt' }).click()
+    await toast(staff, 'Đã duyệt đơn')
+    const { data } = await db.from('registrations').select('status, reviewed_by, reviewed_by_name').eq('id', id).single()
+    assert(data.status === 'approved' && data.reviewed_by === STAFF.id && data.reviewed_by_name === STAFF.name, `Người xử lý: ${JSON.stringify(data)}`)
+    await db.from('registrations').delete().eq('id', id)
+  })
+
+  await step('[Hệ thống] Đường dẫn cũ /admin?status=… chuyển sang /admin/registrations?status=…', async () => {
+    await admin.goto(`${BASE}/admin?status=approved`)
+    const url = new URL(admin.url())
+    assert(url.pathname === '/admin/registrations' && url.searchParams.get('status') === 'approved', `Chuyển hướng sai: ${admin.url()}`)
+    await admin.getByRole('link', { name: /^Đã duyệt/ }).and(admin.locator('[aria-current=page]')).waitFor()
   })
 
   // =====================================================================

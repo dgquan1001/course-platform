@@ -707,14 +707,15 @@ declare
   previous_session uuid;
   purchased int;
 begin
+  -- Nhân viên / admin xét trước: khi admin thêm bài, RLS kiểm tra dòng vừa thêm mà truy vấn bên dưới chưa thấy dòng đó
+  if public.is_staff() then
+    return true;
+  end if;
   select l.course_id, l.session_id, c.kind, c.status into lesson_course, lesson_session, course_kind, course_status
   from public.lessons l join public.courses c on c.id = l.course_id
   where l.id = target_lesson;
   if lesson_course is null then
     return false;
-  end if;
-  if public.is_staff() then
-    return true;
   end if;
   if course_kind = 'free' then
     return course_status = 'published';
@@ -835,7 +836,7 @@ create policy "course_plans_admin_delete" on public.course_plans for delete
 -- số buổi đã mua và mở buổi lần lượt; nhân viên, admin xem trước. Tên bài của buổi bị khóa lấy qua course_outline().
 drop policy if exists "lessons_select" on public.lessons;
 create policy "lessons_select" on public.lessons for select
-  using (public.can_view_lesson(id));
+  using (public.is_staff() or public.can_view_lesson(id));
 
 -- course_sessions: đọc được khi đọc được khóa (đề cương công khai); chỉ admin thêm / sửa / xóa
 alter table public.course_sessions enable row level security;

@@ -296,7 +296,7 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | profiles | INSERT/DELETE | — | Không ai (chỉ trigger/service role) |
 | courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_staff()`; học viên đã duyệt đọc được khóa đang ẩn) |
 | courses | INSERT / UPDATE / DELETE | `courses_admin_*` | `is_admin()` |
-| lessons | SELECT | `lessons_select` | (Đợt 10) `can_view_lesson(id)` – khóa miễn phí đang hiển thị: ai cũng xem; chương trình: hạn học + buổi đã mua + mở lần lượt; staff/admin: tất cả |
+| lessons | SELECT | `lessons_select` | (Đợt 10) `is_staff() or can_view_lesson(id)` (RK-27) – khóa miễn phí đang hiển thị: ai cũng xem; chương trình: hạn học + buổi đã mua + mở lần lượt; staff/admin: tất cả |
 | course_sessions | SELECT | `course_sessions_select` | đọc được khóa (`exists courses …` chịu RLS courses) |
 | course_sessions | INSERT/UPDATE/DELETE | `course_sessions_admin_*` | `is_admin()` |
 | lesson_progress | SELECT | `lesson_progress_select` | `auth.uid() = user_id or is_staff()` |

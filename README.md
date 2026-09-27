@@ -154,8 +154,11 @@ mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
 | `[Hệ thống]` | Bảng, bucket, trigger; RLS: khách không đọc được bài học, đơn đăng ký, mã đặt lại mật khẩu, khóa đang ẩn; email mã 6 số, mã lưu dạng băm, chặn gửi lại liên tục |
 | `[Khách]` | Trang cần đăng nhập bị chặn (`/admin`, `/courses`, `/account`); box đăng ký 3 bước; nút "Đăng ký" cuộn tới form và chọn sẵn khóa; dropdown chỉ có khóa đang mở; QR đúng số tiền; chặn file không phải ảnh; nén ảnh lớn; báo lỗi SĐT sai; đăng ký có email (điện thoại) và **không email** (máy tính); chặn email trùng, SĐT trùng |
 | `[Học viên]` | Khóa chưa duyệt bị khóa; không vào được admin; đăng ký thêm khóa khi đã đăng nhập; chặn đăng ký trùng khóa đang chờ; xem video sau khi duyệt; đăng nhập bằng email, bằng SĐT (cả dạng `+84`); menu Tài khoản (rê chuột / bấm); sửa thông tin, thêm email; đổi mật khẩu; quên mật khẩu (không email → báo hotline; có email → mã sai bị chặn, mã đúng đặt được mật khẩu mới, mật khẩu cũ hết hiệu lực) |
-| `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang Khóa học, duyệt đơn; không tự nâng quyền / sửa khóa học / sửa tài khoản admin qua API |
-| `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (mở/ẩn), bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; hiển thị "Không có email"; danh sách học viên; ẩn khóa học |
+| `[Bệnh nhân]` | Gói tháng: hạn học, gia hạn cộng dồn, hết hạn mất video nhưng còn đề cương; buổi mở lần lượt, checklist "Hoàn thành & bài tiếp theo", bỏ tick khóa lại buổi sau, buổi vượt gói cần gia hạn, database chặn tick / đọc video buổi chưa mở; tiến độ + "Tiếp tục Buổi X – Bài Y" |
+| `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang Khóa học, duyệt đơn, xử lý khách quan tâm premium, xem trước mọi buổi (không tick); không tự nâng quyền / sửa khóa học / sửa tài khoản admin qua API |
+| `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (miễn phí / chương trình / premium, ảnh bìa, mở/ẩn), gói tháng, khung N buổi × M bài, sao chép / xóa / đổi thứ tự buổi, bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; hiển thị "Không có email"; danh sách học viên; ẩn khóa học |
+
+Lần chạy gần nhất: 27/09/2026, sau Đợt 10 – **83/83 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
 
     npm run build
     npm run test:e2e

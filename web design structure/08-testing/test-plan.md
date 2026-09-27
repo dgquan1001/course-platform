@@ -30,7 +30,7 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 9 · **78/78 bước PASS** (xem §3.1). Sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 10 · **83/83 bước PASS** (xem §3.1). Sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
 **63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
@@ -119,7 +119,7 @@ Turnstile chưa kiểm thử tự động (cần khóa Cloudflare) – kiểm tr
 Các TC cũ được mở rộng ở Đợt 3: TC-01 (bảng `registration_events`, `role_events`, cột `review_note`), TC-10 (khách không đọc được 2 bảng lịch sử),
 TC-26 (từ chối kèm lý do), TC-28 (dòng "Lý do: …"), TC-30 (học viên thấy lý do), TC-43 (thu hồi qua ô lý do), TC-50 (lý do không sửa tay được).
 
-### 3.1. Test case dự kiến phiên bản 0.2 (⬜ chưa triển khai)
+### 3.1. Test case phiên bản 0.2 (✅ Đợt 7 → 10 đã chạy · ⬜ Đợt 11 → 13 dự kiến)
 
 Mỗi đợt thêm các bước dưới đây vào `scripts/e2e.mjs`. Vai trò mới: **Staff** (tài khoản `e2e-staff-*`), **Khách** dùng khóa miễn phí.
 Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[E2E]`) phải được dọn khi kết thúc như hiện nay.
@@ -131,7 +131,7 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-67 | 7 | Hệ thống | ✅ PASS: `/admin?status=approved` chuyển sang `/admin/registrations?status=approved`, tab Đã duyệt được chọn | FR-070 |
 | TC-68 | 8 | Admin | ✅ PASS – Tạo khóa free / program (Vẹo lưng) / premium 1:1 có ảnh bìa (nén, magic bytes); staff/anon không upload được vào `course-covers` | US-11.02, T30 |
 | TC-69 | 8 | Khách | ✅ PASS – Trang chủ 3 nhóm, lọc Vẹo lưng / Vẹo ngực; `/khoa-hoc/:id` có đề cương, **không** có link video trong HTML | US-11.01, US-11.03 |
-| TC-70 | 8 | Khách | ✅ PASS – Khóa free: xem video không đăng nhập; gọi `get_lesson_video` bài chương trình trả `null` | US-11.04, BR-75, BR-93 |
+| TC-70 | 8 | Khách | ✅ PASS – Khóa free: xem video không đăng nhập; khách đọc bài chương trình qua API không nhận được dòng / link (Đợt 10: RLS `can_view_lesson`, thay `get_lesson_video`) | US-11.04, BR-75, BR-93 |
 | TC-71 | 8 | Khách | ✅ PASS – Premium: gửi lead (họ tên + SĐT) → lead lưu đúng, trang mở tab Zalo; "Mở Zalo ngay" lưu lượt ẩn danh; anon không đọc được `leads` | US-11.05, BR-104 |
 | TC-72 | 8 | Staff | ✅ PASS – `/admin/leads` thấy lead mới, chuyển "Đã liên hệ"; 2 staff cùng xử lý → người sau bị từ chối | FR-175 |
 | TC-73 | 8 | Khách | ✅ PASS – Box đăng ký không tick đồng ý → lỗi (cả khi bỏ qua trình duyệt); tick → `consent_at` được ghi; `/chinh-sach-bao-mat` truy cập được | US-11.06, BR-106 |
@@ -140,12 +140,12 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-76 | 9 | Staff | ✅ PASS – Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
 | TC-77 | 9 | Bệnh nhân | ✅ PASS – Đơn chờ thứ 2 cùng chương trình bị chặn (UI + unique index); đã approved vẫn gửi được đơn gia hạn | BR-84 |
 | TC-78 | 9 | Bệnh nhân | ✅ PASS – Hết hạn (sửa `access_until` về quá khứ): "Đã hết hạn", tiến độ còn, video không phát, nút Gia hạn chọn sẵn chương trình | US-12.04, US-12.05, BR-85 |
-| TC-79 | 10 | Admin | ✍️ Tạo khung 3 buổi × 6 bài; sao chép buổi; bài không có video lưu được; link sai bị chặn; cảnh báo thiếu buổi / thiếu video | US-13.01, US-13.02 |
-| TC-80 | 10 | Bệnh nhân | ✍️ Tick 6 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → Buổi 2 mở; trước đó Buổi 2 🔒 và insert tiến độ Buổi 2 qua API bị RLS chặn | US-13.03, US-13.04, BR-89 |
-| TC-81 | 10 | Bệnh nhân | ✍️ Gói 1 buổi (sửa `sessions = 1` cho test) → Buổi 2 🔒 "Gia hạn để mở"; % = 6/6 · 100% | BR-83, BR-91 |
-| TC-82 | 10 | Bệnh nhân | ✍️ Bỏ tick 1 bài Buổi 1 (xác nhận) → Buổi 2 khóa lại; tick lại → mở | BR-90 |
-| TC-83 | 10 | Bệnh nhân | ✍️ "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi X – Bài Y" mở đúng bài | US-13.05, US-13.06 |
-| TC-84 | 10 | Staff | ✍️ Xem trước mọi buổi, không có ô tick | US-13.07 |
+| TC-79 | 10 | Admin | ✅ PASS – Tạo chương trình kèm khung 3 buổi × 2 bài (bài chưa có video lưu được); sao chép buổi → Buổi 4, xóa buổi (xác nhận); ↓/↑ đổi thứ tự buổi; thêm video cho bài; cảnh báo bài chưa có video. Link sai bị chặn: TC-09 | US-13.01, US-13.02 |
+| TC-80 | 10 | Bệnh nhân | ✅ PASS – Trước khi xong Buổi 1: Buổi 2 🔒 "Hoàn thành Buổi 1 để mở", không có iframe, đọc bài Buổi 2 qua API không trả dòng, insert tiến độ Buổi 2 bị RLS chặn; tick 2 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → chuyển thẳng sang Buổi 2 – Bài 1 | US-13.03, US-13.04, BR-89 |
+| TC-81 | 10 | Bệnh nhân | ✅ PASS – Gói mở 2 buổi (sửa `plan_sessions` cho test): Buổi 3 🔒 "Gia hạn để mở buổi này"; xong Buổi 2 → thẻ "Chúc mừng! Bạn đã hoàn thành các buổi tập đã mở"; insert tiến độ Buổi 3 bị chặn | BR-83, BR-91 |
+| TC-82 | 10 | Bệnh nhân | ✅ PASS – Bỏ tick 1 bài Buổi 1 (hộp xác nhận "Buổi sau có thể bị khóa lại") → Buổi 2 khóa lại; tick lại → mở | BR-90 |
+| TC-83 | 10 | Bệnh nhân | ✅ PASS – "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi 2 – Bài 1" mở đúng bài | US-13.05, US-13.06 |
+| TC-84 | 10 | Staff | ✅ PASS – Xem trước mọi buổi (kể cả buổi bệnh nhân chưa mở), không có nút tick, không ghi tiến độ | US-13.07 |
 | TC-85 | 11 | Staff | Tạo bệnh nhân (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện một lần; `source = zalo`, đơn `approved` `source = staff`, người xử lý = staff, lịch sử `new → approved`, hạn đúng | US-14.01, BR-94 → BR-97 |
 | TC-86 | 11 | Bệnh nhân | Đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi; "Để sau" vào học được; đổi mật khẩu → hộp không còn, đăng nhập bằng mật khẩu mới | US-14.02, BR-96 |
 | TC-87 | 11 | Staff | SĐT trùng bị báo; cấp gia hạn cho bệnh nhân có sẵn (cộng dồn); cấp lại mật khẩu → mật khẩu cũ hết hiệu lực, `account_events` ghi; không có nút với tài khoản admin | US-14.03, US-14.04, BR-99 |
@@ -168,6 +168,9 @@ TC-55/TC-58 (ô chọn vai trò, tab "Nhân viên & Admin"), TC-56 (thông báo 
 Kết quả Đợt 9 (27/09/2026): **78/78 PASS**. Lần chạy đầu đỏ ở TC-44 (xóa khóa B) – **lỗi thật RK-22**: trigger khóa `plan_id` làm hỏng `on delete set null` khi xóa chương trình có đơn; đã sửa trigger, chạy lại schema, PASS.
 
 Đợt 10 (phase "9d", chương trình 3 buổi × 2 bài, gói mở 2 buổi, bệnh nhân của phase 9c): TC-79 ↔ "[Admin] Tạo chương trình kèm khung…", TC-80 + TC-81 ↔ "[Bệnh nhân] Buổi mở lần lượt…" và phần cuối bước bỏ tick, TC-82 ↔ "[Bệnh nhân] Bỏ tick…", TC-83 ↔ "[Bệnh nhân] Checklist buổi 1…", TC-84 ↔ "[Nhân viên] Xem trước…".
+Kết quả Đợt 10 (27/09/2026, schema mới đã chạy): **83/83 PASS**, dữ liệu test đã dọn. Các lần chạy trước đỏ do 2 **lỗi thật**, đã sửa trong schema:
+RK-27 (admin không thêm được bài học – `can_view_lesson` phải xét `is_staff()` trước) và RK-28 (bài cũ chưa thuộc buổi nào, VD bài nhập tay của TC-51,
+đứng **đầu** đề cương / "bài tiếp theo" – nay xếp cuối). TC cũ chỉ sửa nhỏ: TC-01 (kiểm tra thêm bảng `course_sessions`, `lesson_progress`), TC-68 (nút "Quản lý buổi – bài"); các bước trình học cũ (TC-21, TC-30, TC-47, TC-51) chạy nguyên trên trình học mới.
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),

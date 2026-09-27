@@ -212,7 +212,7 @@ flowchart TD
   C --> D{Bài thuộc buổi đang mở?}
   D -- Không: buổi trước chưa xong --> D1[🔒 Hoàn thành Buổi k để mở]
   D -- Không: vượt số buổi đã mua / hết hạn --> D2[🔒 Gia hạn để mở]
-  D -- Có --> E[get_lesson_video → phát video]
+  D -- Có --> E[Đọc bài – RLS can_view_lesson → phát video]
   E --> F[Hoàn thành & bài tiếp theo → tick]
   F --> G{Buổi đã tick đủ?}
   G -- Chưa --> C

@@ -326,7 +326,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 ### US-11.04 – Học khóa miễn phí không cần tài khoản ✅ (3 SP)
 - FR: FR-124 · BR: BR-75
 - **AC1** Given khách chưa đăng nhập When mở bài của khóa miễn phí Then xem được video; thấy gợi ý "Đăng nhập để lưu tiến độ".
-- **AC2** Given khách gọi `get_lesson_video` cho bài của chương trình trả phí Then không nhận được link.
+- **AC2** Given khách đọc bảng `lessons` qua API cho bài của chương trình trả phí Then không nhận được dòng nào (không có link) – RLS `can_view_lesson` (Đợt 10).
 
 ### US-11.05 – Liên hệ Zalo khóa premium ✅ (3 SP)
 **Là** khách, **tôi muốn** bấm liên hệ Zalo để nhận ưu đãi khóa 1:1, **để** được tư vấn trực tiếp.
@@ -390,7 +390,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ### US-13.04 – Buổi mở lần lượt ✅ (5 SP)
 - FR: FR-152 · BR: BR-89, BR-90
-- **AC1** Given tôi chưa tick đủ Buổi 1 Then Buổi 2 hiện 🔒 "Hoàn thành Buổi 1 để mở"; gọi `get_lesson_video` bài Buổi 2 trả rỗng; insert tiến độ bài Buổi 2 bị RLS chặn.
+- **AC1** Given tôi chưa tick đủ Buổi 1 Then Buổi 2 hiện 🔒 "Hoàn thành Buổi 1 để mở"; đọc bài Buổi 2 qua API không trả dòng nào (RLS `can_view_lesson`); insert tiến độ bài Buổi 2 bị RLS chặn.
 - **AC2** Given tick đủ 6 bài Buổi 1 Then Buổi 2 mở, nút "Bắt đầu Buổi 2".
 - **AC3** Given tôi mua gói 1 tháng (12 buổi) Then Buổi 13 hiện 🔒 "Gia hạn để mở".
 

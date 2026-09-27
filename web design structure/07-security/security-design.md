@@ -57,11 +57,11 @@
 | Tài nguyên / thao tác | Khách | Bệnh nhân | Staff | Admin |
 | --- | --- | --- | --- | --- |
 | Khóa đang hiển thị, gói đang bán, đề cương (buổi, tên bài) | ✅ | ✅ | ✅ | ✅ |
-| Video bài khóa **free** (`get_lesson_video`) | ✅ | ✅ | ✅ | ✅ |
+| Video bài khóa **free** (RLS `can_view_lesson`) | ✅ | ✅ | ✅ | ✅ |
 | Video bài khóa **program** | ❌ | 🔸 còn hạn + buổi đã mở | ✅ xem trước | ✅ |
 | Khóa / gói / buổi / bài / ảnh bìa – thêm, sửa, xóa | ❌ | ❌ | ❌ | ✅ |
 | `lesson_progress` – đọc | ❌ | 🔸 | ✅ | ✅ |
-| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ | ❌ |
+| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ giao diện không có nút (RLS vẫn cho ghi tiến độ **của chính mình**, không ảnh hưởng bệnh nhân) | ❌ như staff |
 | profiles – đọc | ❌ | 🔸 | ✅ | ✅ |
 | profiles – sửa | ❌ | 🔸 qua action | ✅ chỉ `role = user` | ✅ |
 | Đổi `role` | ❌ | ❌ | ❌ | ✅ |

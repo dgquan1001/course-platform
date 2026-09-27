@@ -24,7 +24,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ Xong (nội dung chính sách chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → TC-73 | 73/73 PASS |
 | 9 | Gói tháng & hạn học | — | ✅ Xong (kèm sửa RK-22) | 27/09/2026 (`b46f232`, `da23361`) | TC-74 → TC-78 | 78/78 PASS |
-| 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-79 → TC-84 | Chờ chạy |
+| 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ✅ Xong (kèm sửa RK-27, RK-28) | 27/09/2026 (`c713566`, `fa16156`, `0ff7b35`) | TC-79 → TC-84 | 83/83 PASS |
 | 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
 | 12 | Phiếu tham vấn | — | ⬜ | — | TC-89 → TC-92 | — |
 | 13 | Dashboard tập trung | R-07 (một phần) | ⬜ | — | TC-93 → TC-94 | — |
@@ -33,9 +33,9 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 
 | Nguồn | Tổng | ✅ Xong | 🟡 Một phần / chờ cấu hình | ⬜ Chưa làm |
 | --- | --- | --- | --- | --- |
-| RV (review vòng 1) | 20 | 10 | 1 (RV-10) | 9 |
+| RV (review vòng 1) | 20 | 10 | 2 (RV-10, RV-17) | 8 |
 | RK (risk case) | 15 | 12 | 1 (RK-10) | 2 |
-| R (tính năng mở rộng, gồm R-00) | 14 | 2 | — | 12 |
+| R (tính năng mở rộng, gồm R-00) | 14 | 6 (R-00, 03, 04, 05, 09, 12) | — | 8 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
 
 ### 1.3. Việc cần chủ dự án làm (không tự động hóa được)
@@ -103,11 +103,11 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [ ] R-01 Thông báo email khi đơn được duyệt / từ chối
 - [ ] R-02 Admin đặt lại mật khẩu học viên → **Đợt 11** (nhân viên cấp lại mật khẩu)
 - [x] R-03 Ảnh bìa khóa học → **Đợt 8**
-- [ ] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %) – 🟡 chờ E2E
+- [x] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %) – ✅ E2E 83/83
 - [ ] R-06 Phân trang, lọc, xuất Excel đơn
 - [ ] R-07 Báo cáo doanh thu → **Đợt 13** (doanh thu trên dashboard admin); xuất Excel để sau
 - [ ] R-08 Xác nhận thanh toán tự động
-- [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau) – 🟡 chờ E2E
+- [x] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓) – ✅; kéo thả để sau v0.2
 - [ ] R-10 Video riêng tư
 - [ ] R-11 Cấu hình trung tâm trên giao diện
 - [x] R-12 Vai trò nhân viên → **Đợt 7**
@@ -119,7 +119,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
 - [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – ✅ 27/09/2026, E2E 73/73
 - [x] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07) – ✅ 27/09/2026, E2E 78/78
-- [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
+- [x] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04) – ✅ 27/09/2026, E2E 83/83
 - [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
 - [ ] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)
 - [ ] Đợt 13 – Dashboard quản trị tập trung (V-06)
@@ -155,15 +155,17 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất đi�
 - [x] E2E TC-74 → TC-78; tài liệu + project-review §7.5
 - Để lại: RK-18 (ẩn ô Giá khi sửa chương trình), RK-16 (thu hồi giữa chuỗi gia hạn – nhân viên cấp bù ở Đợt 11)
 
-#### Đợt 10 – Buổi – bài, trình học, checklist, tiến độ 🟡 (code 27/09/2026 · chờ schema + E2E)
+#### Đợt 10 – Buổi – bài, trình học, checklist, tiến độ ✅ (27/09/2026 · E2E 83/83)
 - [x] Schema: `course_sessions`, `lessons.session_id` (bài cũ → "Buổi 1"), `video_url` không bắt buộc, `lesson_progress`
 - [x] Hàm `can_view_lesson`, `session_completed`, `course_progress`; `course_outline` trả thêm buổi; RLS bài học theo `can_view_lesson`
 - [x] Admin: tạo khung N × M (khi tạo khóa hoặc ở trang nội dung), thêm / sửa / xóa / ↑↓ / sao chép buổi, bài thuộc buổi, cảnh báo thiếu video / thiếu buổi
 - [x] Trình học kiểu Udemy: cột nội dung theo buổi (🔒 + lý do), "Hoàn thành & bài tiếp theo", "Bỏ đánh dấu" (xác nhận), thẻ chúc mừng, xem trước cho nhân viên
 - [x] Thanh tiến độ + "Tiếp tục Buổi X – Bài Y" ở trang khóa và "Khóa học của tôi"; đề cương theo buổi ở trang giới thiệu
-- [ ] Chạy schema + E2E TC-79 → TC-84
+- [x] Chạy schema + E2E TC-79 → TC-84 (83/83); sửa 2 lỗi thật phát hiện nhờ E2E: RK-27 (admin không thêm được bài), RK-28 (bài chưa thuộc buổi đứng đầu đề cương)
+- [x] Tài liệu: database-design §10, system-architecture §10, user-flows UF-12, user-stories, security-design, test-plan, project-review §7.5
 - Để lại / điều chỉnh: điện thoại chưa tách 2 tab "Bài này / Nội dung"; kéo thả bài (chỉ ↑↓ cho buổi); nút "Phiếu tham vấn" trong trình học → Đợt 12;
-  ADR-013 đổi sang RLS theo dòng (không cần `get_lesson_video`)
+  ADR-013 đổi sang RLS theo dòng (không cần `get_lesson_video`); RK-18 (ẩn ô Giá khi sửa chương trình) chưa làm – đề xuất gộp Đợt 11;
+  RK-23 (buổi rỗng giữa 2 buổi) chỉ cảnh báo ở admin
 
 #### Đợt 11 – Bệnh nhân từ Zalo ⬜
 - [ ] `profiles.source/created_by/must_change_password/staff_note`, `account_events`, policy `registrations_staff_insert`, trigger insert
@@ -274,7 +276,7 @@ Công sức: XS < 0,5 ngày · S 1–2 ngày · M 3–5 ngày · L > 1 tuần. T
 
 | Rủi ro | Ảnh hưởng | Giảm thiểu |
 | --- | --- | --- |
-| Thay đổi RLS `lessons` (ẩn `video_url`) làm hỏng trang cũ | Bệnh nhân không xem được video | Làm trọn trong Đợt 10 cùng trình học mới; E2E RLS cho anon / bệnh nhân / staff |
+| Thay đổi RLS `lessons` (ẩn `video_url`) làm hỏng trang cũ | Bệnh nhân không xem được video | ✅ Đợt 10 làm trọn cùng trình học mới; E2E RLS anon / bệnh nhân / staff PASS (phát hiện + sửa RK-27) |
 | Tính hạn cộng dồn sai khi duyệt đồng thời | Sai hạn học | Advisory lock trong trigger; TC-76 duyệt song song |
 | Nhân viên cấp gói không có chứng từ | Thất thoát | Bắt buộc số tiền + hình thức, ghi người tạo, doanh thu theo nhân viên (Đợt 13) |
 | Bỏ tick làm khóa lại buổi sau, bệnh nhân bối rối | Hỗ trợ tăng | Hộp xác nhận trước khi bỏ tick; nêu rõ lý do khóa |

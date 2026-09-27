@@ -504,11 +504,11 @@ erDiagram
 | `is_staff()` | ✅ Đợt 7 – `exists(profiles where id = auth.uid() and role in ('staff','admin'))`, `security definer`, `stable` |
 | `has_course_access(course)` | ✅ **Sửa** (phần `is_staff()` ở Đợt 7; phần hạn học ở Đợt 9): `is_staff() or exists(registrations approved của mình cho course với access_until is null or access_until > now())` |
 | `purchased_sessions(course)` | ✅ Đợt 9 – Tổng `plan_sessions` của đơn approved (đơn không có gói → `null` = không giới hạn) |
-| `session_position(session)` | Thứ tự 1-based của buổi trong khóa (`row_number() over (order by sort_order, created_at)`) |
-| `session_completed(user, session)` | Mọi bài của buổi đã có trong `lesson_progress` của user (buổi rỗng = true) |
-| `can_view_lesson(lesson)` | `is_staff()` ∨ (khóa `free` và `published`) ∨ (khóa `program` ∧ `has_course_access` ∧ vị trí buổi ≤ `purchased_sessions` ∧ (vị trí = 1 ∨ buổi liền trước `session_completed`)) |
-| `get_lesson_video(lesson)` | `security definer`; trả `video_url` nếu `can_view_lesson`, ngược lại `null`; `grant execute` cho `anon`, `authenticated` |
-| `course_progress(course)` | Trả `(done, total, percent, next_lesson_id, access_until, purchased_sessions)` cho người gọi – dùng cho thẻ khóa, trình học |
+| ~~`session_position(session)`~~ | Không tạo hàm riêng: vị trí buổi tính tại chỗ bằng `row_number() over (order by sort_order, created_at)` trong `course_outline`, `can_view_lesson`, `course_progress` (Đợt 10) |
+| `session_completed(session)` | ✅ Đợt 10 – Mọi bài của buổi đã có trong `lesson_progress` của người đang đăng nhập (buổi rỗng = true) |
+| `can_view_lesson(lesson)` | ✅ Đợt 10 – `is_staff()` (xét trước, RK-27) ∨ (khóa `free` và `published`) ∨ (khóa `program` ∧ `has_course_access` ∧ vị trí buổi ≤ `purchased_sessions` ∧ (buổi đầu ∨ buổi liền trước `session_completed`)) |
+| ~~`get_lesson_video(lesson)`~~ | Bỏ (ADR-013 §Điều chỉnh): link video đọc thẳng từ `lessons`, RLS `lessons_select = is_staff() or can_view_lesson(id)` |
+| `course_progress(course)` | ✅ Đợt 10 – Trả `(done, total, next_lesson_id, purchased, last_activity)` cho người gọi – dùng cho thẻ khóa, trang khóa, trình học (hạn học lấy từ `registrations`) |
 | `revenue_report(from, to)` | Chỉ `is_admin()`; tổng `amount` đơn approved theo chương trình, hình thức, nguồn, nhân viên |
 | `dashboard_stats()` | `is_staff()`; đếm các chỉ số FR-181 trong 1 lần gọi |
 
@@ -518,7 +518,7 @@ erDiagram
 | --- | --- |
 | `registrations_stamp_review` | ✅ Đợt 9: tính / xóa hạn học, khóa sửa tay các cột gói – thanh toán – hạn. Còn lại (Đợt 11): chạy cả `before insert` (đơn tạo thẳng `approved`: ghi người xử lý, lịch sử `new → approved`) và `before update`. Khi chuyển sang `approved`: tính `access_starts_at`, `access_until` theo BR-80 (khóa `pg_advisory_xact_lock` theo `user_id + course_id` để 2 lần duyệt đồng thời không cộng sai); rời `approved` → xóa 2 cột này. Đơn không có `plan_months` (v0.1) → `access_until = null` |
 | `guard_role_change` | ✅ Đợt 7 – Chặn nếu người đổi không phải `is_admin()` (trừ service role/script); giữ các luật cũ; nhận `staff` |
-| `lesson_progress_fill` (mới) | `before insert`: điền `course_id` từ bài học |
+| `lesson_progress_fill` | ✅ Đợt 10 – `before insert`: điền `course_id` từ bài học, `completed_at = now()` |
 | `consultations_stamp` (mới) | Khi đổi `status`: ghi `handled_by`, `handled_by_name`, `handled_at` theo phiên (như BR-37) |
 | `leads_stamp` (mới) | Như trên cho `leads` |
 
@@ -531,8 +531,8 @@ erDiagram
 | courses | SELECT | `status = 'published' or has_course_access(id)` (đã gồm staff) |
 | courses, course_plans, course_sessions, lessons | INSERT/UPDATE/DELETE | `is_admin()` (✅ `course_plans` ở Đợt 9) |
 | course_plans | SELECT | ✅ Đợt 9 – `active or is_admin()` |
-| course_sessions | SELECT | khóa đọc được (đề cương công khai) |
-| lessons | SELECT (trừ cột `video_url`) | khóa đọc được và `kind <> 'premium'`; `video_url` chỉ qua `get_lesson_video` (staff/admin đọc qua RPC hoặc service role ở trang admin) |
+| course_sessions | SELECT | ✅ Đợt 10 – khóa đọc được (đề cương công khai) |
+| lessons | SELECT | ✅ Đợt 10 – `is_staff() or can_view_lesson(id)` (RLS theo dòng, gồm cả `video_url`); tên bài của buổi bị khóa lấy qua `course_outline()` (không có link) |
 | lesson_progress | SELECT | `auth.uid() = user_id or is_staff()` |
 | lesson_progress | INSERT | `auth.uid() = user_id and can_view_lesson(lesson_id)` |
 | lesson_progress | DELETE | `auth.uid() = user_id and can_view_lesson(lesson_id)` |

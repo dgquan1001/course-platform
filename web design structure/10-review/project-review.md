@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 9, xem §7.5)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 10, xem §7.5)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng.
   Chưa chạy lại `build`/`test:e2e` trong lần review này.
 
@@ -214,7 +214,7 @@ Còn mở: chặn gỡ **admin cuối cùng** mới kiểm tra bằng đọc cod
 Xác minh: schema Đợt 4–5 đã chạy trên Supabase; E2E **63/63 PASS** (26/09/2026), dữ liệu test dọn sạch.
 Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadmap.md](roadmap.md) §2–3.
 
-### 7.5. Review phiên bản 0.2 – Đợt 7 → 9 (cập nhật 27/09/2026)
+### 7.5. Review phiên bản 0.2 – Đợt 7 → 10 (cập nhật 27/09/2026)
 
 Định vị lại sản phẩm (chương trình phục hồi chức năng cho bệnh nhân) – yêu cầu ở [project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026),
 kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự-thực-hiện).
@@ -223,7 +223,7 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | --- | --- | --- | --- |
 | 7 | Vai trò `staff` (ADR-011): `is_staff()`, RLS, trigger chỉ admin đổi vai trò, `/admin/registrations`, ô chọn vai trò, menu theo quyền | ✅ `c3d08a5` | E2E 67/67 (TC-65 → TC-67) |
 | 8 | Loại khóa, nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý (RV-17) | ✅ `1251587` (nội dung chính sách chờ A-7) | E2E 73/73 (TC-68 → TC-73) |
-| 10 | Buổi → bài tập (`course_sessions`, `lessons.session_id`), khung N × M, quản lý buổi (↑↓, sao chép, xóa), `lesson_progress`, `can_view_lesson` (RLS bài học), `course_progress`, trình học kiểu Udemy, checklist tick / bỏ tick, mở buổi lần lượt, % tiến độ, "Tiếp tục Buổi X – Bài Y" | 🟡 Code xong, chờ chạy schema + E2E | TC-79 → TC-84 |
+| 10 | Buổi → bài tập (`course_sessions`, `lessons.session_id`), khung N × M, quản lý buổi (↑↓, sao chép, xóa), `lesson_progress`, `can_view_lesson` (RLS bài học), `course_progress`, trình học kiểu Udemy, checklist tick / bỏ tick, mở buổi lần lượt, % tiến độ, "Tiếp tục Buổi X – Bài Y" | ✅ `c713566` + sửa RK-27 `fa16156`, RK-28 `0ff7b35` | E2E 83/83 (TC-79 → TC-84) |
 | 9 | Gói 1/3/6/12 tháng (`course_plans`), chọn gói khi đăng ký, snapshot gói trên đơn, hạn học cộng dồn do trigger tính, chỉ 1 đơn chờ duyệt / khóa, "Gói đã hết hạn" + gia hạn, cột Gói / Hạn học ở bảng đơn | ✅ `b46f232` + sửa RK-22 `da23361` | E2E 78/78 (TC-74 → TC-78) |
 
 **Risk case mới phát hiện khi làm v0.2**
@@ -237,13 +237,15 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | RK-20 | 🟠 | Nội dung Chính sách bảo mật do đội phát triển soạn, có cam kết (thời hạn lưu, phản hồi 72 giờ) chưa được trung tâm / pháp lý duyệt | 📖 `app/chinh-sach-bao-mat/page.tsx` | Rủi ro pháp lý khi thu thập dữ liệu sức khỏe | Chủ dự án duyệt trước khi quảng bá (roadmap A-7) |
 | RK-22 | 🔴 | Trigger Đợt 9 khóa cột `plan_id` / `created_by` với người đăng nhập → khi admin xóa chương trình đã có đơn, khóa ngoại `on delete set null` bị trigger trả lại giá trị cũ → **không xóa được khóa học** | 👁 E2E TC-44 đỏ lần chạy đầu Đợt 9 | Admin không xóa được chương trình có đơn / không xóa được tài khoản nhân viên đã tạo đơn | ✅ Đã sửa: 2 cột này được phép về null (như `reviewed_by`); chạy lại schema |
 | RK-27 | 🔴 | `can_view_lesson` tra bài học trong bảng trước khi xét nhân viên / admin; khi admin **thêm** bài, RLS kiểm tra dòng vừa thêm (câu `insert … returning`) mà truy vấn trong hàm chưa thấy dòng đó → "new row violates row-level security policy" → **admin không thêm được bài học** | 👁 E2E Đợt 10 (bước thêm bài khóa A) + 🔬 thử trực tiếp | Không soạn được nội dung | ✅ Đã sửa: xét `is_staff()` trước; policy `lessons_select using (is_staff() or can_view_lesson(id))`; chạy lại schema |
+| RK-28 | 🟠 | Bài học **chưa thuộc buổi nào** (dữ liệu nhập tay / cũ, `session_id` null) đứng **đầu** đề cương và được chọn làm "bài tiếp theo" (`course_outline` sắp `nulls first`, `course_progress` coi vị trí buổi = 0) | 👁 E2E Đợt 10 (bước bài có link video cũ, TC-51: trình học hiện "Bài 1/1") | Bệnh nhân bị dẫn vào bài lạc chỗ trước Buổi 1 | ✅ Đã sửa: `course_outline` `order by s.pos nulls last`, `course_progress` coi bài không buổi đứng sau mọi buổi và luôn tính vào tổng (không bị giới hạn số buổi đã mua); chạy lại schema |
 | RK-23 | 🟡 | Buổi **không có bài** nằm giữa 2 buổi: database coi buổi rỗng là "đã xong" nên mở buổi sau nó, trong khi giao diện xét buổi có bài liền trước → hiển thị khóa / mở có thể lệch | 📖 `can_view_lesson`, `buildSessions` | Hiếm (khung tạo nhanh luôn có bài); bệnh nhân thấy 🔒 nhưng vẫn mở được bài | Cảnh báo "Buổi chưa có bài tập" ở trang admin; nếu cần, cho `buildSessions` nhận cả buổi rỗng |
 | RK-24 | 🟡 | `can_view_lesson` chạy cho **từng dòng** bài học (RLS): khóa rất nhiều bài × nhiều buổi có thể chậm khi bệnh nhân đọc cả danh sách | 📖 | Hiện chỉ đọc 1 bài / trang (đề cương qua `course_outline`) nên không ảnh hưởng | Theo dõi khi có khóa > 500 bài; tránh `select` toàn bộ `lessons` phía bệnh nhân |
 | RK-25 | 🔵 | Tiến độ dựa trên bệnh nhân **tự tick** (video YouTube / TikTok nhúng, không biết đã xem hết) | 📖 ADR-013 | Tiến độ có thể không phản ánh việc tập thật | Chấp nhận; nhân viên theo dõi qua phiếu tham vấn (Đợt 12) và lần tập gần nhất (Đợt 13) |
 | RK-26 | 🟡 | Xóa buổi xóa luôn bài và tiến độ đã tick của các bài đó (cascade) | 📖 | Bệnh nhân mất tiến độ nếu admin xóa nhầm | Hộp xác nhận nêu rõ; sao lưu trước khi sửa lớn nội dung |
 | RK-21 | 🟡 | Tính hạn "+ N tháng" theo lịch UTC của Postgres: duyệt ngày 31 → tháng sau không có ngày 31 thì về ngày cuối tháng | 📖 `make_interval(months => n)` | Chênh 1–3 ngày ở cuối tháng, hiển thị theo giờ Việt Nam | Chấp nhận; ghi chú trong BR-80 |
 
-Xác minh Đợt 7, 8, 9: schema đã chạy trên Supabase, E2E PASS (67 → 73 → 78 bước), dữ liệu test dọn sạch. RK-22 phát hiện nhờ E2E Đợt 9 và đã sửa trong cùng đợt.
+Xác minh Đợt 7, 8, 9, 10: schema đã chạy trên Supabase, E2E PASS (67 → 73 → 78 → 83 bước), dữ liệu test dọn sạch. RK-22 (Đợt 9), RK-27 và RK-28 (Đợt 10) phát hiện nhờ E2E và đã sửa trong cùng đợt.
+Còn mở từ v0.2: RK-18 (ẩn ô Giá khi sửa chương trình – đề xuất làm cùng Đợt 11), RK-23, RK-24 (theo dõi), RK-16/RK-19 (chờ Đợt 11), RK-20 (chờ A-7).
 Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 
 ### Đã kiểm tra – **không** phải rủi ro
@@ -269,7 +271,7 @@ Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 | ~~Đợt 7 – Vai trò staff~~ | ✅ 27/09/2026, E2E 67/67 (xem §7.5) | — |
 | ~~Đợt 8 – Danh mục, premium, chính sách~~ | ✅ 27/09/2026, E2E 73/73 (xem §7.5) | — |
 | ~~Đợt 9 – Gói tháng & hạn học~~ | ✅ 27/09/2026, E2E 78/78, sửa RK-22 (xem §7.5) | — |
-| Đợt 10 – Buổi – bài & trình học | 🟡 Code xong 27/09/2026, chờ schema + E2E (xem §7.5, roadmap §2.5) | — |
+| ~~Đợt 10 – Buổi – bài & trình học~~ | ✅ 27/09/2026, E2E 83/83, sửa RK-27, RK-28 (xem §7.5) | — |
 | **Tiếp theo** | Theo **định vị lại v0.2** – [roadmap.md](roadmap.md) §3 và checklist §2.5: 11 bệnh nhân từ Zalo → 12 phiếu tham vấn → 13 dashboard; Đợt 6 (hạ tầng) chạy song song | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;

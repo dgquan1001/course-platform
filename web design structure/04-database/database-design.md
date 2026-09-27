@@ -120,11 +120,32 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `course_id` | uuid | ✗ | — | FK `courses(id)` **on delete cascade** |
 | `title` | text | ✗ | — | |
 | `description` | text | ✓ | — | Hiển thị giữ xuống dòng (`whitespace-pre-line`) |
-| `video_url` | text | ✗ | — | Link YouTube/TikTok gốc (xem ADR-005) |
+| `video_url` | text | ✓ (Đợt 10) | — | Link YouTube/TikTok gốc (xem ADR-005); `null` = bài chưa có video (khung buổi mới tạo) |
+| `session_id` | uuid | ✓ | — | Buổi của bài, FK `course_sessions` on delete cascade (Đợt 10; chạy schema gom bài cũ vào "Buổi 1") |
 | `sort_order` | int | ✗ | `0` | |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
-Index: `lessons_course_id_idx (course_id, sort_order)`.
+Index: `lessons_course_id_idx (course_id, sort_order)`, `lessons_session_idx (session_id, sort_order)`.
+
+### 2.3b. `public.course_sessions` (buổi tập – Đợt 10)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `id` | uuid | ✗ | `gen_random_uuid()` | PK |
+| `course_id` | uuid | ✗ | — | FK `courses` on delete cascade |
+| `title` | text | ✗ | — | VD "Buổi 1" |
+| `description` | text | ✓ | — | |
+| `sort_order` | int | ✗ | `0` | Thứ tự buổi (↑ ↓ đánh lại 1…n) |
+| `created_at` | timestamptz | ✗ | `now()` | |
+
+### 2.3c. `public.lesson_progress` (checklist / tiến độ – Đợt 10)
+
+| Cột | Kiểu | Null | Mặc định | Ý nghĩa |
+| --- | --- | --- | --- | --- |
+| `user_id` | uuid | ✗ | — | PK (cùng `lesson_id`), FK `auth.users` on delete cascade |
+| `lesson_id` | uuid | ✗ | — | FK `lessons` on delete cascade |
+| `course_id` | uuid | ✗ | — | Trigger `lesson_progress_fill` điền từ bài học; index `(user_id, course_id)` |
+| `completed_at` | timestamptz | ✗ | `now()` | Trigger đặt lại `now()` |
 
 ### 2.4. `public.registrations`
 
@@ -249,10 +270,13 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | `on_auth_user_created` | trigger | — | `after insert on auth.users for each row` |
 | `is_admin()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role = 'admin')` |
 | `is_free_course(course)` | SQL, `stable` | `security definer` | Khóa `kind = 'free'` và `published` (Đợt 8) – dùng trong `lessons_select` |
-| `course_outline(course)` | SQL, `stable` | `security definer`, `grant execute` cho anon/authenticated | Đề cương công khai: `id, title, description, sort_order` (không có `video_url`) của khóa đang hiển thị hoặc người đã có quyền; bỏ khóa premium (Đợt 8) |
+| `course_outline(course)` | SQL, `stable` | `security definer`, `grant execute` cho anon/authenticated | Đề cương công khai: `id, title, description, sort_order` + (Đợt 10) `session_id, session_title, session_position, has_video` (không có `video_url`) của khóa đang hiển thị hoặc người đã có quyền; bỏ khóa premium (Đợt 8) |
 | `stamp_lead()` / trigger `leads_stamp` | trigger | `security definer` | `before update on leads`: giữ nguyên thông tin khách để lại; đổi trạng thái / ghi chú thì ghi `handled_by`, `handled_by_name`, `handled_at` |
 | `is_staff()` | SQL, `stable` | `security definer` | `exists(profiles where id = auth.uid() and role in ('staff','admin'))` (Đợt 7) |
 | `has_course_access(target_course uuid)` | SQL, `stable` | `security definer` | `is_staff() or exists(registrations where user_id = auth.uid() and course_id = target_course and status = 'approved' and (access_until is null or access_until > now()))` (nhân viên, admin xem trước mọi khóa; Đợt 9: theo hạn học) |
+| `session_completed(session)` | SQL, `stable` | `security definer` | Người đang đăng nhập đã tick đủ bài của buổi (buổi rỗng = true) – Đợt 10 |
+| `can_view_lesson(lesson)` | plpgsql, `stable` | `security definer`, grant anon/authenticated | BR-89: staff → true; khóa free đang hiển thị → true; chương trình: `has_course_access` ∧ vị trí buổi ≤ `purchased_sessions` ∧ buổi liền trước `session_completed`; bài không có buổi → theo quyền khóa – Đợt 10 |
+| `course_progress(course)` | SQL, `stable` | `security definer`, grant anon/authenticated | `done, total` (bài trong số buổi đã mua; free: cả khóa), `next_lesson_id`, `purchased`, `last_activity` – Đợt 10 |
 | `purchased_sessions(course)` | SQL, `stable` | `security definer` | Tổng `plan_sessions` các đơn đã duyệt của người đang đăng nhập (kể cả hết hạn); `null` nếu có đơn không gói (Đợt 9, dùng ở Đợt 10). Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
 | `stamp_registration_review()` | trigger function | `security definer`, `search_path = public` | (Đợt 9) Người có phiên đăng nhập không sửa được gói, học phí, nguồn, thanh toán, hạn học (service role được). Duyệt → tính `access_starts_at`, `access_until` theo BR-80 (khóa `pg_advisory_xact_lock` theo học viên + khóa); rời duyệt → xóa hạn. Khi `status` đổi: về `pending` → xóa `reviewed_at/by/by_name`; trạng thái khác → `now()`, `auth.uid()`, tên admin từ `profiles`. Khi `status` không đổi → giữ nguyên giá trị cũ (không sửa tay được; riêng `reviewed_by` được về `null` để khóa ngoại hoạt động khi xóa admin) |
 | `guard_role_change()` | trigger function | `security definer`, `search_path = public` | Khi `profiles.role` đổi: người có phiên đăng nhập mà không phải admin → "Chỉ admin được thay đổi vai trò tài khoản." (service role/script vẫn đổi được); chặn tự gỡ quyền admin của mình; `pg_advisory_xact_lock` rồi chặn gỡ admin cuối cùng; ghi `role_events` |
@@ -272,7 +296,11 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | profiles | INSERT/DELETE | — | Không ai (chỉ trigger/service role) |
 | courses | SELECT | `courses_select` | `status = 'published' or has_course_access(id)` (đã gồm `is_staff()`; học viên đã duyệt đọc được khóa đang ẩn) |
 | courses | INSERT / UPDATE / DELETE | `courses_admin_*` | `is_admin()` |
-| lessons | SELECT | `lessons_select` | `is_free_course(course_id) or has_course_access(course_id)` (khóa miễn phí đang hiển thị: ai cũng xem) |
+| lessons | SELECT | `lessons_select` | (Đợt 10) `can_view_lesson(id)` – khóa miễn phí đang hiển thị: ai cũng xem; chương trình: hạn học + buổi đã mua + mở lần lượt; staff/admin: tất cả |
+| course_sessions | SELECT | `course_sessions_select` | đọc được khóa (`exists courses …` chịu RLS courses) |
+| course_sessions | INSERT/UPDATE/DELETE | `course_sessions_admin_*` | `is_admin()` |
+| lesson_progress | SELECT | `lesson_progress_select` | `auth.uid() = user_id or is_staff()` |
+| lesson_progress | INSERT / DELETE | `lesson_progress_insert` / `_delete` | `auth.uid() = user_id and can_view_lesson(lesson_id)` |
 | lessons | INSERT / UPDATE / DELETE | `lessons_admin_*` | `is_admin()` |
 | registrations | SELECT | `registrations_select` | `auth.uid() = user_id or is_staff()` |
 | registrations | UPDATE | `registrations_staff_update` | `is_staff()` |
@@ -453,7 +481,7 @@ erDiagram
 | --- | --- | --- |
 | `profiles` | ✅ Đợt 7: `role` check thêm `staff`. ✅ Đợt 8: `consent_at`, `consent_version`. Còn lại: thêm `source text not null default 'web' check in ('web','zalo')`, `created_by uuid → profiles on delete set null`, `must_change_password bool not null default false`, `consent_at timestamptz`, `consent_version text`, `staff_note text` | 7, 8, 11 |
 | `courses` | ✅ Đợt 8 – thêm `kind text not null default 'program' check in ('free','program','premium')`, `category text check in ('veo_lung','veo_nguc')`, `audience text not null default 'patient' check in ('patient','expert')`, `summary text`, `outcomes text[] not null default '{}'`; dùng `cover_image` | 8 |
-| `lessons` | thêm `session_id uuid → course_sessions on delete cascade`; `video_url` **bỏ `not null`**; `revoke select (video_url)` khỏi `anon`, `authenticated` | 10 |
+| `lessons` | ✅ Đợt 10 – thêm `session_id uuid → course_sessions on delete cascade`; `video_url` **bỏ `not null`**; ~~`revoke select (video_url)`~~ → RLS `can_view_lesson` (ADR-013 §Điều chỉnh) | 10 |
 | `registrations` | ✅ Đợt 9 – thêm `plan_id → course_plans on delete set null`, `plan_months int`, `plan_sessions int`, `source text not null default 'web' check in ('web','staff')`, `payment_method text not null default 'bank_transfer' check in (...)`, `payment_note text`, `created_by uuid → profiles on delete set null`, `access_starts_at`, `access_until timestamptz`; `payment_proof_path` bỏ `not null` + `check (source = 'staff' or payment_proof_path is not null)`; unique index `registrations_active_key` **thay bằng** `registrations_pending_key (user_id, course_id) where status = 'pending'` | 9, 11 |
 | `registration_events` | `from_status` nhận thêm giá trị `'new'` (đơn tạo thẳng `approved` bởi nhân viên) | 11 |
 
@@ -462,8 +490,8 @@ erDiagram
 | Bảng | Khóa / ràng buộc | Ghi chú |
 | --- | --- | --- |
 | `course_plans` | ✅ Đợt 9 – PK `id`; unique `(course_id, months)`; `months in (1,3,6,12)`; `sessions between 1 and 500`; `price between 0 and 1000000000`; FK `course_id` cascade | Chỉ dùng cho `kind = 'program'` |
-| `course_sessions` | PK `id`; FK `course_id` cascade; index `(course_id, sort_order)` | |
-| `lesson_progress` | PK `(user_id, lesson_id)`; FK `user_id → auth.users` cascade, `lesson_id` cascade; `course_id` (điền bởi trigger từ bài học); index `(user_id, course_id)` | |
+| `course_sessions` | ✅ Đợt 10 – PK `id`; FK `course_id` cascade; index `(course_id, sort_order)` | |
+| `lesson_progress` | ✅ Đợt 10 – PK `(user_id, lesson_id)`; FK `user_id → auth.users` cascade, `lesson_id` cascade; `course_id` (điền bởi trigger từ bài học); index `(user_id, course_id)` | |
 | `consult_questions` | PK `id`; `kind in ('check','scale','text')`; `label` ≤ 300 ký tự | Seed sẵn ~6 câu mẫu (xem §10.8) |
 | `consultations` | PK `id`; FK `user_id → auth.users on delete set null`; `status` check; index `(status, created_at)`, `(user_id, created_at desc)` | Dữ liệu sức khỏe |
 | `leads` | ✅ Đợt 8 – PK `id`; FK `course_id on delete set null`; `status` check; index `(status, created_at)` | Xem §2.7b |

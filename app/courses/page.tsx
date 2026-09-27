@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth'
 import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
 import { ArrowRightIcon, BookIcon, CheckIcon, ClockIcon } from '@/components/icons'
-import { daysLeft, formatDate } from '@/lib/courses'
+import { daysLeft, formatDate, type OutlineRow } from '@/lib/courses'
+import { getCourseProgress, type CourseProgress } from '@/lib/progress'
+import ProgressBar from '@/components/ProgressBar'
 
 export const metadata: Metadata = { title: 'Khóa học của tôi' }
 
@@ -18,7 +20,21 @@ type CourseRow = {
 }
 
 // Khóa đã mở kèm hạn học: null = không thời hạn (đơn cũ không có gói, hoặc nhân viên / admin xem trước)
-type OwnedCourse = CourseRow & { accessUntil: string | null }
+type OwnedCourse = CourseRow & { accessUntil: string | null; progress?: CourseProgress; nextLabel?: string | null }
+
+// "Buổi X – Bài Y" của bài tiếp theo (theo đề cương course_outline)
+async function withProgress(supabase: ReturnType<typeof createClient>, course: OwnedCourse): Promise<OwnedCourse> {
+  const [progress, { data: outline }] = await Promise.all([
+    getCourseProgress(course.id),
+    supabase.rpc('course_outline', { target_course: course.id }),
+  ])
+  const rows = (outline ?? []) as OutlineRow[]
+  const next = rows.find((r) => r.id === progress.next_lesson_id)
+  const nextLabel = next
+    ? `${next.session_title ?? 'Bài'} – Bài ${rows.filter((r) => r.session_id === next.session_id).findIndex((r) => r.id === next.id) + 1}`
+    : null
+  return { ...course, progress, nextLabel }
+}
 
 // Nhãn hạn học: còn > 7 ngày (xám), ≤ 7 ngày (vàng – nhắc gia hạn), đã hết hạn (đỏ)
 function AccessBadge({ until }: { until: string | null }) {
@@ -45,6 +61,7 @@ function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolea
         </Link>
       </h3>
       <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.description}</p>
+      {course.progress && <ProgressBar done={course.progress.done} total={course.progress.total} className="mt-4" />}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm">
         {expired ? (
           <Link href={`/courses/${course.id}`} className="font-semibold text-slate-600 hover:text-ocean-700">
@@ -61,11 +78,17 @@ function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolea
               {expired ? 'Gia hạn để tập tiếp' : 'Gia hạn'}
             </Link>
           )}
-          {!expired && (
-            <Link href={`/courses/${course.id}`} className="btn-primary btn-sm">
-              Vào học <ArrowRightIcon className="h-4 w-4" />
-            </Link>
-          )}
+          {!expired &&
+            (course.progress?.done && course.progress.next_lesson_id ? (
+              // Đang tập dở: vào thẳng bài tiếp theo
+              <Link href={`/courses/${course.id}/${course.progress.next_lesson_id}`} className="btn-primary btn-sm">
+                Tiếp tục {course.nextLabel} <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link href={`/courses/${course.id}`} className="btn-primary btn-sm">
+                Vào học <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            ))}
         </span>
       </div>
     </div>
@@ -124,7 +147,9 @@ export default async function CoursesPage({
       const accessUntil = unlimited ? null : [prev?.accessUntil, r.until].filter(Boolean).sort().at(-1) ?? null
       owned.set(r.course.id, { ...r.course, accessUntil, unlimited })
     }
-    for (const c of owned.values()) {
+    // Tiến độ từng khóa (vẫn đọc được khi đã hết hạn)
+    const courses = await Promise.all([...owned.values()].map((c) => withProgress(supabase, c)))
+    for (const c of courses) {
       if (c.accessUntil && new Date(c.accessUntil) <= new Date()) expired.push(c)
       else unlocked.push(c)
     }

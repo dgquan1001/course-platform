@@ -370,39 +370,39 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ## EP-13 – Buổi tập, checklist, tiến độ
 
-### US-13.01 – Tạo khung buổi nhanh ⬜ (3 SP)
+### US-13.01 – Tạo khung buổi nhanh ✅ (3 SP)
 **Là** admin, **tôi muốn** nhập "36 buổi × 6 bài" để có sẵn khung, **để** không phải tạo tay 216 bài.
 - FR: FR-140 · BR: BR-86
 - **AC1** Given nhập 36 × 6 Then có Buổi 1…36, mỗi buổi Bài 1…6 "Chưa có video".
 - **AC2** Given nhập 0 hoặc 201 buổi Then báo lỗi.
 
-### US-13.02 – Quản lý buổi và bài ⬜ (5 SP)
+### US-13.02 – Quản lý buổi và bài ✅ (5 SP)
 - FR: FR-141 → FR-143 · BR: BR-87
 - **AC1** Given Buổi 2 có 6 bài When "Sao chép buổi" Then Buổi mới có 6 bài cùng tên, mô tả, link video.
 - **AC2** Given bài không có link Then lưu được; có link sai Then báo lỗi như cũ.
 - **AC3** Then trang nội dung cảnh báo "12 bài chưa có video", "Gói 12 tháng cần 144 buổi, hiện có 36".
 
-### US-13.03 – Checklist từng buổi ⬜ (3 SP)
+### US-13.03 – Checklist từng buổi ✅ (3 SP)
 **Là** bệnh nhân, **tôi muốn** tick từng bài đã tập, **để** biết buổi hôm nay đã xong chưa.
 - FR: FR-150, FR-151 · BR: BR-88
 - **AC1** Given tôi đang ở Bài 2 Buổi 1 When bấm "Hoàn thành & bài tiếp theo" Then Bài 2 có ✓ và mở Bài 3.
 - **AC2** Given bỏ tick một bài Then hỏi xác nhận, bài bỏ ✓.
 
-### US-13.04 – Buổi mở lần lượt ⬜ (5 SP)
+### US-13.04 – Buổi mở lần lượt ✅ (5 SP)
 - FR: FR-152 · BR: BR-89, BR-90
 - **AC1** Given tôi chưa tick đủ Buổi 1 Then Buổi 2 hiện 🔒 "Hoàn thành Buổi 1 để mở"; gọi `get_lesson_video` bài Buổi 2 trả rỗng; insert tiến độ bài Buổi 2 bị RLS chặn.
 - **AC2** Given tick đủ 6 bài Buổi 1 Then Buổi 2 mở, nút "Bắt đầu Buổi 2".
 - **AC3** Given tôi mua gói 1 tháng (12 buổi) Then Buổi 13 hiện 🔒 "Gia hạn để mở".
 
-### US-13.05 – Thấy tiến độ ⬜ (2 SP)
+### US-13.05 – Thấy tiến độ ✅ (2 SP)
 - FR: FR-153 · BR: BR-91
 - **AC1** Given đã tick 18/72 bài (gói 1 tháng × 6 bài) Then thanh tiến độ "18/72 bài · 25%" ở trình học và thẻ khóa.
 
-### US-13.06 – Nút hành động khi tập ⬜ (2 SP)
+### US-13.06 – Nút hành động khi tập ✅ (2 SP)
 - FR: FR-154
 - **AC1** Given tôi đang dở Buổi 3 Bài 4 Then thẻ khóa và trang khóa có nút "Tiếp tục Buổi 3 – Bài 4".
 
-### US-13.07 – Nhân viên xem trước nội dung ⬜ (1 SP)
+### US-13.07 – Nhân viên xem trước nội dung ✅ (1 SP)
 - FR: FR-156 · BR: BR-92
 - **AC1** Given tôi là staff Then mở được mọi buổi, không có ô tick.
 

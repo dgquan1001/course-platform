@@ -102,6 +102,68 @@ create table if not exists public.lessons (
 create index if not exists lessons_course_id_idx on public.lessons (course_id, sort_order);
 
 -- ------------------------------------------------------------
+-- Buổi tập (v0.2, ADR-013): khóa gồm các buổi, mỗi buổi gồm các bài tập (bảng lessons, cột session_id).
+-- Admin tạo khung nhanh "N buổi × M bài"; bài tập chưa có video vẫn tick được.
+-- ------------------------------------------------------------
+create table if not exists public.course_sessions (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references public.courses (id) on delete cascade,
+  title text not null,
+  description text,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists course_sessions_course_idx on public.course_sessions (course_id, sort_order);
+
+alter table public.lessons add column if not exists session_id uuid references public.course_sessions (id) on delete cascade;
+create index if not exists lessons_session_idx on public.lessons (session_id, sort_order);
+-- Bài tập chưa có video (khung mới tạo): trang học hiện "Video đang được cập nhật"
+alter table public.lessons alter column video_url drop not null;
+
+-- Bài học cũ chưa thuộc buổi nào: gom vào "Buổi 1" của khóa đó
+do $$
+declare
+  c record;
+  new_session uuid;
+begin
+  for c in select distinct course_id from public.lessons where session_id is null loop
+    select id into new_session from public.course_sessions where course_id = c.course_id order by sort_order, created_at limit 1;
+    if new_session is null then
+      insert into public.course_sessions (course_id, title, sort_order) values (c.course_id, 'Buổi 1', 1) returning id into new_session;
+    end if;
+    update public.lessons set session_id = new_session where course_id = c.course_id and session_id is null;
+  end loop;
+end $$;
+
+-- Tiến độ: bệnh nhân tick từng bài đã tập (checklist buổi = danh sách bài của buổi). course_id điền tự động để đếm nhanh.
+create table if not exists public.lesson_progress (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  lesson_id uuid not null references public.lessons (id) on delete cascade,
+  course_id uuid not null references public.courses (id) on delete cascade,
+  completed_at timestamptz not null default now(),
+  primary key (user_id, lesson_id)
+);
+create index if not exists lesson_progress_course_idx on public.lesson_progress (user_id, course_id);
+
+create or replace function public.fill_lesson_progress()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.course_id := (select course_id from public.lessons where id = new.lesson_id);
+  new.completed_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists lesson_progress_fill on public.lesson_progress;
+create trigger lesson_progress_fill
+  before insert on public.lesson_progress
+  for each row execute procedure public.fill_lesson_progress();
+
+-- ------------------------------------------------------------
 -- Dọn policy của phiên bản cũ (nếu có)
 -- ------------------------------------------------------------
 drop policy if exists "User xem được profile của chính mình, admin xem tất cả" on public.profiles;
@@ -581,24 +643,142 @@ as $$
   );
 $$;
 
--- Đề cương công khai (trang giới thiệu khóa): tên, mô tả, thứ tự bài – KHÔNG trả link video.
+-- Đề cương công khai (trang giới thiệu khóa, cột nội dung ở trình học): buổi → bài theo thứ tự – KHÔNG trả link video.
 -- Chỉ với khóa đang hiển thị (hoặc người đã có quyền xem khóa), không áp dụng khóa premium.
+-- session_position: số thứ tự buổi (1, 2, …); has_video: bài đã có video hay chưa.
+drop function if exists public.course_outline(uuid);
 create or replace function public.course_outline(target_course uuid)
-returns table (id uuid, title text, description text, sort_order int)
+returns table (
+  id uuid, title text, description text, sort_order int,
+  session_id uuid, session_title text, session_position int, has_video boolean
+)
 language sql
 security definer
 stable
 set search_path = public
 as $$
-  select l.id, l.title, l.description, l.sort_order
+  with s as (
+    select cs.id, cs.title, row_number() over (order by cs.sort_order, cs.created_at)::int as pos
+    from public.course_sessions cs
+    where cs.course_id = target_course
+  )
+  select l.id, l.title, l.description, l.sort_order, s.id, s.title, s.pos, l.video_url is not null
   from public.lessons l
   join public.courses c on c.id = l.course_id
+  left join s on s.id = l.session_id
   where l.course_id = target_course
     and c.kind <> 'premium'
     and (c.status = 'published' or public.has_course_access(c.id))
-  order by l.sort_order, l.created_at;
+  order by s.pos nulls first, l.sort_order, l.created_at;
 $$;
 grant execute on function public.course_outline(uuid) to anon, authenticated;
+
+-- Người đang đăng nhập đã tick đủ mọi bài của buổi chưa (buổi không có bài coi như đã xong)
+create or replace function public.session_completed(target_session uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select not exists (
+    select 1 from public.lessons l
+    where l.session_id = target_session
+      and not exists (select 1 from public.lesson_progress p where p.user_id = auth.uid() and p.lesson_id = l.id)
+  );
+$$;
+
+-- Người đang đăng nhập có xem được bài này không (ADR-013, BR-89):
+-- nhân viên / admin: luôn được · khóa miễn phí đang hiển thị: ai cũng được, không khóa tuần tự ·
+-- chương trình: còn hạn học + buổi nằm trong số buổi đã mua + buổi trước đã tick đủ (buổi 1 luôn mở).
+create or replace function public.can_view_lesson(target_lesson uuid)
+returns boolean
+language plpgsql
+security definer
+stable
+set search_path = public
+as $$
+declare
+  lesson_course uuid;
+  lesson_session uuid;
+  course_kind text;
+  course_status text;
+  pos int;
+  previous_session uuid;
+  purchased int;
+begin
+  select l.course_id, l.session_id, c.kind, c.status into lesson_course, lesson_session, course_kind, course_status
+  from public.lessons l join public.courses c on c.id = l.course_id
+  where l.id = target_lesson;
+  if lesson_course is null then
+    return false;
+  end if;
+  if public.is_staff() then
+    return true;
+  end if;
+  if course_kind = 'free' then
+    return course_status = 'published';
+  end if;
+  if course_kind <> 'program' or not public.has_course_access(lesson_course) then
+    return false;
+  end if;
+  if lesson_session is null then
+    return true;
+  end if;
+  select s.pos, s.previous into pos, previous_session
+  from (
+    select cs.id,
+           row_number() over (order by cs.sort_order, cs.created_at)::int as pos,
+           lag(cs.id) over (order by cs.sort_order, cs.created_at) as previous
+    from public.course_sessions cs
+    where cs.course_id = lesson_course
+  ) s
+  where s.id = lesson_session;
+  purchased := public.purchased_sessions(lesson_course);
+  if purchased is not null and pos > purchased then
+    return false;
+  end if;
+  return previous_session is null or public.session_completed(previous_session);
+end;
+$$;
+grant execute on function public.can_view_lesson(uuid) to anon, authenticated;
+
+-- Tiến độ của người đang đăng nhập trong một khóa: số bài đã tick / tổng số bài trong các buổi đã mua
+-- (khóa miễn phí / đơn cũ không gói: toàn khóa), bài tiếp theo cần tập, lần tập gần nhất.
+create or replace function public.course_progress(target_course uuid)
+returns table (done int, total int, next_lesson_id uuid, purchased int, last_activity timestamptz)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  with purchased as (
+    select case
+      when (select kind from public.courses where id = target_course) = 'free' then null
+      else public.purchased_sessions(target_course)
+    end as value
+  ),
+  s as (
+    select cs.id, row_number() over (order by cs.sort_order, cs.created_at)::int as pos
+    from public.course_sessions cs
+    where cs.course_id = target_course
+  ),
+  included as (
+    select l.id, coalesce(s.pos, 0) as pos, l.sort_order, l.created_at,
+           exists (select 1 from public.lesson_progress p where p.user_id = auth.uid() and p.lesson_id = l.id) as is_done
+    from public.lessons l
+    left join s on s.id = l.session_id
+    where l.course_id = target_course
+      and ((select value from purchased) is null or coalesce(s.pos, 0) <= (select value from purchased))
+  )
+  select
+    (select count(*) from included where is_done)::int,
+    (select count(*) from included)::int,
+    (select id from included where not is_done order by pos, sort_order, created_at limit 1),
+    (select value from purchased),
+    (select max(completed_at) from public.lesson_progress where user_id = auth.uid() and course_id = target_course);
+$$;
+grant execute on function public.course_progress(uuid) to anon, authenticated;
 
 -- ------------------------------------------------------------
 -- Row Level Security
@@ -651,11 +831,39 @@ drop policy if exists "course_plans_admin_delete" on public.course_plans;
 create policy "course_plans_admin_delete" on public.course_plans for delete
   using (public.is_admin());
 
--- lessons: khóa miễn phí đang hiển thị thì ai cũng xem; khóa khác chỉ học viên đã được duyệt khóa đó
--- (hoặc nhân viên, admin xem trước)
+-- lessons (kèm link video): theo can_view_lesson – khóa miễn phí đang hiển thị ai cũng xem; chương trình theo hạn học,
+-- số buổi đã mua và mở buổi lần lượt; nhân viên, admin xem trước. Tên bài của buổi bị khóa lấy qua course_outline().
 drop policy if exists "lessons_select" on public.lessons;
 create policy "lessons_select" on public.lessons for select
-  using (public.is_free_course(course_id) or public.has_course_access(course_id));
+  using (public.can_view_lesson(id));
+
+-- course_sessions: đọc được khi đọc được khóa (đề cương công khai); chỉ admin thêm / sửa / xóa
+alter table public.course_sessions enable row level security;
+drop policy if exists "course_sessions_select" on public.course_sessions;
+create policy "course_sessions_select" on public.course_sessions for select
+  using (exists (select 1 from public.courses c where c.id = course_id));
+drop policy if exists "course_sessions_admin_insert" on public.course_sessions;
+create policy "course_sessions_admin_insert" on public.course_sessions for insert
+  with check (public.is_admin());
+drop policy if exists "course_sessions_admin_update" on public.course_sessions;
+create policy "course_sessions_admin_update" on public.course_sessions for update
+  using (public.is_admin());
+drop policy if exists "course_sessions_admin_delete" on public.course_sessions;
+create policy "course_sessions_admin_delete" on public.course_sessions for delete
+  using (public.is_admin());
+
+-- lesson_progress: bệnh nhân đọc tiến độ của mình (kể cả khi hết hạn), nhân viên / admin đọc tất cả;
+-- chỉ tick / bỏ tick bài đang xem được (không tick trước buổi bị khóa, không tick khi đã hết hạn)
+alter table public.lesson_progress enable row level security;
+drop policy if exists "lesson_progress_select" on public.lesson_progress;
+create policy "lesson_progress_select" on public.lesson_progress for select
+  using (auth.uid() = user_id or public.is_staff());
+drop policy if exists "lesson_progress_insert" on public.lesson_progress;
+create policy "lesson_progress_insert" on public.lesson_progress for insert
+  with check (auth.uid() = user_id and public.can_view_lesson(lesson_id));
+drop policy if exists "lesson_progress_delete" on public.lesson_progress;
+create policy "lesson_progress_delete" on public.lesson_progress for delete
+  using (auth.uid() = user_id and public.can_view_lesson(lesson_id));
 drop policy if exists "lessons_admin_insert" on public.lessons;
 create policy "lessons_admin_insert" on public.lessons for insert
   with check (public.is_admin());

@@ -1,6 +1,6 @@
 # ADR-013: Cấu trúc Buổi → Bài tập, mở buổi tuần tự, video đọc qua hàm kiểm quyền
 
-- **Trạng thái**: Accepted (thiết kế v0.2, chưa triển khai)
+- **Trạng thái**: Accepted – triển khai Đợt 10 (27/09/2026), có điều chỉnh (xem cuối file)
 - **Ngày**: 27/09/2026
 - **Người quyết định**: Chủ dự án
 
@@ -35,6 +35,17 @@ v0.1 có danh sách bài phẳng và RLS chặn cả dòng `lessons` → không 
 - ✅ Luật mở tuần tự nằm trong database, không vượt qua được bằng cách gọi API.
 - ⚠️ Mọi chỗ đọc `video_url` (trang học, admin) phải đổi sang RPC hoặc client staff/admin; E2E RLS cần cập nhật.
 - ⚠️ Không có "đã xem hết video" thật sự (video nhúng YouTube/TikTok) – tiến độ dựa trên bệnh nhân tự tick.
+
+## Điều chỉnh khi triển khai (Đợt 10, 27/09/2026)
+- **Không dùng column privilege + `get_lesson_video`.** Thay bằng RLS theo dòng: `lessons_select using (can_view_lesson(id))`.
+  Tên bài của buổi bị khóa (đề cương, cột nội dung ở trình học) lấy qua `course_outline()` (security definer, không trả link video).
+  Lý do: giữ nguyên mọi truy vấn `lessons` ở trang admin (admin / nhân viên luôn `can_view_lesson`), không phải thêm RPC đọc video,
+  kết quả bảo mật tương đương (chỉ ai xem được bài mới đọc được dòng bài, kể cả `video_url`).
+- `course_outline()` trả thêm `session_id`, `session_title`, `session_position`, `has_video`; `course_progress()` trả `done, total,
+  next_lesson_id, purchased, last_activity`.
+- Tick bài: server action `completeLessonAction` (tick + chuyển sang bài kế tiếp nếu đã mở, hết bài đã mua thì hiện thẻ chúc mừng),
+  `uncompleteLessonAction` (bỏ tick, có hỏi xác nhận) – đều dùng server client, RLS `lesson_progress` quyết định.
+- "Sao chép buổi" tạo buổi mới ở **cuối khóa** (không chèn ngay sau buổi gốc); đổi thứ tự bằng nút ↑ ↓.
 
 ## Phương án đã cân nhắc
 - *Bảng checklist riêng cho từng buổi do admin soạn*: linh hoạt nhưng chủ dự án chọn mẫu chung (tick bài đã tập).

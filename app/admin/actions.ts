@@ -148,13 +148,14 @@ async function removeCover(url: string | null | undefined) {
   if (path) await createClient().storage.from(COVER_BUCKET).remove([decodeURIComponent(path)])
 }
 
-type LessonInput = { title: string; description: string | null; video_url: string; sort_order: number }
+type LessonInput = { title: string; description: string | null; video_url: string | null; sort_order: number }
 
+// Link video không bắt buộc (khung buổi tập mới tạo chưa có video); có thì phải là YouTube / TikTok hợp lệ
 function readLesson(formData: FormData): Parsed<LessonInput> {
   const base = readTitleAndDescription(formData, 'bài học')
   if (base.error !== null) return base
-  const videoUrl = text(formData, 'video_url')
-  if (!isSupportedVideoUrl(videoUrl)) {
+  const videoUrl = text(formData, 'video_url') || null
+  if (videoUrl && !isSupportedVideoUrl(videoUrl)) {
     return {
       value: null,
       error: 'Link video phải là link YouTube hoặc TikTok hợp lệ (VD: https://www.youtube.com/watch?v=... hoặc https://www.tiktok.com/@user/video/...).',
@@ -281,6 +282,7 @@ export async function setUserRole(userId: string, formData: FormData) {
 export async function createCourse(formData: FormData) {
   const { value, error } = readCourse(formData)
   const cover = await readCover(formData)
+  const skeleton = readSkeleton(formData)
   return run(
     `Đã thêm khóa học "${value?.title}".`,
     async () => {
@@ -303,9 +305,14 @@ export async function createCourse(formData: FormData) {
           .insert({ course_id: result.data[0].id, months: 1, sessions: SESSIONS_PER_MONTH, price: value!.price })
         if (planError) return { data: null, error: { message: `Đã tạo khóa nhưng chưa tạo được gói 1 tháng: ${planError.message}` } }
       }
+      // Khung buổi tập "N buổi × M bài" nhập kèm khi tạo khóa (không bắt buộc)
+      if (skeleton.value && value!.kind !== 'premium') {
+        const built = await insertSkeleton(supabase, result.data[0].id, skeleton.value.sessions, skeleton.value.lessons)
+        if (built.error) return { data: null, error: { message: `Đã tạo khóa nhưng chưa tạo được khung buổi tập: ${built.error.message}` } }
+      }
       return result
     },
-    error ?? cover.error
+    error ?? cover.error ?? skeleton.error
   )
 }
 
@@ -409,23 +416,209 @@ export async function deletePlan(planId: string) {
   )
 }
 
-// ---------- Bài học ----------
+// ---------- Buổi tập (ADR-013) ----------
+
+const MAX_SKELETON_SESSIONS = 200
+const MAX_LESSONS_PER_SESSION = 20
+const MAX_SESSIONS = 500
+
+type SupabaseServer = ReturnType<typeof createClient>
+
+// Các buổi của khóa theo thứ tự hiển thị
+async function sessionsOf(supabase: SupabaseServer, courseId: string) {
+  const { data } = await supabase
+    .from('course_sessions')
+    .select('id, title, description, sort_order')
+    .eq('course_id', courseId)
+    .order('sort_order')
+    .order('created_at')
+  return data ?? []
+}
+
+// Tạo khung "N buổi × M bài" nối tiếp sau buổi cuối hiện có: Buổi k, mỗi buổi Bài 1…M chưa có video
+async function insertSkeleton(supabase: SupabaseServer, courseId: string, sessionCount: number, lessonsPerSession: number) {
+  const existing = await sessionsOf(supabase, courseId)
+  if (existing.length + sessionCount > MAX_SESSIONS) {
+    return { data: null, error: { message: `Mỗi khóa tối đa ${MAX_SESSIONS} buổi (hiện có ${existing.length}).` } }
+  }
+  const start = existing.length
+  const lastOrder = existing.at(-1)?.sort_order ?? 0
+  const { data: sessions, error } = await supabase
+    .from('course_sessions')
+    .insert(
+      Array.from({ length: sessionCount }, (_, i) => ({
+        course_id: courseId,
+        title: `Buổi ${start + i + 1}`,
+        sort_order: Math.max(lastOrder, start) + i + 1,
+      }))
+    )
+    .select('id, sort_order')
+  if (error || !sessions) return { data: null, error }
+  const lessons = sessions.flatMap((session) =>
+    Array.from({ length: lessonsPerSession }, (_, j) => ({
+      course_id: courseId,
+      session_id: session.id,
+      title: `Bài ${j + 1}`,
+      sort_order: j + 1,
+    }))
+  )
+  const result = await supabase.from('lessons').insert(lessons).select('id')
+  return result.error ? result : { data: sessions, error: null }
+}
+
+function readSkeleton(formData: FormData): Parsed<{ sessions: number; lessons: number } | null> {
+  if (!text(formData, 'session_count') && !text(formData, 'lessons_per_session')) return { value: null, error: null }
+  const sessions = readInt(formData, 'session_count', 'Số buổi', 1, MAX_SKELETON_SESSIONS)
+  if (typeof sessions === 'string') return { value: null, error: sessions }
+  const lessons = readInt(formData, 'lessons_per_session', 'Số bài mỗi buổi', 1, MAX_LESSONS_PER_SESSION)
+  if (typeof lessons === 'string') return { value: null, error: lessons }
+  if (!sessions || !lessons) return { value: null, error: 'Vui lòng nhập số buổi và số bài mỗi buổi.' }
+  return { value: { sessions, lessons }, error: null }
+}
+
+export async function generateSkeleton(courseId: string, formData: FormData) {
+  const { value, error } = readSkeleton(formData)
+  return run(
+    `Đã tạo ${value?.sessions} buổi × ${value?.lessons} bài.`,
+    () => insertSkeleton(createClient(), courseId, value!.sessions, value!.lessons),
+    checkId(courseId, 'khóa học') ?? error ?? (value ? null : 'Vui lòng nhập số buổi và số bài mỗi buổi.')
+  )
+}
+
+function readSession(formData: FormData): Parsed<{ title: string; description: string | null }> {
+  return readTitleAndDescription(formData, 'buổi')
+}
+
+export async function createSession(courseId: string, formData: FormData) {
+  const { value, error } = readSession(formData)
+  return run(
+    `Đã thêm "${value?.title}".`,
+    async () => {
+      const supabase = createClient()
+      const existing = await sessionsOf(supabase, courseId)
+      const sortOrder = Math.max(existing.at(-1)?.sort_order ?? 0, existing.length) + 1
+      return supabase.from('course_sessions').insert({ ...value!, course_id: courseId, sort_order: sortOrder }).select('id')
+    },
+    checkId(courseId, 'khóa học') ?? error
+  )
+}
+
+export async function updateSession(sessionId: string, formData: FormData) {
+  const { value, error } = readSession(formData)
+  return run(
+    'Đã lưu buổi.',
+    () => createClient().from('course_sessions').update(value!).eq('id', sessionId).select('id'),
+    checkId(sessionId, 'buổi') ?? error
+  )
+}
+
+// Xóa buổi xóa luôn các bài của buổi (và tiến độ đã tick của các bài đó)
+export async function deleteSession(sessionId: string) {
+  return run(
+    'Đã xóa buổi và các bài của buổi.',
+    () => createClient().from('course_sessions').delete().eq('id', sessionId).select('id'),
+    checkId(sessionId, 'buổi')
+  )
+}
+
+// Đổi chỗ buổi với buổi liền trước / liền sau (đánh lại thứ tự 1…n cho cả khóa)
+export async function moveSession(courseId: string, sessionId: string, direction: 'up' | 'down') {
+  return run(
+    'Đã đổi thứ tự buổi.',
+    async () => {
+      const supabase = createClient()
+      const sessions = await sessionsOf(supabase, courseId)
+      const index = sessions.findIndex((x) => x.id === sessionId)
+      const target = direction === 'up' ? index - 1 : index + 1
+      if (index < 0 || target < 0 || target >= sessions.length) return { data: [], error: null }
+      ;[sessions[index], sessions[target]] = [sessions[target], sessions[index]]
+      for (const [i, session] of sessions.entries()) {
+        if (session.sort_order === i + 1) continue
+        const { error } = await supabase.from('course_sessions').update({ sort_order: i + 1 }).eq('id', session.id)
+        if (error) return { data: null, error }
+      }
+      return { data: [sessionId], error: null }
+    },
+    checkId(courseId, 'khóa học') ?? checkId(sessionId, 'buổi') ?? (direction === 'up' || direction === 'down' ? null : 'Hướng không hợp lệ.')
+  )
+}
+
+// Sao chép buổi (tên, mô tả, các bài kèm link video) thành buổi mới ở cuối khóa
+export async function duplicateSession(courseId: string, sessionId: string) {
+  return run(
+    'Đã sao chép buổi.',
+    async () => {
+      const supabase = createClient()
+      const sessions = await sessionsOf(supabase, courseId)
+      const source = sessions.find((x) => x.id === sessionId)
+      if (!source) return { data: [], error: null }
+      const { data: copy, error } = await supabase
+        .from('course_sessions')
+        .insert({
+          course_id: courseId,
+          title: `Buổi ${sessions.length + 1}`,
+          description: source.description,
+          sort_order: Math.max(sessions.at(-1)?.sort_order ?? 0, sessions.length) + 1,
+        })
+        .select('id')
+        .single()
+      if (error || !copy) return { data: null, error }
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('title, description, video_url, sort_order')
+        .eq('session_id', sessionId)
+      if (!lessons?.length) return { data: [copy.id], error: null }
+      return supabase
+        .from('lessons')
+        .insert(lessons.map((l) => ({ ...l, course_id: courseId, session_id: copy.id })))
+        .select('id')
+    },
+    checkId(courseId, 'khóa học') ?? checkId(sessionId, 'buổi')
+  )
+}
+
+// ---------- Bài học (bài tập trong buổi) ----------
+
+// Buổi của bài: theo ô chọn; không chọn thì vào buổi cuối (khóa chưa có buổi nào thì tạo "Buổi 1")
+async function resolveSession(supabase: SupabaseServer, courseId: string, sessionId: string) {
+  if (sessionId) return { id: sessionId, error: null }
+  const last = (await sessionsOf(supabase, courseId)).at(-1)
+  if (last) return { id: last.id, error: null }
+  const { data, error } = await supabase
+    .from('course_sessions')
+    .insert({ course_id: courseId, title: 'Buổi 1', sort_order: 1 })
+    .select('id')
+    .single()
+  return { id: data?.id ?? null, error }
+}
 
 export async function createLesson(courseId: string, formData: FormData) {
   const { value, error } = readLesson(formData)
+  const sessionId = text(formData, 'session_id')
   return run(
     `Đã thêm bài học "${value?.title}".`,
-    () => createClient().from('lessons').insert({ ...value!, course_id: courseId }).select('id'),
-    checkId(courseId, 'khóa học') ?? error
+    async () => {
+      const supabase = createClient()
+      const session = await resolveSession(supabase, courseId, sessionId)
+      if (session.error || !session.id) return { data: null, error: session.error ?? { message: 'Không tạo được buổi.' } }
+      return supabase.from('lessons').insert({ ...value!, course_id: courseId, session_id: session.id }).select('id')
+    },
+    checkId(courseId, 'khóa học') ?? (sessionId ? checkId(sessionId, 'buổi') : null) ?? error
   )
 }
 
 export async function updateLesson(lessonId: string, formData: FormData) {
   const { value, error } = readLesson(formData)
+  const sessionId = text(formData, 'session_id')
   return run(
     'Đã lưu bài học.',
-    () => createClient().from('lessons').update(value!).eq('id', lessonId).select('id'),
-    checkId(lessonId, 'bài học') ?? error
+    () =>
+      createClient()
+        .from('lessons')
+        .update(sessionId ? { ...value!, session_id: sessionId } : value!)
+        .eq('id', lessonId)
+        .select('id'),
+    checkId(lessonId, 'bài học') ?? (sessionId ? checkId(sessionId, 'buổi') : null) ?? error
   )
 }
 

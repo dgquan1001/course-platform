@@ -48,3 +48,66 @@ export function daysLeft(accessUntil: string | null) {
 
 export const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' })
+
+// ---------- Buổi tập, bài tập, tiến độ (ADR-013) ----------
+
+export type OutlineRow = {
+  id: string
+  title: string
+  description: string | null
+  session_id: string | null
+  session_title: string | null
+  session_position: number | null
+  has_video?: boolean
+}
+
+export type SessionLock = 'open' | 'previous' | 'purchase' | 'access'
+
+export type OutlineSession = {
+  id: string | null
+  title: string
+  position: number
+  lessons: OutlineRow[]
+  done: number
+  lock: SessionLock
+}
+
+// Gom đề cương (course_outline) thành các buổi và tính trạng thái mở / khóa giống can_view_lesson trong database:
+// khóa miễn phí hoặc nhân viên xem trước: mở hết · chương trình: cần còn hạn, buổi ≤ số buổi đã mua, buổi trước tick đủ.
+export function buildSessions(
+  rows: OutlineRow[],
+  opts: { done: Set<string>; open: 'all' | 'none' | 'sequential'; purchased: number | null }
+): OutlineSession[] {
+  const sessions: OutlineSession[] = []
+  for (const row of rows) {
+    const key = row.session_id ?? null
+    let session = sessions.find((s) => s.id === key)
+    if (!session) {
+      session = { id: key, title: row.session_title ?? 'Bài học', position: row.session_position ?? 0, lessons: [], done: 0, lock: 'open' }
+      sessions.push(session)
+    }
+    session.lessons.push(row)
+    if (opts.done.has(row.id)) session.done++
+  }
+  let previousDone = true
+  for (const s of sessions) {
+    if (opts.open === 'all') s.lock = 'open'
+    else if (opts.open === 'none') s.lock = 'access'
+    else if (s.id && opts.purchased !== null && s.position > opts.purchased) s.lock = 'purchase'
+    else if (s.id && !previousDone) s.lock = 'previous'
+    else s.lock = 'open'
+    previousDone = s.done === s.lessons.length
+  }
+  return sessions
+}
+
+export const lockReason = (lock: SessionLock, previous?: OutlineSession) =>
+  lock === 'previous'
+    ? `Hoàn thành ${previous?.title ?? 'buổi trước'} để mở`
+    : lock === 'purchase'
+      ? 'Gia hạn để mở buổi này'
+      : lock === 'access'
+        ? 'Đăng ký hoặc gia hạn để xem'
+        : ''
+
+export const percent = (done: number, total: number) => (total ? Math.floor((done * 100) / total) : 0)

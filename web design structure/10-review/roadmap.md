@@ -24,7 +24,7 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 | 7 | Vai trò staff | R-12 | ✅ Xong | 27/09/2026 (`c3d08a5`) | TC-65 → TC-67 | 67/67 PASS |
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ Xong (nội dung chính sách chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → TC-73 | 73/73 PASS |
 | 9 | Gói tháng & hạn học | — | ✅ Xong (kèm sửa RK-22) | 27/09/2026 (`b46f232`, `da23361`) | TC-74 → TC-78 | 78/78 PASS |
-| 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | ⬜ | — | TC-79 → TC-84 | — |
+| 10 | Buổi – bài, trình học, tiến độ | R-04, R-09 | 🟡 Code xong, chờ chạy schema + E2E | 27/09/2026 | TC-79 → TC-84 | Chờ chạy |
 | 11 | Nhân viên tạo bệnh nhân (Zalo) | R-02 | ⬜ | — | TC-85 → TC-88 | — |
 | 12 | Phiếu tham vấn | — | ⬜ | — | TC-89 → TC-92 | — |
 | 13 | Dashboard tập trung | R-07 (một phần) | ⬜ | — | TC-93 → TC-94 | — |
@@ -103,11 +103,11 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [ ] R-01 Thông báo email khi đơn được duyệt / từ chối
 - [ ] R-02 Admin đặt lại mật khẩu học viên → **Đợt 11** (nhân viên cấp lại mật khẩu)
 - [x] R-03 Ảnh bìa khóa học → **Đợt 8**
-- [ ] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %)
+- [ ] R-04 Tiến độ học → **Đợt 10** (checklist buổi, %) – 🟡 chờ E2E
 - [ ] R-06 Phân trang, lọc, xuất Excel đơn
 - [ ] R-07 Báo cáo doanh thu → **Đợt 13** (doanh thu trên dashboard admin); xuất Excel để sau
 - [ ] R-08 Xác nhận thanh toán tự động
-- [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau)
+- [ ] R-09 Kéo thả bài học, chia chương → **Đợt 10** (buổi = chương; sắp xếp bằng nút ↑↓, kéo thả để sau) – 🟡 chờ E2E
 - [ ] R-10 Video riêng tư
 - [ ] R-11 Cấu hình trung tâm trên giao diện
 - [x] R-12 Vai trò nhân viên → **Đợt 7**
@@ -119,11 +119,69 @@ Yêu cầu: [project-overview §9](../00-overview/project-overview.md#9-định-
 - [x] Đợt 7 – Vai trò staff (V-09) – 27/09/2026, E2E 67/67
 - [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11) – ✅ 27/09/2026, E2E 73/73
 - [x] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07) – ✅ 27/09/2026, E2E 78/78
-- [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04)
+- [ ] Đợt 10 – Buổi – bài, trình học kiểu Udemy, checklist, tiến độ (V-03, V-04) – 🟡 code + tài liệu xong 27/09/2026, chờ chạy `schema.sql` + E2E
 - [ ] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
 - [ ] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)
 - [ ] Đợt 13 – Dashboard quản trị tập trung (V-06)
 - [ ] Chuyển đổi dữ liệu & dọn dữ liệu test trước go-live (V-12)
+
+### 2.5. Checklist chi tiết theo đợt (v0.2)
+
+Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất điều chỉnh"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
+
+#### Đợt 7 – Vai trò nhân viên ✅ (27/09/2026 · E2E 67/67)
+- [x] Schema: `role` user/staff/admin, `is_staff()`, policy nhân viên (đơn, lịch sử, ảnh CK, sửa profile học viên), trigger chỉ admin đổi vai trò
+- [x] `requireStaff`, middleware (staff vào `/admin`, chặn `/admin/courses`, `/admin/settings`)
+- [x] Bảng đơn chuyển sang `/admin/registrations` (link cũ tự chuyển)
+- [x] Ô chọn vai trò + tab "Nhân viên & Admin"; menu quản trị theo vai trò; nhân viên duyệt đơn
+- [x] E2E TC-65 → TC-67; tài liệu
+- Để lại: trang Bệnh nhân (đổi tên "Học viên"), tạo bệnh nhân → Đợt 11
+
+#### Đợt 8 – Danh mục, khóa miễn phí, premium, chính sách ✅ (27/09/2026 · E2E 73/73)
+- [x] Loại khóa (free/program/premium), nhóm bệnh, ảnh bìa (bucket `course-covers`), mô tả ngắn, "Bạn sẽ đạt được"
+- [x] Trang chủ 3 nhóm + lọc Vẹo lưng / Vẹo ngực; trang giới thiệu `/khoa-hoc/[id]`
+- [x] Khóa miễn phí xem không cần đăng nhập
+- [x] Premium: lưu khách quan tâm + mở Zalo; `/admin/leads` cho nhân viên
+- [x] Chính sách bảo mật + ô đồng ý + hỏi tài khoản cũ
+- [x] E2E TC-68 → TC-73; tài liệu
+- Để lại: **A-7 duyệt nội dung chính sách (RK-20)**; nhãn "Đang học · %" trên thẻ trang chủ (trang tĩnh – cân nhắc làm phía client)
+
+#### Đợt 9 – Gói tháng & hạn học ✅ (27/09/2026 · E2E 78/78)
+- [x] `course_plans` 1/3/6/12 tháng + bảng gói trong admin; tạo chương trình tự có gói 1 tháng
+- [x] Box đăng ký chọn gói, QR theo giá gói, server tính giá theo gói; trang giới thiệu chọn gói
+- [x] Hạn học tính khi duyệt, cộng dồn khi gia hạn (trigger + khóa tuần tự); chỉ 1 đơn chờ / khóa
+- [x] "Còn N ngày", Gia hạn, mục "Gói đã hết hạn"; cột Gói / Hạn học ở bảng đơn
+- [x] Sửa RK-22 (trigger chặn xóa chương trình có đơn)
+- [x] E2E TC-74 → TC-78; tài liệu + project-review §7.5
+- Để lại: RK-18 (ẩn ô Giá khi sửa chương trình), RK-16 (thu hồi giữa chuỗi gia hạn – nhân viên cấp bù ở Đợt 11)
+
+#### Đợt 10 – Buổi – bài, trình học, checklist, tiến độ 🟡 (code 27/09/2026 · chờ schema + E2E)
+- [x] Schema: `course_sessions`, `lessons.session_id` (bài cũ → "Buổi 1"), `video_url` không bắt buộc, `lesson_progress`
+- [x] Hàm `can_view_lesson`, `session_completed`, `course_progress`; `course_outline` trả thêm buổi; RLS bài học theo `can_view_lesson`
+- [x] Admin: tạo khung N × M (khi tạo khóa hoặc ở trang nội dung), thêm / sửa / xóa / ↑↓ / sao chép buổi, bài thuộc buổi, cảnh báo thiếu video / thiếu buổi
+- [x] Trình học kiểu Udemy: cột nội dung theo buổi (🔒 + lý do), "Hoàn thành & bài tiếp theo", "Bỏ đánh dấu" (xác nhận), thẻ chúc mừng, xem trước cho nhân viên
+- [x] Thanh tiến độ + "Tiếp tục Buổi X – Bài Y" ở trang khóa và "Khóa học của tôi"; đề cương theo buổi ở trang giới thiệu
+- [ ] Chạy schema + E2E TC-79 → TC-84
+- Để lại / điều chỉnh: điện thoại chưa tách 2 tab "Bài này / Nội dung"; kéo thả bài (chỉ ↑↓ cho buổi); nút "Phiếu tham vấn" trong trình học → Đợt 12;
+  ADR-013 đổi sang RLS theo dòng (không cần `get_lesson_video`)
+
+#### Đợt 11 – Bệnh nhân từ Zalo ⬜
+- [ ] `profiles.source/created_by/must_change_password/staff_note`, `account_events`, policy `registrations_staff_insert`, trigger insert
+- [ ] `/admin/patients` (thay `/admin/users`), `/admin/patients/new`, `/admin/patients/[id]`
+- [ ] Mật khẩu tự sinh + "Chép tin nhắn gửi Zalo"; nhắc đổi mật khẩu; cấp lại mật khẩu
+- [ ] Cấp gói / gia hạn kèm số tiền + hình thức thanh toán (xử lý RK-16: cấp bù)
+- [ ] E2E TC-85 → TC-88; tài liệu
+
+#### Đợt 12 – Phiếu tham vấn ⬜
+- [ ] `consult_questions` (seed 6 câu), `consultations` + trigger + RLS
+- [ ] Form phiếu, nút ở trình học / Khóa học của tôi / thẻ chúc mừng; "Phiếu tham vấn của tôi"
+- [ ] `/admin/consultations`, `/admin/settings/consultation`
+- [ ] E2E TC-89 → TC-92; tài liệu
+
+#### Đợt 13 – Dashboard ⬜
+- [ ] `dashboard_stats()`, `revenue_report()` (chỉ admin)
+- [ ] `/admin` Tổng quan: thẻ chỉ số, việc cần làm, tiến độ theo chương trình, doanh thu
+- [ ] E2E TC-93, TC-94; tài liệu
 
 ## 3. Lộ trình gợi ý (theo thứ tự thực hiện)
 

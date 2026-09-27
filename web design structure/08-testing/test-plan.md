@@ -140,12 +140,12 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-76 | 9 | Staff | ✅ PASS – Duyệt → `access_until` ≈ now + 1 tháng; gia hạn khi còn hạn → cộng dồn; hạn cũ đặt về quá khứ rồi gia hạn → tính từ lúc duyệt; 2 lần duyệt đồng thời không cộng sai | US-12.03, BR-80 |
 | TC-77 | 9 | Bệnh nhân | ✅ PASS – Đơn chờ thứ 2 cùng chương trình bị chặn (UI + unique index); đã approved vẫn gửi được đơn gia hạn | BR-84 |
 | TC-78 | 9 | Bệnh nhân | ✅ PASS – Hết hạn (sửa `access_until` về quá khứ): "Đã hết hạn", tiến độ còn, video không phát, nút Gia hạn chọn sẵn chương trình | US-12.04, US-12.05, BR-85 |
-| TC-79 | 10 | Admin | Tạo khung 3 buổi × 6 bài; sao chép buổi; bài không có video lưu được; link sai bị chặn; cảnh báo thiếu buổi / thiếu video | US-13.01, US-13.02 |
-| TC-80 | 10 | Bệnh nhân | Tick 6 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → Buổi 2 mở; trước đó Buổi 2 🔒 và insert tiến độ Buổi 2 qua API bị RLS chặn | US-13.03, US-13.04, BR-89 |
-| TC-81 | 10 | Bệnh nhân | Gói 1 buổi (sửa `sessions = 1` cho test) → Buổi 2 🔒 "Gia hạn để mở"; % = 6/6 · 100% | BR-83, BR-91 |
-| TC-82 | 10 | Bệnh nhân | Bỏ tick 1 bài Buổi 1 (xác nhận) → Buổi 2 khóa lại; tick lại → mở | BR-90 |
-| TC-83 | 10 | Bệnh nhân | "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi X – Bài Y" mở đúng bài | US-13.05, US-13.06 |
-| TC-84 | 10 | Staff | Xem trước mọi buổi, không có ô tick | US-13.07 |
+| TC-79 | 10 | Admin | ✍️ Tạo khung 3 buổi × 6 bài; sao chép buổi; bài không có video lưu được; link sai bị chặn; cảnh báo thiếu buổi / thiếu video | US-13.01, US-13.02 |
+| TC-80 | 10 | Bệnh nhân | ✍️ Tick 6 bài Buổi 1 bằng "Hoàn thành & bài tiếp theo" → Buổi 2 mở; trước đó Buổi 2 🔒 và insert tiến độ Buổi 2 qua API bị RLS chặn | US-13.03, US-13.04, BR-89 |
+| TC-81 | 10 | Bệnh nhân | ✍️ Gói 1 buổi (sửa `sessions = 1` cho test) → Buổi 2 🔒 "Gia hạn để mở"; % = 6/6 · 100% | BR-83, BR-91 |
+| TC-82 | 10 | Bệnh nhân | ✍️ Bỏ tick 1 bài Buổi 1 (xác nhận) → Buổi 2 khóa lại; tick lại → mở | BR-90 |
+| TC-83 | 10 | Bệnh nhân | ✍️ "Khóa học của tôi": thanh tiến độ, "Tiếp tục Buổi X – Bài Y" mở đúng bài | US-13.05, US-13.06 |
+| TC-84 | 10 | Staff | ✍️ Xem trước mọi buổi, không có ô tick | US-13.07 |
 | TC-85 | 11 | Staff | Tạo bệnh nhân (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện một lần; `source = zalo`, đơn `approved` `source = staff`, người xử lý = staff, lịch sử `new → approved`, hạn đúng | US-14.01, BR-94 → BR-97 |
 | TC-86 | 11 | Bệnh nhân | Đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi; "Để sau" vào học được; đổi mật khẩu → hộp không còn, đăng nhập bằng mật khẩu mới | US-14.02, BR-96 |
 | TC-87 | 11 | Staff | SĐT trùng bị báo; cấp gia hạn cho bệnh nhân có sẵn (cộng dồn); cấp lại mật khẩu → mật khẩu cũ hết hiệu lực, `account_events` ghi; không có nút với tài khoản admin | US-14.03, US-14.04, BR-99 |
@@ -166,6 +166,8 @@ TC-55/TC-58 (ô chọn vai trò, tab "Nhân viên & Admin"), TC-56 (thông báo 
 
 Đợt 9 (phase "9c" của `e2e.mjs`, dùng chương trình + bệnh nhân riêng): TC-74 ↔ bước "[Admin] Tạo chương trình có học phí…", TC-75 ↔ "[Khách] Trang giới thiệu chọn gói 3 tháng…", TC-76 ↔ "[Nhân viên] Duyệt đơn gói 1 tháng…" + "[Bệnh nhân] Gia hạn gói 3 tháng…", TC-77 ↔ phần đơn chờ thứ 2 của bước gia hạn, TC-78 ↔ "[Bệnh nhân] Hết hạn…". Đã sửa TC-24/28 (thêm cột Gói, Hạn học).
 Kết quả Đợt 9 (27/09/2026): **78/78 PASS**. Lần chạy đầu đỏ ở TC-44 (xóa khóa B) – **lỗi thật RK-22**: trigger khóa `plan_id` làm hỏng `on delete set null` khi xóa chương trình có đơn; đã sửa trigger, chạy lại schema, PASS.
+
+Đợt 10 (phase "9d", chương trình 3 buổi × 2 bài, gói mở 2 buổi, bệnh nhân của phase 9c): TC-79 ↔ "[Admin] Tạo chương trình kèm khung…", TC-80 + TC-81 ↔ "[Bệnh nhân] Buổi mở lần lượt…" và phần cuối bước bỏ tick, TC-82 ↔ "[Bệnh nhân] Bỏ tick…", TC-83 ↔ "[Bệnh nhân] Checklist buổi 1…", TC-84 ↔ "[Nhân viên] Xem trước…".
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),

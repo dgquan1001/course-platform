@@ -373,6 +373,7 @@ Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đ�
 
 ## SCR-18 – Khóa học của tôi (sửa SCR-07)
 
+> ✅ Đợt 10: thẻ khóa có thanh tiến độ "x/y bài · z%" và nút "Tiếp tục Buổi X – Bài Y" (chưa tập thì "Vào học"); trang khóa có tiến độ, nút tiếp tục, nội dung theo buổi (🔒 + lý do).
 > ✅ Đợt 9: thẻ khóa có nhãn "Còn N ngày" (vàng khi ≤ 7 ngày), nút "Gia hạn" (chương trình có gói) và "Vào học"; mục riêng **"Gói đã hết hạn"** (nhãn đỏ, "Xem khóa học", "Gia hạn để tập tiếp"). Trang khóa khi hết hạn: "Gói tập đã hết hạn ngày …", đề cương không có video, nút gia hạn. Thanh tiến độ ở Đợt 10.
 
 ```text
@@ -391,6 +392,8 @@ Phiếu tham vấn của tôi: 27/09 · Mới │ 10/09 · Hoàn tất
 | Hoàn thành buổi cuối đã mua | Nhãn "Đã hoàn thành 12/12 buổi 🎉" + [Gửi phiếu tham vấn] + [Gia hạn] |
 
 ## SCR-19 – Trình học (thay SCR-09)
+
+> ✅ Đợt 10: đúng bố cục dưới; thanh nút cố định đáy trên điện thoại; khách ở khóa miễn phí thấy "Đăng nhập để lưu tiến độ". Nút "Phiếu tham vấn" ở Đợt 12. Điện thoại: cột nội dung nằm dưới video (chưa tách 2 tab).
 
 ```text
 ← Chương trình Vẹo ngực       ███████░░░ 18/72 · 25%          [📝 Phiếu tham vấn]
@@ -486,6 +489,8 @@ Form khóa thêm: Loại (Miễn phí / Chương trình / Premium), Nhóm (Vẹo
 Thẻ chương trình có bảng **Gói**: 1/3/6/12 tháng · giá · số buổi · Đang bán / Tắt · [Sửa] [Xóa].
 
 ## SCR-27 – Admin: Nội dung buổi – bài (thay SCR-13)
+
+> ✅ Đợt 10: tạo khung N × M, mỗi buổi: ↑ ↓, Sao chép buổi, Sửa / Xóa buổi (xác nhận), bài tập (Xem thử, Sửa có ô "Thuộc buổi", Xóa); cảnh báo "N bài chưa có video", "Gói X tháng cần Y buổi, hiện có Z"; khung bên phải: Thêm bài học, Thêm 1 buổi.
 ```text
 ← Tất cả khóa học   Chương trình Vẹo ngực   ⚠ 12 bài chưa có video · Gói 12 tháng cần 144 buổi, hiện có 36
 [+ Tạo thêm buổi: số buổi [12] × số bài [6] ]  [+ Thêm 1 buổi]

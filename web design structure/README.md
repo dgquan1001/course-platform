@@ -79,6 +79,7 @@ API, UI/UX, bảo mật, kiểm thử đến vận hành. Mục tiêu: người 
 | 26/09/2026 | 1.1 | Cập nhật theo bản sửa RV-01, RV-02, RV-05, RV-09, git init; bảng 46 test case E2E (PASS); risk case RK-01 → RK-10 | Claude (AI) |
 | 26/09/2026 | 1.2 | Xử lý RK-01, RK-03, RK-05 (chốt), RK-07, RK-09; thêm người xử lý đơn (`reviewed_by`); TC-47 → TC-54 | Claude (AI) |
 | 26/09/2026 | 1.3 | Đợt 3 – nhiều admin: RK-11 (không ghi đè), RK-12 + R-05 (lịch sử xử lý, lý do từ chối), RK-13 (cấp/gỡ quyền admin), RK-14; TC-55 → TC-58 | Claude (AI) |
+| 27/09/2026 | 2.4 | Đợt 10 – buổi → bài tập, khung N × M, quản lý buổi, trình học theo buổi, checklist tick, mở buổi lần lượt, % tiến độ; ADR-013 điều chỉnh (RLS theo dòng); roadmap §2.5 **checklist chi tiết theo đợt**; project-review RK-23 → RK-26; TC-79 → TC-84 | Claude (AI) |
 | 27/09/2026 | 2.3 | Đợt 9 – gói 1/3/6/12 tháng, chọn gói khi đăng ký, hạn học cộng dồn, gia hạn, "Gói đã hết hạn"; project-review §7.5 (review v0.2 Đợt 7 → 9, RK-16 → RK-21); TC-74 → TC-78, E2E 78/78 PASS; sửa RK-22 (trigger chặn xóa chương trình có đơn) | Claude (AI) |
 | 27/09/2026 | 2.2 | Đợt 8 – loại khóa (miễn phí / chương trình / premium), nhóm bệnh, ảnh bìa, trang chủ 3 nhóm, `/khoa-hoc/[id]`, khóa miễn phí công khai, khách quan tâm premium + `/admin/leads`, Chính sách bảo mật + đồng ý; TC-68 → TC-73, E2E 73/73 PASS | Claude (AI) |
 | 27/09/2026 | 2.1 | Đợt 7 – vai trò staff: schema (`is_staff`, policy staff, trigger chỉ admin đổi vai trò), `/admin/registrations`, ô chọn vai trò, menu theo quyền; TC-65 → TC-67, E2E 67/67 PASS | Claude (AI) |

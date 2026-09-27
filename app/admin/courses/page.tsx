@@ -37,7 +37,8 @@ export default async function AdminCoursesPage() {
       <section className="space-y-3">
         {courses?.map((c) => {
           const s = stats.get(c.id)
-          const brokenVideos = c.lessons.filter((l) => !isSupportedVideoUrl(l.video_url)).length
+          const brokenVideos = c.lessons.filter((l) => l.video_url && !isSupportedVideoUrl(l.video_url)).length
+          const missingVideos = c.lessons.filter((l) => !l.video_url).length
           const badge = kindBadge(c.kind, c.category)
           return (
             <div key={c.id} className="card p-4 sm:p-5">
@@ -60,6 +61,7 @@ export default async function AdminCoursesPage() {
                         <span className="flex items-center gap-1.5">
                           <BookIcon className="h-4 w-4" /> {c.lessons.length} bài học
                           {!!brokenVideos && <span className="font-semibold text-red-600">· {brokenVideos} bài lỗi link video</span>}
+                          {!!missingVideos && <span className="text-gold-700">· {missingVideos} bài chưa có video</span>}
                         </span>
                       )}
                       {c.kind === 'program' && (
@@ -77,7 +79,7 @@ export default async function AdminCoursesPage() {
                   </Link>
                   {c.kind !== 'premium' && (
                     <Link href={`/admin/courses/${c.id}`} className="btn-primary btn-sm">
-                      Quản lý bài học
+                      Quản lý buổi – bài
                     </Link>
                   )}
                   <ActionForm action={setCourseStatus.bind(null, c.id, c.status === 'published' ? 'draft' : 'published')}>
@@ -123,7 +125,7 @@ export default async function AdminCoursesPage() {
       <section className="card h-fit p-5 lg:sticky lg:top-20">
         <h2 className="mb-4 text-lg font-bold">Thêm khóa học mới</h2>
         <ActionForm action={createCourse} resetOnSuccess className="space-y-3">
-          <CourseFields />
+          <CourseFields isNew />
           <SubmitButton className="btn-primary w-full">Thêm khóa học</SubmitButton>
         </ActionForm>
       </section>

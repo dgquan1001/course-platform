@@ -172,9 +172,9 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | --- | --- | --- | --- | --- |
 | FR-120 | Khóa có loại `free` / `program` / `premium`, nhóm bệnh (vẹo lưng / vẹo ngực / không), đối tượng (mặc định bệnh nhân), ảnh bìa, mô tả ngắn, mô tả chi tiết, "Bạn sẽ đạt được" (danh sách) | M | 8 | ✅ |
 | FR-121 | Admin tải ảnh bìa (JPG/PNG/WEBP ≤ 2MB, nén ở trình duyệt) vào bucket công khai `course-covers` | M | 8 | ✅ |
-| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | 🟡 Đợt 8: 3 nhóm, lọc, ảnh bìa, nhãn · ✅ Đợt 9: "Từ …đ" theo gói rẻ nhất + danh sách gói; số buổi / tiến độ ở Đợt 10 |
-| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | 🟡 Đợt 8: trang, đề cương phẳng qua `course_outline` (không có link video), khung giá theo học phí khóa · ✅ Đợt 9: chọn gói (`PlanPicker`, mức tiết kiệm so với gói 1 tháng); đề cương theo buổi ở Đợt 10 |
-| FR-124 | Khóa miễn phí: ai cũng xem được video, không cần đăng nhập; đăng nhập thì lưu tiến độ | M | 8 | 🟡 Đợt 8: xem không cần đăng nhập; lưu tiến độ ở Đợt 10 |
+| FR-122 | Trang chủ: mục khóa học chia nhóm **Miễn phí** · **Chương trình phục hồi** (lọc vẹo lưng / vẹo ngực) · **Premium chuyên sâu**; thẻ khóa có ảnh bìa, loại, số buổi, giá "từ …đ/tháng" (chương trình), "Miễn phí", giá premium | M | 8 | ✅ Đợt 8: 3 nhóm, lọc, ảnh bìa, nhãn · Đợt 9: "Từ …đ" theo gói rẻ nhất + danh sách gói · Đợt 10: số buổi ở trang giới thiệu (nhãn "Đang học · %" trên thẻ trang chủ: để sau – trang chủ tĩnh) |
+| FR-123 | Trang giới thiệu khóa `/khoa-hoc/[courseId]` (công khai, kiểu Udemy): ảnh bìa, mô tả, "Bạn sẽ đạt được", **đề cương** (buổi → tên bài, thu gọn/mở rộng), bác sĩ hướng dẫn, khung giá bên phải (dính khi cuộn) có chọn gói và nút hành động | M | 8 | 🟡 Đợt 8: trang, đề cương phẳng qua `course_outline` (không có link video), khung giá theo học phí khóa · ✅ Đợt 9: chọn gói (`PlanPicker`, mức tiết kiệm so với gói 1 tháng) · ✅ Đợt 10: đề cương theo buổi (`SessionOutline`) |
+| FR-124 | Khóa miễn phí: ai cũng xem được video, không cần đăng nhập; đăng nhập thì lưu tiến độ | M | 8 | ✅ Đợt 8: xem không cần đăng nhập · Đợt 10: đăng nhập thì tick / lưu tiến độ, khách thấy "Đăng nhập để lưu tiến độ" |
 | FR-125 | Khóa premium: không có đề cương, không nhận đơn; nút "Liên hệ Zalo nhận ưu đãi" (xem §2.17) | M | 8 | ✅ |
 | FR-126 | Trang `/chinh-sach-bao-mat`; link ở footer và ở mọi ô đồng ý | M | 8 | ✅ |
 
@@ -196,23 +196,23 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-140 | Khi tạo khóa (hoặc trên trang nội dung), admin nhập **số buổi** và **số bài mỗi buổi** → hệ thống tạo khung "Buổi 1…N" × "Bài 1…M" (tối đa 200 buổi, 20 bài/buổi) | M | 10 | ⬜ |
-| FR-141 | Admin thêm / sửa / xóa / đổi thứ tự buổi; thêm / sửa / xóa bài trong buổi; "Sao chép buổi" (nhân bản tên, mô tả, link video các bài) | M | 10 | ⬜ |
-| FR-142 | Bài tập có tên, mô tả (hướng dẫn, số hiệp/số lần), link video YouTube/TikTok **không bắt buộc**; bài chưa có video được đánh dấu "Chưa có video" ở trang admin | M | 10 | ⬜ |
-| FR-143 | Trang admin nội dung hiển thị cảnh báo: số bài chưa có video, số buổi ít hơn số buổi của gói dài nhất | S | 10 | ⬜ |
+| FR-140 | Khi tạo khóa (hoặc trên trang nội dung), admin nhập **số buổi** và **số bài mỗi buổi** → hệ thống tạo khung "Buổi 1…N" × "Bài 1…M" (tối đa 200 buổi, 20 bài/buổi) | M | 10 | ✅ |
+| FR-141 | Admin thêm / sửa / xóa / đổi thứ tự buổi; thêm / sửa / xóa bài trong buổi; "Sao chép buổi" (nhân bản tên, mô tả, link video các bài) | M | 10 | ✅ |
+| FR-142 | Bài tập có tên, mô tả (hướng dẫn, số hiệp/số lần), link video YouTube/TikTok **không bắt buộc**; bài chưa có video được đánh dấu "Chưa có video" ở trang admin | M | 10 | ✅ |
+| FR-143 | Trang admin nội dung hiển thị cảnh báo: số bài chưa có video, số buổi ít hơn số buổi của gói dài nhất | S | 10 | ✅ |
 
 ### 2.15. Trình học, checklist & tiến độ (ADR-013)
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-150 | Trình học `/courses/[courseId]/[lessonId]` kiểu Udemy: video bên trái, cột **Nội dung khóa học** bên phải gồm các buổi thu gọn/mở rộng, mỗi bài có ô tick; trên điện thoại cột này nằm dưới video (tab "Nội dung") | M | 10 | ⬜ |
-| FR-151 | Checklist buổi = danh sách bài của buổi; bệnh nhân tick "Đã tập" từng bài (bỏ tick được); tick bài hiện tại tự chuyển sang bài tiếp theo | M | 10 | ⬜ |
-| FR-152 | Buổi mở lần lượt: buổi k+1 mở khi tick đủ mọi bài của buổi k; buổi bị khóa hiện 🔒 và lý do ("Hoàn thành Buổi k để mở", "Gia hạn để mở"); áp dụng ở database | M | 10 | ⬜ |
-| FR-153 | Thanh tiến độ nhỏ: "Đã hoàn thành 18/72 bài · 25%" ở trình học, trang khóa, thẻ khóa trong "Khóa học của tôi" | M | 10 | ⬜ |
-| FR-154 | Nút hành động nổi bật: "Tiếp tục Buổi X – Bài Y" (thẻ khóa, trang khóa), "Hoàn thành & bài tiếp theo" (trình học), "Bắt đầu Buổi X+1" khi xong buổi | M | 10 | ⬜ |
+| FR-150 | Trình học `/courses/[courseId]/[lessonId]` kiểu Udemy: video bên trái, cột **Nội dung khóa học** bên phải gồm các buổi thu gọn/mở rộng, mỗi bài có ô tick; trên điện thoại cột này nằm dưới video (tab "Nội dung") | M | 10 | ✅ |
+| FR-151 | Checklist buổi = danh sách bài của buổi; bệnh nhân tick "Đã tập" từng bài (bỏ tick được); tick bài hiện tại tự chuyển sang bài tiếp theo | M | 10 | ✅ |
+| FR-152 | Buổi mở lần lượt: buổi k+1 mở khi tick đủ mọi bài của buổi k; buổi bị khóa hiện 🔒 và lý do ("Hoàn thành Buổi k để mở", "Gia hạn để mở"); áp dụng ở database | M | 10 | ✅ |
+| FR-153 | Thanh tiến độ nhỏ: "Đã hoàn thành 18/72 bài · 25%" ở trình học, trang khóa, thẻ khóa trong "Khóa học của tôi" | M | 10 | ✅ |
+| FR-154 | Nút hành động nổi bật: "Tiếp tục Buổi X – Bài Y" (thẻ khóa, trang khóa), "Hoàn thành & bài tiếp theo" (trình học), "Bắt đầu Buổi X+1" khi xong buổi | M | 10 | ✅ |
 | FR-155 | Hoàn thành buổi cuối đã mua: thẻ chúc mừng + nút "Gửi phiếu tham vấn bác sĩ" + "Gia hạn để tập tiếp" | M | 12 | ⬜ |
-| FR-156 | Staff/admin xem trước mọi buổi (không bị khóa, không ghi tiến độ) | S | 10 | ⬜ |
-| FR-157 | Video chỉ lấy qua hàm kiểm quyền `get_lesson_video`; đề cương công khai không chứa link video | M | 10 | ⬜ |
+| FR-156 | Staff/admin xem trước mọi buổi (không bị khóa, không ghi tiến độ) | S | 10 | ✅ |
+| FR-157 | Video chỉ đọc được khi `can_view_lesson` đúng (Đợt 10: RLS theo dòng trên `lessons` thay cho RPC `get_lesson_video`, xem ADR-013 §Điều chỉnh); đề cương công khai không chứa link video | M | 10 | ✅ |
 
 ### 2.16. Nhân viên tạo tài khoản & cấp gói (luồng Zalo, ADR-014)
 
@@ -262,6 +262,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-023, FR-025 | ✅ Thêm ô đồng ý (Đợt 8) và chọn gói (Đợt 9) | 8, 9 |
 | FR-032 | ✅ Chặn khi có đơn **chờ duyệt**; đã sở hữu thì được gia hạn | 9 |
 | FR-061 | ✅ Staff/admin thấy mọi khóa ở "Khóa học của tôi" (xem trước) – làm sớm ở Đợt 7 | 7 |
+| FR-063, FR-064, FR-066 | ✅ Đợt 10: trang khóa + trình học theo buổi, quyền theo `can_view_lesson` | 10 |
 | FR-063, FR-064 | Thay bằng FR-150 → FR-154 | 10 |
 | FR-066 | Quyền xem theo `can_view_lesson` (hạn học + mở tuần tự + khóa miễn phí) | 10 |
 | FR-070 → FR-079 | ✅ Đợt 7: chuyển sang `/admin/registrations`; staff được thao tác. `/admin` thành Tổng quan ở Đợt 13 | 7, 13 |

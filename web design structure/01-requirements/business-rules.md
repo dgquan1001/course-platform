@@ -97,7 +97,7 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
 | BR-74 | ✅ Khóa có 1 trong 3 loại: `free`, `program`, `premium`. Đổi loại khi đã có đơn đăng ký bị chặn | — | `courses_kind_check`, `readCourse`, `updateCourse` ("Không đổi được loại khóa khi khóa đã có đơn đăng ký.") |
-| BR-75 | ✅ Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | RLS `lessons_select` (`is_free_course()`), trang `/courses/[id]/**` (khách vào khóa khác → đăng nhập), `registerAction` (`kind = 'program'`); Đợt 10: `can_view_lesson` |
+| BR-75 | ✅ Khóa `free` đang hiển thị: ai cũng xem đề cương và video, không cần đăng nhập, không khóa tuần tự, không nhận đơn | BR-40 | RLS `lessons_select` (`is_free_course()`), trang `/courses/[id]/**` (khách vào khóa khác → đăng nhập), `registerAction` (`kind = 'program'`); ✅ Đợt 10: `can_view_lesson` |
 | BR-76 | ✅ Khóa `premium`: không có buổi/bài, không có gói, không nhận đơn; hiển thị ảnh bìa, thông tin, giá (`courses.price`, `0` = "Liên hệ") và nút liên hệ Zalo | — | Trang chủ, `/khoa-hoc/[id]`, `course_outline` (bỏ premium), `registerAction`, `/courses/[id]` chuyển về trang giới thiệu |
 | BR-77 | ✅ Khóa `program` bán theo gói `months ∈ {1,3,6,12}`, mỗi chương trình tối đa 1 gói cho mỗi số tháng, giá riêng từng chương trình (0 – 1 tỷ), `sessions` = số buổi được mở, mặc định `12 × months` (1 – 500) | BR-21 | `course_plans` (unique `(course_id, months)`, `check`), `createPlan` / `updatePlan` / `deletePlan`; tạo chương trình có học phí → tự có gói 1 tháng (12 buổi) |
 | BR-78 | ✅ Chỉ nhận đơn cho chương trình đang hiển thị và gói đang bán; server tính lại giá theo gói, không tin client | BR-20 | `registerAction` |
@@ -110,22 +110,22 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | BR-80 | ✅ Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng bệnh nhân + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
 | BR-81 | ✅ Thu hồi (approved → rejected) xóa `access_starts_at/access_until` của đơn đó; không dời các đơn khác (có thể tạo khoảng trống – staff xử lý tay) | BR-42 | Trigger |
 | BR-82 | ✅ Bệnh nhân có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
-| BR-83 | ✅ (hàm có sẵn, dùng ở Đợt 10) Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
+| BR-83 | ✅ Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
 | BR-84 | ✅ Mỗi bệnh nhân chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
-| BR-85 | ✅ Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `has_course_access()` (RLS bài học), "Khóa học của tôi" (mục "Gói đã hết hạn"), `/courses/[id]` (đề cương + "Gia hạn để tập tiếp"); Đợt 10: `can_view_lesson` |
+| BR-85 | ✅ Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `has_course_access()` (RLS bài học), "Khóa học của tôi" (mục "Gói đã hết hạn"), `/courses/[id]` (đề cương + "Gia hạn để tập tiếp"); ✅ Đợt 10: `can_view_lesson` |
 
 ### Buổi, bài tập & tiến độ (ADR-013)
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-86 | Chương trình gồm các **buổi** theo `sort_order`; mỗi buổi gồm các **bài tập** theo `sort_order`. Tạo khung nhanh: 1 – 200 buổi × 1 – 20 bài/buổi | BR-22 | `course_sessions`, `generateSkeleton` |
-| BR-87 | Link video không bắt buộc; nếu có phải hợp lệ như BR-24. Bài chưa có video: bệnh nhân thấy "Video đang được cập nhật" và vẫn tick được | BR-24 | `readLesson`, trình học |
-| BR-88 | Checklist buổi dùng **mẫu chung**: mỗi bài tập là 1 mục "Đã tập"; bệnh nhân tick / bỏ tick bài của mình | — | `lesson_progress`, RLS |
-| BR-89 | Buổi thứ k (k ≥ 2) của chương trình mở khi: còn hạn **và** k ≤ số buổi đã mua **và** mọi bài của buổi k-1 đã tick. Buổi không có bài nào coi như đã hoàn thành | — | `can_view_lesson()` (database) |
-| BR-90 | Chỉ tick được bài đang xem được (không tick trước buổi bị khóa); đã hết hạn thì không tick / bỏ tick được nhưng không mất tick cũ. Luật mở buổi luôn tính theo **trạng thái tick hiện tại**: bỏ tick 1 bài của buổi trước thì buổi sau khóa lại cho tới khi tick lại (giao diện hỏi xác nhận trước khi bỏ tick) | — | RLS `lesson_progress` |
-| BR-91 | Tiến độ % = số bài đã tick / tổng bài trong các buổi đã mua (khóa miễn phí: toàn khóa), làm tròn xuống; hiển thị "x/y bài · z%" | — | `course_progress()` |
-| BR-92 | Staff, admin xem mọi bài không bị khóa, không ghi tiến độ | BR-41 | `can_view_lesson()` |
-| BR-93 | Link video chỉ trả về qua `get_lesson_video(lesson_id)` khi `can_view_lesson` đúng; đề cương công khai không chứa link | BR-40 | Column privilege + RPC |
+| BR-86 | ✅ Chương trình gồm các **buổi** theo `sort_order`; mỗi buổi gồm các **bài tập** theo `sort_order`. Tạo khung nhanh: 1 – 200 buổi × 1 – 20 bài/buổi | BR-22 | `course_sessions`, `generateSkeleton` |
+| BR-87 | ✅ Link video không bắt buộc; nếu có phải hợp lệ như BR-24. Bài chưa có video: bệnh nhân thấy "Video đang được cập nhật" và vẫn tick được | BR-24 | `readLesson`, trình học |
+| BR-88 | ✅ Checklist buổi dùng **mẫu chung**: mỗi bài tập là 1 mục "Đã tập"; bệnh nhân tick / bỏ tick bài của mình | — | `lesson_progress`, RLS |
+| BR-89 | ✅ Buổi thứ k (k ≥ 2) của chương trình mở khi: còn hạn **và** k ≤ số buổi đã mua **và** mọi bài của buổi k-1 đã tick. Buổi không có bài nào coi như đã hoàn thành | — | `can_view_lesson()` (database) |
+| BR-90 | ✅ Chỉ tick được bài đang xem được (không tick trước buổi bị khóa); đã hết hạn thì không tick / bỏ tick được nhưng không mất tick cũ. Luật mở buổi luôn tính theo **trạng thái tick hiện tại**: bỏ tick 1 bài của buổi trước thì buổi sau khóa lại cho tới khi tick lại (giao diện hỏi xác nhận trước khi bỏ tick) | — | RLS `lesson_progress` |
+| BR-91 | ✅ Tiến độ % = số bài đã tick / tổng bài trong các buổi đã mua (khóa miễn phí: toàn khóa), làm tròn xuống; hiển thị "x/y bài · z%" | — | `course_progress()` |
+| BR-92 | ✅ Staff, admin xem mọi bài không bị khóa, không ghi tiến độ | BR-41 | `can_view_lesson()` |
+| BR-93 | ✅ Link video chỉ đọc được khi `can_view_lesson` đúng; đề cương công khai không chứa link | BR-40 | Đợt 10: RLS `lessons_select using (can_view_lesson(id))` + RPC `course_outline` (thay cho column privilege + `get_lesson_video`, ADR-013 §Điều chỉnh) |
 
 ### Tài khoản do nhân viên tạo (ADR-014)
 

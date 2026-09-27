@@ -63,6 +63,8 @@ const FREE_LESSON_TITLE = 'Bài 1: Thở cơ hoành'
 // v0.2 – Đợt 9: chương trình bán theo gói tháng, bệnh nhân gia hạn (không có email)
 const COURSE_PLAN = { title: `[E2E] Chương trình gói tháng ${stamp}`, price: '300000', status: 'published', category: 'veo_lung' }
 const PLAN3_PRICE = 800000
+// v0.2 – Đợt 10: chương trình tạo kèm khung 3 buổi × 2 bài, gói 1 tháng chỉ mở 2 buổi
+const COURSE_SEQ = { title: `[E2E] Chương trình buổi tập ${stamp}`, price: '250000', status: 'published', category: 'veo_nguc', sessions: '3', lessonsPerSession: '2' }
 const RENEW = { phone: `03${tail}`, password: 'Giahan#123', name: 'Bệnh Nhân Gia Hạn' }
 // Cộng số tháng theo lịch (giống make_interval(months => n) của Postgres)
 const addMonths = (iso, n) => {
@@ -192,6 +194,10 @@ async function createCourseViaUI(page, course) {
   if (course.category) await form.locator('[name=category]').selectOption(course.category)
   if (course.summary) await form.locator('[name=summary]').fill(course.summary)
   if (course.outcomes) await form.locator('[name=outcomes]').fill(course.outcomes)
+  if (course.sessions) {
+    await form.locator('[name=session_count]').fill(course.sessions)
+    await form.locator('[name=lessons_per_session]').fill(course.lessonsPerSession)
+  }
   if (course.cover) {
     await form.locator('[name=cover]').setInputFiles(LARGE_IMAGE)
     await form.getByTestId('cover-size').waitFor({ timeout: 20000 })
@@ -366,6 +372,11 @@ try {
     assert(!plansError, `Thiếu bảng course_plans: ${plansError?.message} (hãy chạy lại supabase/schema.sql)`)
     const { error: accessError } = await db.from('registrations').select('plan_id, plan_months, plan_sessions, source, payment_method, access_until', { head: true })
     assert(!accessError, `Bảng registrations thiếu cột gói / hạn học: ${accessError?.message}`)
+    // v0.2 – Đợt 10: buổi tập, tiến độ
+    for (const t of ['course_sessions', 'lesson_progress']) {
+      const { error: tableError } = await db.from(t).select('*', { head: true })
+      assert(!tableError, `Thiếu bảng ${t}: ${tableError?.message} (hãy chạy lại supabase/schema.sql)`)
+    }
     const { error: staffFnError } = await db.rpc('is_staff')
     assert(!staffFnError, `Thiếu hàm is_staff: ${staffFnError?.message} (hãy chạy lại supabase/schema.sql)`)
   })
@@ -556,7 +567,7 @@ try {
     // Khóa premium không có trang quản lý bài học
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
     await card.getByText('không có bài học').waitFor()
-    assert((await card.getByRole('link', { name: 'Quản lý bài học' }).count()) === 0, 'Khóa premium vẫn có nút Quản lý bài học')
+    assert((await card.getByRole('link', { name: 'Quản lý buổi – bài' }).count()) === 0, 'Khóa premium vẫn có nút Quản lý bài học')
 
     await admin.goto(`${BASE}/admin/courses/${created.courseIds.free}`)
     const form = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm bài học' }) })
@@ -1614,6 +1625,153 @@ try {
     assert(sessions === 12 + 36 + 12, `Số buổi đã mua: ${sessions}`)
     const { data: again } = await session.from('lessons').select('id').eq('course_id', created.courseIds.plan)
     assert(again?.length === 1, 'Gia hạn xong vẫn không xem được bài')
+  })
+
+  // =====================================================================
+  phase('9d. BUỔI – BÀI TẬP, CHECKLIST & TIẾN ĐỘ (v0.2, Đợt 10)')
+  // =====================================================================
+  const seq = {}
+  // Buổi / bài của chương trình theo thứ tự hiển thị
+  const loadSeq = async () => {
+    const { data: sessions } = await db.from('course_sessions').select('id, title, sort_order').eq('course_id', created.courseIds.seq).order('sort_order').order('created_at')
+    const { data: lessons } = await db.from('lessons').select('id, title, session_id, sort_order, video_url').eq('course_id', created.courseIds.seq).order('sort_order')
+    seq.sessions = sessions
+    seq.lesson = (i, j) => lessons.filter((l) => l.session_id === sessions[i].id)[j]
+    return { sessions, lessons }
+  }
+  const seqLessonUrl = (i, j) => `${BASE}/courses/${created.courseIds.seq}/${seq.lesson(i, j).id}`
+
+  await step('[Admin] Tạo chương trình kèm khung 3 buổi × 2 bài; sao chép / xóa / đổi thứ tự buổi; thêm video cho bài; cảnh báo bài chưa có video', async () => {
+    created.courseIds.seq = await createCourseViaUI(admin, COURSE_SEQ)
+    let { sessions, lessons } = await loadSeq()
+    assert(
+      sessions.map((x) => x.title).join(',') === 'Buổi 1,Buổi 2,Buổi 3' && lessons.length === 6 && lessons.every((l) => !l.video_url),
+      `Khung buổi tập sai: ${JSON.stringify({ sessions, lessons: lessons.length })}`
+    )
+    await admin.goto(`${BASE}/admin/courses/${created.courseIds.seq}`)
+    await admin.getByText('6 bài chưa có video').waitFor()
+    const block = (title) => admin.getByTestId('admin-session').filter({ has: admin.getByRole('heading', { name: new RegExp(`^${title} `) }) })
+
+    // Sao chép Buổi 1 → Buổi 4 (2 bài), rồi xóa Buổi 4 (có xác nhận)
+    await block('Buổi 1').getByRole('button', { name: 'Sao chép buổi' }).click()
+    await toast(admin, 'Đã sao chép buổi')
+    await block('Buổi 4').waitFor()
+    await block('Buổi 4').locator('summary', { hasText: 'Sửa buổi' }).click()
+    admin.once('dialog', (d) => d.accept())
+    await block('Buổi 4').getByRole('button', { name: 'Xóa buổi' }).click()
+    await toast(admin, 'Đã xóa buổi')
+    await block('Buổi 4').waitFor({ state: 'detached' })
+
+    // Đổi thứ tự: Buổi 1 xuống dưới Buổi 2, rồi đưa lại lên đầu
+    await block('Buổi 1').getByRole('button', { name: '↓' }).click()
+    await toast(admin, 'Đã đổi thứ tự buổi')
+    ;({ sessions } = await loadSeq())
+    assert(sessions.map((x) => x.title).join(',') === 'Buổi 2,Buổi 1,Buổi 3', `Đổi thứ tự sai: ${sessions.map((x) => x.title)}`)
+    await block('Buổi 1').getByRole('button', { name: '↑' }).click()
+    // Toast lần trước có thể còn hiện: chờ database đổi thứ tự
+    for (let i = 0; i < 40; i++) {
+      ;({ sessions, lessons } = await loadSeq())
+      if (sessions[0].title === 'Buổi 1') break
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    assert(sessions.map((x) => x.title).join(',') === 'Buổi 1,Buổi 2,Buổi 3' && lessons.length === 6, `Thứ tự sau khi đổi lại: ${sessions.map((x) => x.title)}`)
+
+    // Thêm video cho Buổi 1 – Bài 1
+    const lessonCard = block('Buổi 1').locator('.card').first()
+    await lessonCard.locator('summary', { hasText: 'Sửa bài học' }).click()
+    await lessonCard.locator('[name=title]').fill('Bài 1: Thở cơ hoành')
+    await lessonCard.locator('[name=video_url]').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    await lessonCard.getByRole('button', { name: 'Lưu thay đổi' }).click()
+    await toast(admin, 'Đã lưu bài học')
+    await admin.getByText('5 bài chưa có video').waitFor()
+    await loadSeq()
+
+    // Gói 1 tháng của chương trình chỉ mở 2 buổi (buổi 3 cần gia hạn)
+    await db.from('course_plans').update({ sessions: 2 }).eq('course_id', created.courseIds.seq).eq('months', 1)
+  })
+
+  await step('[Bệnh nhân] Buổi mở lần lượt: buổi 2 khóa tới khi tick đủ buổi 1, buổi 3 vượt số buổi đã mua; database chặn tick trước (RLS)', async () => {
+    const plan = (await db.from('course_plans').select('id').eq('course_id', created.courseIds.seq).single()).data
+    const id = await insertRegistration({
+      user_id: RENEW.id, course_id: created.courseIds.seq, full_name: RENEW.name, phone: RENEW.phone,
+      plan_id: plan.id, plan_months: 1, plan_sessions: 2, amount: 250000,
+    })
+    const { error } = await STAFF.session.from('registrations').update({ status: 'approved' }).eq('id', id)
+    assert(!error, error?.message)
+
+    await patient.goto(`${BASE}/courses/${created.courseIds.seq}`)
+    await patient.getByTestId('progress-text').filter({ hasText: '0/4 bài · 0%' }).waitFor()
+    await patient.getByText('Hoàn thành Buổi 1 để mở').first().waitFor()
+    await patient.getByText('Gia hạn để mở buổi này').first().waitFor()
+
+    RENEW.session = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+    await RENEW.session.auth.signInWithPassword({ email: `${RENEW.phone}@sdt.hv.invalid`, password: RENEW.password })
+    const { error: early } = await RENEW.session.from('lesson_progress').insert({ user_id: RENEW.id, lesson_id: seq.lesson(1, 0).id, course_id: created.courseIds.seq })
+    assert(early, 'Database cho tick bài của buổi chưa mở!')
+    const { data: lockedLesson } = await RENEW.session.from('lessons').select('video_url').eq('id', seq.lesson(1, 0).id)
+    assert(!lockedLesson?.length, 'Đọc được link video của buổi chưa mở!')
+
+    await patient.goto(seqLessonUrl(1, 0))
+    await patient.getByText('Hoàn thành Buổi 1 để mở').first().waitFor()
+    assert((await patient.locator('iframe').count()) === 0, 'Buổi chưa mở vẫn phát video')
+  })
+
+  await step('[Bệnh nhân] Checklist buổi 1: "Hoàn thành & bài tiếp theo" tick bài và chuyển bài; xong buổi 1 thì buổi 2 mở; "Khóa học của tôi" hiện tiến độ + "Tiếp tục Buổi 2 – Bài 1"', async () => {
+    await patient.goto(`${BASE}/courses/${created.courseIds.seq}`)
+    await patient.getByRole('link', { name: 'Bắt đầu học' }).click()
+    await patient.getByRole('heading', { level: 1, name: 'Bài 1: Thở cơ hoành' }).waitFor()
+    await patient.locator('iframe[src*="youtube.com/embed/"]').waitFor({ state: 'attached' })
+    await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
+    await patient.waitForURL(seqLessonUrl(0, 1))
+    await toast(patient, 'Đã hoàn thành bài tập')
+    await patient.getByText('Video bài học đang được cập nhật').waitFor()
+    await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
+    // Tick xong bài cuối buổi 1 → buổi 2 mở → chuyển thẳng sang Buổi 2 – Bài 1
+    await patient.waitForURL(seqLessonUrl(1, 0))
+    await patient.getByTestId('progress-text').filter({ hasText: '2/4 bài · 50%' }).waitFor()
+    await patient.getByText('Buổi 2 · Bài 1/2').waitFor()
+
+    await patient.goto(`${BASE}/courses`)
+    const tile = patient.locator('.card', { has: patient.getByRole('heading', { name: COURSE_SEQ.title }) })
+    await tile.getByTestId('progress-text').filter({ hasText: '2/4 bài · 50%' }).waitFor()
+    await tile.getByRole('link', { name: /Tiếp tục Buổi 2 – Bài 1/ }).waitFor()
+    const { count } = await db.from('lesson_progress').select('lesson_id', { count: 'exact', head: true }).eq('user_id', RENEW.id).eq('course_id', created.courseIds.seq)
+    assert(count === 2, `Số bài đã tick: ${count}`)
+  })
+
+  await step('[Bệnh nhân] Bỏ tick 1 bài buổi 1 (có xác nhận) → buổi 2 khóa lại; tick lại → mở; xong buổi đã mua → chúc mừng, buổi 3 vẫn khóa "Gia hạn"', async () => {
+    await patient.goto(seqLessonUrl(0, 1))
+    let dialogText = ''
+    patient.once('dialog', (d) => { dialogText = d.message(); d.accept() })
+    await patient.getByRole('button', { name: 'Bỏ đánh dấu' }).click()
+    await toast(patient, 'Đã bỏ đánh dấu')
+    assert(dialogText.includes('Buổi sau có thể bị khóa lại'), `Hộp xác nhận: ${dialogText}`)
+    await patient.goto(seqLessonUrl(1, 0))
+    await patient.getByText('Hoàn thành Buổi 1 để mở').first().waitFor()
+
+    await patient.goto(seqLessonUrl(0, 1))
+    await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
+    await patient.waitForURL(seqLessonUrl(1, 0))
+    await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
+    await patient.waitForURL(seqLessonUrl(1, 1))
+    // Bài cuối của buổi cuối đã mua: buổi 3 chưa mở → ở lại, hiện chúc mừng
+    await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
+    await patient.waitForURL(/finished=1/)
+    await patient.getByText('Chúc mừng! Bạn đã hoàn thành các buổi tập đã mở').waitFor()
+    await patient.getByTestId('progress-text').filter({ hasText: '4/4 bài · 100%' }).waitFor()
+    await patient.goto(seqLessonUrl(2, 0))
+    await patient.getByText('Gia hạn để mở buổi này').first().waitFor()
+    const { error } = await RENEW.session.from('lesson_progress').insert({ user_id: RENEW.id, lesson_id: seq.lesson(2, 0).id, course_id: created.courseIds.seq })
+    assert(error, 'Database cho tick bài vượt số buổi đã mua!')
+  })
+
+  await step('[Nhân viên] Xem trước mọi buổi (kể cả buổi bệnh nhân chưa mở), không có nút tick, không ghi tiến độ', async () => {
+    await staff.goto(seqLessonUrl(2, 1))
+    await staff.getByText('Chế độ xem trước').waitFor()
+    await staff.getByText('Video bài học đang được cập nhật').waitFor()
+    assert((await staff.getByRole('button', { name: /Hoàn thành/ }).count()) === 0, 'Nhân viên có nút tick')
+    const { count } = await db.from('lesson_progress').select('lesson_id', { count: 'exact', head: true }).eq('user_id', STAFF.id)
+    assert(count === 0, 'Nhân viên có tiến độ')
   })
 
   // =====================================================================

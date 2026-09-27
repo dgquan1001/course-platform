@@ -18,7 +18,7 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | `/account` | Đăng nhập | — | Động | Tài khoản của tôi |
 | `/courses` | Đăng nhập | `?registered=1` | Động | Khóa học của tôi |
 | `/courses/[courseId]` | Khóa miễn phí: công khai; khóa khác: đăng nhập (trang tự chuyển `/login?next=`) | `courseId: uuid` | Động | Chi tiết khóa; 404 nếu không đọc được khóa; khóa premium → `/khoa-hoc/[id]` |
-| `/courses/[courseId]/[lessonId]` | Như trên + quyền khóa | `courseId, lessonId: uuid` | Động | Xem bài học |
+| `/courses/[courseId]/[lessonId]` | Như trên + quyền khóa | `courseId, lessonId: uuid`; `?finished=1` (thẻ chúc mừng) | Động | Trình học theo buổi (Đợt 10): bài bị khóa hiện lý do, nút "Hoàn thành & bài tiếp theo" / "Bỏ đánh dấu" |
 | `/khoa-hoc/[courseId]` | Công khai | `courseId: uuid` | ISR 300s | Trang giới thiệu khóa (Đợt 8): đề cương qua RPC `course_outline`, khóa premium có hộp liên hệ Zalo |
 | `/chinh-sach-bao-mat` | Công khai | — | Tĩnh | Chính sách bảo mật (Đợt 8) |
 | `/admin/leads` | Nhân viên, admin | `?status=new\|contacted\|converted\|closed` | Động | Khách quan tâm premium (Đợt 8) |
@@ -144,7 +144,7 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | Action | Tham số (bind) | FormData | Ghi DB | Thông báo thành công |
 | --- | --- | --- | --- | --- |
 | `setRegistrationStatus` | `registrationId` (UUID), `status` ∈ pending/approved/rejected, `expected` = trạng thái admin đang thấy (khác `status`) | `note` (lý do, ≤ 500 ký tự, chỉ dùng khi từ chối/thu hồi) | `registrations.status`, `review_note`, điều kiện `status = expected` (0 dòng → "Đơn đã thay đổi (có thể người khác vừa xử lý), vui lòng tải lại trang."). Quyền: nhân viên hoặc admin; trigger `registrations_stamp_review` ghi `reviewed_at`, `reviewed_by`, `reviewed_by_name` (xóa nếu pending) và 1 dòng `registration_events`. Duyệt chỉ áp dụng khi `course_id is not null` và `user_id is not null` (khóa/tài khoản chưa bị xóa); khóa đang ẩn vẫn duyệt được (BR-39). Lỗi `23505` (học viên đã có đơn khác đang hiệu lực) → "Học viên đã có một đơn khác đang chờ duyệt hoặc đã được duyệt cho khóa này." | "Đã duyệt đơn, khóa học đã được mở cho học viên." / "Đã cập nhật đơn sang trạng thái Từ chối." / "Đã chuyển đơn về trạng thái Chờ duyệt." |
-| `createCourse` | — | (Đợt 9: chương trình có `price` > 0 → tự tạo gói 1 tháng) `title, description, price, sort_order, status`, `kind`, `category`, `summary`, `outcomes` (mỗi dòng 1 ý), `cover` (file) | Tải ảnh bìa lên `course-covers` (server client, RLS admin) rồi insert `courses`; lỗi thì xóa ảnh vừa tải | `Đã thêm khóa học "<title>".` |
+| `createCourse` | — | (Đợt 9: chương trình có `price` > 0 → tự tạo gói 1 tháng; Đợt 10: `session_count` × `lessons_per_session` → tạo khung buổi) `title, description, price, sort_order, status`, `kind`, `category`, `summary`, `outcomes` (mỗi dòng 1 ý), `cover` (file) | Tải ảnh bìa lên `course-covers` (server client, RLS admin) rồi insert `courses`; lỗi thì xóa ảnh vừa tải | `Đã thêm khóa học "<title>".` |
 | `updateCourse` | `courseId` | như trên + `remove_cover` | Chặn đổi loại khóa khi đã có đơn; thay ảnh bìa (xóa file cũ) | "Đã lưu thông tin khóa học." |
 | `createPlan` | `courseId` | `months` ∈ 1/3/6/12, `price`, `sessions` (trống = 12 × tháng) | insert `course_plans`; `23505` → "Chương trình đã có gói N tháng, hãy sửa gói đó." (Đợt 9) | `Đã thêm gói N tháng.` |
 | `updatePlan` | `planId`, `months` | `price`, `sessions`, `active` (checkbox) | update `course_plans` | `Đã lưu gói N tháng.` |
@@ -153,7 +153,11 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
 | `setUserRole` | `userId` (UUID, khác chính mình) | `role` ∈ user/staff/admin ("Vai trò không hợp lệ.") | update `profiles.role` (chỉ admin); trigger `profiles_guard_role` chặn người không phải admin, tự gỡ quyền, gỡ admin cuối cùng ("Chỉ admin được thay đổi vai trò tài khoản." / "Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã chuyển vai trò thành Nhân viên." / "Đã chuyển vai trò thành Học viên." |
-| `createLesson` | `courseId` | `title, video_url, description, sort_order` | insert `lessons` | `Đã thêm bài học "<title>".` |
+| `createLesson` | `courseId` | `title, video_url` (không bắt buộc từ Đợt 10), `description, sort_order`, `session_id` (trống = buổi cuối; chưa có buổi → tạo "Buổi 1") | insert `lessons` | `Đã thêm bài học "<title>".` |
+| `generateSkeleton` | `courseId` | `session_count` 1–200, `lessons_per_session` 1–20 | tạo "Buổi k" nối tiếp + "Bài 1…M" chưa có video (tối đa 500 buổi / khóa) – Đợt 10 | `Đã tạo N buổi × M bài.` |
+| `createSession` / `updateSession` / `deleteSession` | `courseId` / `sessionId` | `title`, `description` | thêm (cuối khóa) / sửa / xóa (xóa kèm bài + tiến độ) | … |
+| `moveSession` | `courseId`, `sessionId`, `up`\|`down` | — | đổi chỗ với buổi kề, đánh lại thứ tự 1…n | "Đã đổi thứ tự buổi." |
+| `duplicateSession` | `courseId`, `sessionId` | — | tạo "Buổi n+1" ở cuối, sao chép các bài (tên, mô tả, link video) | "Đã sao chép buổi." |
 | `updateLesson` | `lessonId` | như trên | update `lessons` | "Đã lưu bài học." |
 | `deleteLesson` | `lessonId` | — | delete `lessons` | "Đã xóa bài học." |
 
@@ -243,7 +247,7 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 | `generateSkeleton(courseId, formData)` | admin | Admin | `sessionCount` 1–200, `lessonsPerSession` 1–20; nối tiếp sau buổi cuối hiện có |
 | `createSession` / `updateSession` / `deleteSession` / `duplicateSession` / `moveSession` | admin | Admin | Quản lý buổi |
 | `createLesson` / `updateLesson` | admin | Admin | Thêm `session_id`; `video_url` không bắt buộc |
-| `toggleLessonProgress(lessonId, done)` | `app/courses/actions.ts` | Bệnh nhân | Insert/delete `lesson_progress` bằng server client (RLS kiểm tra `can_view_lesson`); trả tiến độ mới + bài tiếp theo |
+| `completeLessonAction(courseId, lessonId, nextLessonId)` / `uncompleteLessonAction(courseId, lessonId)` | `app/courses/actions.ts` | Bệnh nhân | ✅ Đợt 10 – tick (redirect sang bài kế tiếp nếu `can_view_lesson`, không thì `?finished=1`) / bỏ tick (ActionResult); server client, RLS quyết định |
 | `acceptConsentAction()` | `app/account/actions.ts` | Đăng nhập | ✅ Đợt 8 – ghi `consent_at`, `consent_version` (service role, theo phiên) |
 | `dismissPasswordReminder()` | `app/account/actions.ts` | Đăng nhập | Ẩn hộp nhắc trong phiên (cookie), không đổi cờ |
 | `changePasswordAction` | `app/account/actions.ts` | Đăng nhập | Thêm: thành công → `must_change_password = false`. Vẫn bắt nhập mật khẩu hiện tại (mật khẩu nhân viên cấp) |
@@ -261,7 +265,7 @@ Thiết kế theo ADR-011 → ADR-015. Khi triển khai, chuyển từng dòng l
 
 | Nơi gọi | RPC | Mục đích |
 | --- | --- | --- |
-| Trình học | `get_lesson_video(lesson_id)` | Link video nếu được xem |
+| Trình học | ~~`get_lesson_video`~~ → đọc `lessons` (RLS `can_view_lesson`) + `course_outline` | Link video nếu được xem; tên bài buổi khóa (Đợt 10) |
 | Khóa học của tôi, trang khóa, trình học | `course_progress(course_id)` | % tiến độ, bài tiếp theo, hạn học |
 | `/admin` | `dashboard_stats()`, `revenue_report(from, to)` (admin) | Dashboard |
 

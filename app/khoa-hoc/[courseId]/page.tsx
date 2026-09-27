@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getCourseOutline, getPublicCourse } from '@/lib/supabase/public'
 import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
-import { kindBadge } from '@/lib/courses'
+import { buildSessions, kindBadge } from '@/lib/courses'
+import SessionOutline from '@/components/SessionOutline'
 import CourseCover from '@/components/CourseCover'
-import { ArrowRightIcon, BookIcon, CheckIcon, PhoneIcon, PlayIcon } from '@/components/icons'
+import { ArrowRightIcon, BookIcon, CheckIcon, PhoneIcon } from '@/components/icons'
 import doctorPhoto from '@/public/images/bac-si-do-manh-cuong.jpg'
 import LeadDialog from '../LeadDialog'
 import PlanPicker from '../PlanPicker'
@@ -32,6 +33,7 @@ export default async function CourseLandingPage({ params }: Props) {
   const course = await getPublicCourse(params.courseId)
   if (!course) notFound()
   const outline = course.kind === 'premium' ? [] : await getCourseOutline(course.id)
+  const sessions = buildSessions(outline, { done: new Set(), open: 'all', purchased: null })
   const badge = kindBadge(course.kind, course.category)
 
   const action =
@@ -67,7 +69,7 @@ export default async function CourseLandingPage({ params }: Props) {
               <span>Hướng dẫn: {siteConfig.doctor.name}</span>
               {course.kind !== 'premium' && (
                 <span className="flex items-center gap-1.5">
-                  <BookIcon className="h-4 w-4" /> {outline.length} bài tập
+                  <BookIcon className="h-4 w-4" /> {sessions.length} buổi · {outline.length} bài tập
                 </span>
               )}
             </p>
@@ -126,22 +128,21 @@ export default async function CourseLandingPage({ params }: Props) {
           {course.kind !== 'premium' && (
             <section>
               <h2 className="text-lg font-bold">
-                Nội dung khóa học <span className="font-normal text-slate-500">({outline.length} bài tập)</span>
+                Nội dung khóa học{' '}
+                <span className="font-normal text-slate-500">
+                  ({sessions.length} buổi · {outline.length} bài tập)
+                </span>
               </h2>
-              <ol aria-label="Đề cương khóa học" className="card mt-4 divide-y divide-slate-100 overflow-hidden">
-                {outline.map((lesson, i) => (
-                  <li key={lesson.id} className="flex items-start gap-3 px-4 py-3 sm:px-5">
-                    <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ocean-50 text-xs font-bold text-ocean-600">
-                      {course.kind === 'free' ? <PlayIcon className="h-3 w-3" /> : i + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-medium text-ocean-900">{lesson.title}</span>
-                      {lesson.description && <span className="line-clamp-2 block text-sm text-slate-500">{lesson.description}</span>}
-                    </span>
-                  </li>
-                ))}
-                {!outline.length && <li className="p-6 text-center text-sm text-slate-500">Nội dung đang được cập nhật.</li>}
-              </ol>
+              <div className="card mt-4 overflow-hidden">
+                {/* Đề cương theo buổi (không có link video); khóa miễn phí bấm vào bài để xem ngay */}
+                <SessionOutline
+                  sessions={sessions}
+                  linkTo={course.kind === 'free' ? (id) => `/courses/${course.id}/${id}` : null}
+                  showProgress={false}
+                  label="Đề cương khóa học"
+                />
+                {!outline.length && <p className="p-6 text-center text-sm text-slate-500">Nội dung đang được cập nhật.</p>}
+              </div>
             </section>
           )}
 

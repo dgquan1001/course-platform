@@ -17,7 +17,7 @@ giả định hoặc lặp lại tranh luận cũ. Mẫu: [../../templates/adr-t
 | [ADR-010](ADR-010-idempotent-schema.md) | Một file `schema.sql` idempotent thay cho migrations | Accepted (xem xét thay thế) |
 | [ADR-011](ADR-011-staff-role.md) | Ba vai trò user / staff / admin | Accepted – Đợt 7 |
 | [ADR-012](ADR-012-course-kinds-and-plans.md) | Loại khóa học (miễn phí / chương trình / premium) và gói theo thời hạn cộng dồn | Accepted – Đợt 8 (loại khóa) · ✅ Đợt 9 (gói, hạn học cộng dồn) |
-| [ADR-013](ADR-013-sessions-sequential-progress.md) | Buổi → Bài tập, mở buổi tuần tự, video đọc qua hàm kiểm quyền | Accepted – v0.2, chưa triển khai |
+| [ADR-013](ADR-013-sessions-sequential-progress.md) | Buổi → Bài tập, mở buổi tuần tự, video theo `can_view_lesson` | Accepted – ✅ Đợt 10 (có điều chỉnh: RLS theo dòng thay column privilege) |
 | [ADR-014](ADR-014-staff-provisioned-accounts.md) | Nhân viên tạo tài khoản cho bệnh nhân từ Zalo, mật khẩu hệ thống sinh | Accepted – v0.2, chưa triển khai |
 | [ADR-015](ADR-015-consultation-and-leads.md) | Phiếu tham vấn bác sĩ và khách quan tâm premium | Accepted – Đợt 8 (khách quan tâm) · Đợt 12 (phiếu tham vấn) |
 

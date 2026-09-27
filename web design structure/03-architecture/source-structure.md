@@ -77,11 +77,10 @@ app/
 ├─ admin/courses/PlanTable.tsx        # ✅ Bảng gói theo thời hạn (createPlan / updatePlan / deletePlan) – Đợt 9
 ├─ khoa-hoc/PlanPicker.tsx            # ✅ 'use client' chọn gói ở trang giới thiệu – Đợt 9
 ├─ courses/
-│  ├─ actions.ts                      # toggleLessonProgress, submitConsultationAction – Đợt 10, 12
+│  ├─ actions.ts                      # ✅ completeLessonAction, uncompleteLessonAction (Đợt 10); submitConsultationAction – Đợt 12
 │  ├─ consultation/page.tsx           # Phiếu tham vấn                             – Đợt 12
 │  └─ [courseId]/[lessonId]/
-│     ├─ page.tsx                     # Trình học mới (buổi, checklist)            – Đợt 10
-│     └─ LessonPlayer.tsx             # 'use client' tick + chuyển bài             – Đợt 10
+│     └─ page.tsx                     # ✅ Trình học (buổi, checklist; tick bằng form server action, không cần client component) – Đợt 10
 ├─ admin/
 │  ├─ page.tsx                        # Tổng quan (dashboard)                      – Đợt 13
 │  ├─ registrations/page.tsx          # ✅ Bảng đơn (chuyển từ admin/page.tsx)     – Đợt 7
@@ -92,14 +91,14 @@ app/
 │  └─ settings/consultation/page.tsx  # Mẫu phiếu tham vấn                         – Đợt 12
 components/
 ├─ ✅ CourseCover.tsx, CourseCard.tsx, ProgramGrid.tsx (lọc nhóm bệnh), ConsentReminder.tsx – Đợt 8
-├─ ProgressBar.tsx, SessionAccordion.tsx, OneTimeSecret.tsx, StatCard.tsx, LoginReminders.tsx
+├─ ✅ ProgressBar.tsx, SessionOutline.tsx (Đợt 10) · OneTimeSecret.tsx, StatCard.tsx, LoginReminders.tsx
 lib/
 ├─ auth.ts                            # + role, requireStaff
 ├─ password.ts                        # + generatePassword (CSPRNG, bảng chữ dễ đọc)
 ├─ ✅ courses.ts                      # Loại khóa, nhóm bệnh, nhãn (Đợt 8); PLAN_MONTHS, planLabel, sortPlans, daysLeft, formatDate (Đợt 9)
 ├─ ✅ consent.ts, compress-image.ts    # Phiên bản chính sách; nén ảnh dùng chung (Đợt 8)
 ├─ ✅ supabase/public.ts               # getPublishedCourses, getRegistrableCourses, getPublicCourse, getCourseOutline
-└─ progress.ts                        # Gọi RPC course_progress, gom tiến độ nhiều khóa
+└─ ✅ progress.ts                     # loadLearning (đề cương + buổi khóa/mở + tiến độ), getCourseProgress, lessonLabel – Đợt 10
 ```
 
 ## 2. Quy tắc phân tầng

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { sortPlans, type CourseKind, type Plan } from '@/lib/courses'
+import { sortPlans, type CourseKind, type OutlineRow, type Plan } from '@/lib/courses'
 
 // Client ẩn danh không đọc cookie: dùng cho trang công khai để Next.js
 // có thể cache (ISR) thay vì render lại mỗi request.
@@ -26,7 +26,7 @@ export type PublicCourse = {
 
 export type PublicCourseDetail = PublicCourse & { outcomes: string[] }
 
-export type OutlineLesson = { id: string; title: string; description: string | null }
+export type OutlineLesson = OutlineRow
 
 const PUBLIC_FIELDS = 'id, title, description, price, kind, category, summary, cover_image, plans:course_plans(id, months, sessions, price)'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

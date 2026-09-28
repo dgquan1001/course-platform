@@ -12,6 +12,7 @@ import { realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import { compressImage, formatSize } from '@/lib/compress-image'
 import { formatDate, planLabel } from '@/lib/courses'
+import PasswordInput from '@/components/PasswordInput'
 import { CheckIcon, CopyIcon, SpinnerIcon, UploadIcon } from '@/components/icons'
 import { registerAction, type RegisterState } from './actions'
 
@@ -327,14 +328,12 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
             {account === null && (
               <div>
                 <label htmlFor="password" className="label">Tạo mật khẩu đăng nhập *</label>
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   required
                   minLength={MIN_PASSWORD_LENGTH}
                   placeholder={passwordHint}
-                  className="input"
                   autoComplete="new-password"
                 />
                 <p className="mt-1.5 text-xs text-slate-500">

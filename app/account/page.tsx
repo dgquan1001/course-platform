@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { requireUserPage } from '@/lib/auth'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import ActionForm from '@/components/ActionForm'
+import PasswordInput from '@/components/PasswordInput'
 import SubmitButton from '@/components/SubmitButton'
 import { ArrowRightIcon, KeyIcon, UserIcon } from '@/components/icons'
 import { changePasswordAction, updateProfileAction } from './actions'
@@ -66,15 +67,15 @@ export default async function AccountPage() {
             <ActionForm action={changePasswordAction} resetOnSuccess className="space-y-4">
               <div>
                 <label htmlFor="currentPassword" className="label">Mật khẩu hiện tại</label>
-                <input id="currentPassword" name="currentPassword" type="password" required className="input" autoComplete="current-password" />
+                <PasswordInput id="currentPassword" name="currentPassword" required autoComplete="current-password" />
               </div>
               <div>
                 <label htmlFor="newPassword" className="label">Mật khẩu mới</label>
-                <input id="newPassword" name="newPassword" type="password" required minLength={MIN_PASSWORD_LENGTH} placeholder={passwordHint} className="input" autoComplete="new-password" />
+                <PasswordInput id="newPassword" name="newPassword" required minLength={MIN_PASSWORD_LENGTH} placeholder={passwordHint} autoComplete="new-password" />
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="label">Nhập lại mật khẩu mới</label>
-                <input id="confirmPassword" name="confirmPassword" type="password" required minLength={MIN_PASSWORD_LENGTH} className="input" autoComplete="new-password" />
+                <PasswordInput id="confirmPassword" name="confirmPassword" required minLength={MIN_PASSWORD_LENGTH} autoComplete="new-password" />
               </div>
               <SubmitButton>Đổi mật khẩu</SubmitButton>
             </ActionForm>

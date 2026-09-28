@@ -164,7 +164,9 @@ Không thêm thư viện icon; icon mới thêm vào cùng file theo cùng kiể
 
 | Thành phần | Mô tả |
 | --- | --- |
-| `ProgressBar` | Thanh cao 6px (`rounded-full bg-slate-100`, phần đã xong `bg-ocean-500`; 100% dùng `bg-emerald-500`) + chữ nhỏ `text-xs text-slate-500` "18/72 bài · 25%". `role="progressbar"`, `aria-valuenow/min/max`, `aria-label` |
+| `ProgressRing` (Đợt 15, thay `ProgressBar`) | Vòng tròn SVG: rãnh `stroke-slate-100`, cung đã tập `stroke-ocean-500` (100% → `stroke-emerald-500`, kèm chữ "Đã hoàn thành" nên không chỉ dựa vào màu), đầu cung bo tròn, số % đậm `text-slate-800` ở giữa; bên cạnh "18/72 bài" + "hoàn thành". Cỡ `md` 56px (thẻ khóa, trang khóa, hồ sơ bệnh nhân) · `sm` 36px (header trình học, danh sách quản trị). Truyền `value` (VD tiến độ trung bình ở danh sách bệnh nhân) thì chỉ hiện vòng. `role="progressbar"`, `aria-valuenow/min/max`, `aria-label`; chuyển động chỉ khi không bật `prefers-reduced-motion` |
+| `PasswordInput` (Đợt 15) | `.input` + nút con mắt 44px bên phải (`type="button"`, `aria-label` "Hiện mật khẩu" / "Ẩn mật khẩu", `aria-pressed`, `aria-controls`); icon `EyeIcon` / `EyeOffIcon` màu slate-400, hover ocean-700. Dùng cho mọi ô mật khẩu |
+| Sidebar quản trị (Đợt 15) | ≥ `lg`: thẻ trắng rộng 224px, `sticky top-24`; tiêu đề "Bảng quản trị" + nhãn vai trò; mỗi mục icon 20px + nhãn, đang mở: nền `ocean-50` + vạch trái 4px `ocean-500`; số đếm: viên tròn `bg-ocean-600` chữ trắng 11px (> 99 → "99+"), có chữ ẩn cho trình đọc màn hình. < `lg`: hàng tab gạch chân cuộn ngang (không icon). Trang admin 2 cột (nội dung + form 380px) chỉ chia cột từ `xl` để không chật cạnh sidebar |
 | `CourseCover` | Ảnh bìa tỉ lệ 16:9 `rounded-xl object-cover` (`next/image`); không có ảnh → nền gradient ocean + icon cột sống |
 | Nhãn loại khóa | `MIỄN PHÍ` (emerald) · `VẸO LƯNG` / `VẸO NGỰC` (ocean) · `PREMIUM 1:1` (gold đậm, chữ `ocean-950`) |
 | Nhãn hạn học | `Còn N ngày` (slate) · ≤ 7 ngày (gold) · `Đã hết hạn` (red) |

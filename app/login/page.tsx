@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SpineIcon } from '@/components/icons'
+import PasswordInput from '@/components/PasswordInput'
 import SubmitButton from '@/components/SubmitButton'
 import { siteConfig } from '@/lib/site-config'
 import { loginAction } from './actions'
@@ -45,7 +46,7 @@ export default function LoginPage({
                 Quên mật khẩu?
               </Link>
             </div>
-            <input id="password" name="password" type="password" required placeholder="••••••" className="input" autoComplete="current-password" />
+            <PasswordInput id="password" name="password" required placeholder="••••••" autoComplete="current-password" />
           </div>
           <SubmitButton className="btn-primary w-full">Đăng nhập</SubmitButton>
         </form>

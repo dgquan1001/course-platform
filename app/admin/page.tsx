@@ -6,7 +6,7 @@ import { requireStaffPage } from '@/lib/auth'
 import { daysLeft } from '@/lib/courses'
 import { formatDateTime, formatDay, paymentLabel, registrationSourceLabel } from '@/lib/format'
 import StatCard from '@/components/StatCard'
-import ProgressBar from '@/components/ProgressBar'
+import ProgressRing from '@/components/ProgressRing'
 
 export const metadata: Metadata = { title: 'Tổng quan' }
 
@@ -98,7 +98,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         <StatCard label="Khách premium mới" value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-2">
         <section aria-label="Việc cần làm" className="card p-5">
           <h3 className="font-bold">Việc cần làm</h3>
           <ul className="mt-3 space-y-2 text-sm">
@@ -185,7 +185,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
                       – {x.course_title} · {x.last_activity ? `tập gần nhất ${formatDay(x.last_activity)}` : 'chưa tập buổi nào'}
                     </span>
                   </span>
-                  <ProgressBar done={x.done} total={x.total} className="w-32" />
+                  <ProgressRing done={x.done} total={x.total} size="sm" />
                 </li>
               ))}
               {!s.inactive.length && <li className="text-slate-500">Mọi bệnh nhân đang học đều tập trong 7 ngày qua.</li>}

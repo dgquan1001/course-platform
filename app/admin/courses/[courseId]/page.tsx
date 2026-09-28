@@ -134,7 +134,7 @@ export default async function AdminCourseContentPage({ params }: { params: { cou
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section aria-label="Buổi tập" className="space-y-4">
           <ActionForm
             action={generateSkeleton.bind(null, course.id)}
@@ -222,7 +222,7 @@ export default async function AdminCourseContentPage({ params }: { params: { cou
           )}
         </section>
 
-        <div className="h-fit space-y-4 lg:sticky lg:top-20">
+        <div className="h-fit space-y-4 xl:sticky xl:top-20">
           <section className="card p-5">
             <h3 className="mb-4 text-lg font-bold">Thêm bài học</h3>
             <ActionForm action={createLesson.bind(null, course.id)} resetOnSuccess className="space-y-3">

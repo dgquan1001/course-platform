@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
   mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
 
@@ -10,11 +10,11 @@
 | Hạng mục | Hiện trạng |
 | --- | --- |
 | Chức năng | v0.2 hoàn tất (Đợt 7 → 13): 3 vai trò, 3 loại khóa, gói tháng + hạn học cộng dồn, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard + doanh thu |
-| Kiểm thử | E2E **96/96 PASS**; lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
+| Kiểm thử | E2E **98/98 PASS** (29/09, sau Đợt 15); lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
 | Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
 | Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
 | Còn mở quan trọng | RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RV-20 (giám sát lỗi, backup Storage) |
-| Tiếp theo | Đợt 14 – go-live MVP ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)) |
+| Tiếp theo | Đợt 14 – go-live MVP ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); Đợt 15 – cải tiến giao diện UI-01 → UI-03 ✅ 29/09 (§7.7) |
 
 Điểm đánh giá bên dưới (§1) là của bản 0.1 (26/09); v0.2 cải thiện: Kiểm thử 3.5 → 4.5 (96 bước, có kiểm tra API), Vận hành 3 → 3.5 (git, CI,
 rào chặn E2E, runbook; còn thiếu staging, giám sát).
@@ -231,7 +231,7 @@ Còn mở sau Đợt 5: RK-02, RK-15, G-12 và các RV chưa làm – xem [roadm
 ### 7.5. Review phiên bản 0.2 – Đợt 7 → 10 (cập nhật 27/09/2026)
 
 Định vị lại sản phẩm (chương trình phục hồi chức năng cho bệnh nhân) – yêu cầu ở [project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026),
-kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự-thực-hiện).
+kế hoạch ở [roadmap §4](roadmap.md#4-checklist-chi-tiết-theo-đợt-mới-nhất-ở-trên).
 
 | Đợt | Nội dung | Trạng thái | Kiểm thử |
 | --- | --- | --- | --- |
@@ -260,7 +260,7 @@ kế hoạch ở [roadmap §3](roadmap.md#3-lộ-trình-gợi-ý-theo-thứ-tự
 | RK-21 | 🟡 | Tính hạn "+ N tháng" theo lịch UTC của Postgres: duyệt ngày 31 → tháng sau không có ngày 31 thì về ngày cuối tháng | 📖 `make_interval(months => n)` | Chênh 1–3 ngày ở cuối tháng, hiển thị theo giờ Việt Nam | Chấp nhận; ghi chú trong BR-80 |
 
 Xác minh Đợt 7, 8, 9, 10: schema đã chạy trên Supabase, E2E PASS (67 → 73 → 78 → 83 bước), dữ liệu test dọn sạch. RK-22 (Đợt 9), RK-27 và RK-28 (Đợt 10) phát hiện nhờ E2E và đã sửa trong cùng đợt.
-Còn mở từ v0.2: RK-18 (ẩn ô Giá khi sửa chương trình – đề xuất làm cùng Đợt 11), RK-23, RK-24 (theo dõi), RK-16/RK-19 (chờ Đợt 11), RK-20 (chờ A-7).
+Còn mở từ v0.2 (tại thời điểm Đợt 10): RK-18, RK-16/RK-19 – đã xử lý ở Đợt 11 → 13 (§7.6); RK-23, RK-24 (theo dõi), RK-20 (chờ A-7).
 Còn mở từ trước: RK-02, RK-10 (staging), RK-15, G-12.
 
 ### 7.6. Review Đợt 11 → 13 + cải tiến (cập nhật 27/09/2026)
@@ -297,6 +297,36 @@ Xác minh Đợt 11 → 13: schema đã chạy trên Supabase, `typecheck` / `li
 Các lần chạy trước đỏ: (1) **lỗi thật** – form "Thêm khóa học" không đổi loại chọn sẵn khi chuyển tab bằng link (component được giữ lại) → sửa bằng `key` theo tab;
 (2) locator của test bắt nhầm ô giá trong bảng Gói; (3) từ khóa tìm bệnh nhân (SĐT test) trùng dãy số trong email test của bệnh nhân khác → test tìm theo tên. (2), (3) là lỗi của test.
 
+### 7.7. Review tài liệu & yêu cầu giao diện (29/09/2026)
+
+**Review README, roadmap, project-review** – đối chiếu với code hiện tại:
+
+| Phát hiện | Xử lý |
+| --- | --- |
+| README (mục Quản trị) còn câu "Khóa học: … **đặt giá**" – từ RK-18 giá chương trình chỉ sửa ở bảng gói | ✅ Sửa câu (29/09) |
+| project-review §7.5 trỏ tới mục roadmap "§3 Lộ trình gợi ý…" không còn tồn tại (link hỏng) | ✅ Trỏ tới roadmap §4 |
+| project-review §7.5 dòng "Còn mở từ v0.2" vẫn ghi RK-16, RK-18, RK-19 đang chờ – đã xử lý ở Đợt 11 → 13 | ✅ Ghi rõ "tại thời điểm Đợt 10" |
+| sitemap §6.3 thiết kế `AdminNav` có số đếm (đơn chờ, phiếu mới, khách mới) và nút "+ Tạo bệnh nhân" – code chưa có | Đưa vào Đợt 15 (UI-02, tùy chọn) |
+| Số liệu E2E 96/96, trạng thái Đợt 7 → 13, việc chủ dự án A-x, backlog | ✅ Khớp giữa README – roadmap – project-review |
+
+**Yêu cầu giao diện của chủ dự án (29/09/2026)** – kế hoạch chi tiết và các điểm chủ dự án đã chốt ở [roadmap §3.0](roadmap.md#30-đợt-15--cải-tiến-giao-diện-yêu-cầu-chủ-dự-án-29092026---kế-hoạch-đã-chốt):
+
+| Mã | Yêu cầu | Rủi ro / lưu ý khi làm |
+| --- | --- | --- |
+| UI-01 | Icon mắt hiện / ẩn mật khẩu | Nút mắt phải là `type="button"` (không gửi form); trình quản lý mật khẩu vẫn nhận `autoComplete`; không lưu trạng thái "hiện" giữa các lần tải trang |
+| UI-02 | Menu quản trị dọc bên trái, Khóa học lên thứ 4 | Sidebar chiếm ~220px → bảng Đơn đăng ký 11 cột bị hẹp hơn (cột Thao tác vẫn cố định bên phải); cần giữ `aria-label="Menu quản trị"` (E2E dùng); số đếm trên menu thêm truy vấn mỗi lần mở trang admin – phải giữ nhẹ theo ADR-016 |
+| UI-03 | Vòng tròn % tiến độ | Vòng tròn chiếm chiều cao hơn thanh → bố cục dòng "không tập > 7 ngày" và header trình học phải chỉnh; giữ `role="progressbar"` cho trình đọc màn hình; E2E TC-81, TC-84 đang kiểm tra chữ "x/y bài · %" cần sửa theo |
+
+**Kết quả Đợt 15 (29/09/2026)** – ✅ cả 3 yêu cầu; `typecheck` / `lint` / `build` sạch; E2E **98/98 PASS** ngay lần chạy đầu (TC-99 → TC-101), không đổi schema.
+
+| Mã | Đã làm | Ghi chú review |
+| --- | --- | --- |
+| UI-01 | `components/PasswordInput.tsx` cho 7 ô (đăng nhập, đăng ký, quên mật khẩu ×2, tài khoản ×3); giữ nguyên `id`, `name`, `autoComplete` | Nút `type="button"` + `aria-pressed`; không đổi hành vi gửi form (E2E) |
+| UI-02 | `app/admin/layout.tsx` sidebar trái ≥ 1024px (sticky), tab cuộn ngang trên điện thoại; `AdminNav` thứ tự mới + icon; `NavCount` đếm đơn chờ / phiếu mới / khách mới (bọc `Suspense`, không chặn trang) | 3 truy vấn `count` nhẹ mỗi lần tải trang admin (không gọi `dashboard_stats()` – tránh RK-30). Trang admin 2 cột chuyển mốc chia cột `lg` → `xl` để không chật. Số đếm không tự cập nhật theo thời gian thực (RK-33 vẫn mở) |
+| UI-03 | `components/ProgressRing.tsx` (SVG, 2 cỡ) thay `ProgressBar` ở 5 chỗ + cột tiến độ danh sách bệnh nhân (tiến độ trung bình) | "Tiến độ theo chương trình" ở Tổng quan **giữ thanh ngang**: đó là so sánh nhiều chương trình, thanh dễ so hơn vòng tròn |
+
+Không phát sinh risk case mới.
+
 ### Đã kiểm tra – **không** phải rủi ro
 
 | Nghi vấn | Kết quả |
@@ -322,6 +352,7 @@ Các lần chạy trước đỏ: (1) **lỗi thật** – form "Thêm khóa h�
 | ~~Đợt 9 – Gói tháng & hạn học~~ | ✅ 27/09/2026, E2E 78/78, sửa RK-22 (xem §7.5) | — |
 | ~~Đợt 10 – Buổi – bài & trình học~~ | ✅ 27/09/2026, E2E 83/83, sửa RK-27, RK-28 (xem §7.5) | — |
 | ~~Đợt 11 → 13~~ | ✅ 27/09/2026, E2E 96/96, sửa RK-18, RK-29, RK-34 (xem §7.6) | — |
+| ~~Đợt 15 – Cải tiến giao diện~~ | UI-01 → UI-03 – ✅ 29/09/2026, E2E 98/98 (xem §7.7) | S |
 | **Tiếp theo** | **Đợt 14 – Go-live MVP** ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); sau đó backlog ưu tiên roadmap §3.2 (thông báo, giám sát, staging + CI) | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;

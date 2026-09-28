@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaffPage } from '@/lib/auth'
 import { daysLeft } from '@/lib/courses'
 import { formatDay } from '@/lib/format'
+import ProgressRing from '@/components/ProgressRing'
 import StatusBadge from '@/components/StatusBadge'
 import RoleForm, { type RoleTarget } from './RoleForm'
 
@@ -180,13 +181,13 @@ export default async function AdminPatientsPage({
 
   const progress = (p: Patient) =>
     p.active_courses ? (
-      <>
-        <span className="font-semibold text-ocean-900">{p.avg_percent ?? 0}%</span>
-        <span className="block text-xs text-slate-400">
+      <div className="flex items-center gap-3">
+        <ProgressRing value={p.avg_percent ?? 0} size="sm" label="Tiến độ trung bình" />
+        <span className="text-xs text-slate-400">
           {p.last_activity ? `Tập gần nhất ${formatDay(p.last_activity)}` : 'Chưa tập'}
           {p.inactive && <span className="block font-semibold text-gold-800">Không tập &gt; 7 ngày</span>}
         </span>
-      </>
+      </div>
     ) : (
       <span className="text-slate-300">—</span>
     )

@@ -32,7 +32,7 @@ export default async function ConsultationSettingsPage() {
   const questions = (data ?? []) as ConsultQuestion[]
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
       <section className="space-y-3">
         <div className="card p-4 text-sm text-slate-600">
           Bệnh nhân trả lời các câu hỏi <strong>đang dùng</strong> khi gửi phiếu. Câu Có/Không và thang 0–10 bắt buộc trả lời, câu trả lời ngắn không bắt buộc.
@@ -85,7 +85,7 @@ export default async function ConsultationSettingsPage() {
         {!questions.length && <p className="card p-10 text-center text-slate-500">Chưa có câu hỏi nào. Thêm câu hỏi ở khung bên cạnh.</p>}
       </section>
 
-      <section className="card h-fit p-5 lg:sticky lg:top-20">
+      <section className="card h-fit p-5 xl:sticky xl:top-20">
         <h2 className="mb-4 text-lg font-bold">Thêm câu hỏi</h2>
         <ActionForm action={createConsultQuestion} resetOnSuccess className="space-y-3">
           <div>

@@ -7,18 +7,20 @@
 >
 > Mã: **RV-xx** review vòng 1, **RK-xx** risk case ([project-review.md](project-review.md)); **R-xx** tính năng mở rộng (thiết kế ở §6);
 > **G-xx** khoảng trống kiểm thử ([test-plan](../08-testing/test-plan.md)); **A-xx** việc chủ dự án; **V-xx** yêu cầu v0.2
-> ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)).
+> ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
+> sau v0.2 (§3.0).
 
-Cập nhật: **27/09/2026** – xong Đợt 11, 12, 13 (làm song song theo yêu cầu chủ dự án) → **toàn bộ v0.2 đã có code + E2E**.
+Cập nhật: **29/09/2026** – xong **Đợt 15 – Cải tiến giao diện** (UI-01 → UI-03, §3.0): icon mắt ở ô mật khẩu, menu quản trị dọc bên trái
+có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/2026: xong Đợt 11, 12, 13 → **toàn bộ v0.2 đã có code + E2E**.
 
 ## 0. Tóm tắt hiện trạng
 
 | Hạng mục | Trạng thái |
 | --- | --- |
 | Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard |
-| Kiểm thử | E2E **96/96 PASS** (27/09/2026, chạy trên project Supabase hiện tại – dữ liệu test) |
+| Kiểm thử | E2E **98/98 PASS** (29/09/2026, sau Đợt 15, chạy trên project Supabase hiện tại – dữ liệu test) |
 | Hiệu năng | Middleware nhẹ (không gọi mạng khi token còn hạn), xác thực 1 lần / request, header + hộp nhắc dùng chung profile (ADR-016) |
-| Việc tiếp theo | **Đợt 14 – Go-live MVP** (§3.1): chủ yếu là việc của chủ dự án (A-5, A-7, A-8, A-9, A-11 → A-13) |
+| Việc tiếp theo | **Đợt 14 – Go-live MVP** (§3.1): chủ yếu là việc của chủ dự án (A-5, A-7, A-8, A-9, A-11 → A-13). Đợt 15 (giao diện) ✅ không đổi schema nên không cần chạy lại SQL |
 | Rủi ro còn mở cần chú ý | RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging – chủ dự án chọn để sau), RK-30 (hiệu năng khi > vài nghìn bệnh nhân), RK-33 (chưa có thông báo khi có phiếu / lead mới) |
 
 ## 1. Báo cáo tiến độ
@@ -43,6 +45,7 @@ Cập nhật: **27/09/2026** – xong Đợt 11, 12, 13 (làm song song theo yê
 | 13 | Dashboard | R-07 (doanh thu trên dashboard) | ✅ | 27/09/2026 | TC-93 → 94 | ↑ |
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
 | 14 | **Go-live MVP** | A-5, A-7 → A-13, V-12 | ⬜ **Tiếp theo** | — | Smoke test runbook §10 | — |
+| 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 | TC-99 → TC-101 | 98/98 |
 
 ### 1.2. Tổng hợp theo nguồn
 
@@ -53,6 +56,7 @@ Cập nhật: **27/09/2026** – xong Đợt 11, 12, 13 (làm song song theo yê
 | RK v0.2 (RK-16 → 34) | 19 | 7 (RK-16, 18, 22, 27, 28, 29, 34) | 10 chấp nhận / theo dõi (RK-17, 19, 21, 23, 24, 25, 26, 30, 31, 32) | 2 (RK-20 chờ A-7, RK-33) |
 | R (tính năng mở rộng, gồm R-00) | 14 | 7 (R-00, 02, 03, 04, 05, 09, 12) | 1 (R-07) | 6 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
+| UI (yêu cầu giao diện 29/09) | 3 | 3 | 0 | 0 |
 
 ## 2. Việc cần chủ dự án làm (không tự động hóa được)
 
@@ -72,6 +76,30 @@ Cập nhật: **27/09/2026** – xong Đợt 11, 12, 13 (làm song song theo yê
 | A-2, A-3 | Secrets GitHub cho CI E2E; push / PR để CI chạy, bật "Require status checks" | RV-10 | ⏸ Sau A-1 | ⬜ |
 
 ## 3. Kế hoạch tiếp theo
+
+### 3.0. Đợt 15 – Cải tiến giao diện (yêu cầu chủ dự án 29/09/2026) – ✅ xong 29/09/2026 (E2E 98/98)
+
+Không đổi schema (chủ dự án **không** cần chạy SQL); làm song song được với Đợt 14. Ước lượng tổng: S.
+
+**Chủ dự án đã chốt (29/09/2026):**
+1. UI-01: icon mắt ở **tất cả 7 ô mật khẩu** (đăng nhập, đăng ký, quên mật khẩu ×2, tài khoản ×3).
+2. UI-02 trên màn hình < 1024px: giữ **hàng tab cuộn ngang** (theo thứ tự mới); ≥ 1024px: cột dọc bên trái.
+3. UI-02: **có số đếm** cạnh mục Đơn đăng ký (đơn chờ duyệt), Phiếu tham vấn (phiếu mới), Khách quan tâm (khách mới) – 3 truy vấn
+   `count` chạy song song trong `app/admin/layout.tsx` (quyền theo RLS nhân viên), **không** gọi `dashboard_stats()` để tránh RK-30.
+4. UI-03: vòng tròn **thay tất cả** 5 chỗ đang dùng `ProgressBar` + cột % ở danh sách bệnh nhân; bỏ `ProgressBar`.
+
+| Mã | Yêu cầu | Hiện trạng (review 29/09) | Kế hoạch | Công sức |
+| --- | --- | --- | --- | --- |
+| UI-01 | Ô mật khẩu có **icon con mắt** để hiện / ẩn mật khẩu | 7 ô `type="password"` thuần: đăng nhập (1), đăng ký (1), quên mật khẩu (2), tài khoản (3); chưa có nút hiện mật khẩu | Component mới `components/PasswordInput.tsx` (client): ô nhập + nút mắt bên phải (`type="button"`, `aria-label` "Hiện mật khẩu" / "Ẩn mật khẩu", `aria-pressed`, vùng chạm 44px); thêm `EyeIcon`, `EyeOffIcon` vào `components/icons.tsx`; dùng cho các ô trên (phạm vi chờ chốt) | XS |
+| UI-02 | Menu quản trị chuyển sang **cột dọc bên trái**, thứ tự mới: Tổng quan · Đơn đăng ký · Bệnh nhân · **Khóa học** · Phiếu tham vấn · Khách quan tâm · Mẫu phiếu | `AdminNav` là hàng tab gạch chân nằm ngang dưới tiêu đề "Bảng quản trị"; Khóa học đứng thứ 6 | `app/admin/layout.tsx` thành 2 cột từ màn hình `lg` (≥ 1024px): sidebar ~220px, dính khi cuộn (`sticky`), mỗi mục có icon + nhãn, mục đang mở tô nền `ocean-50` + vạch trái; nội dung bên phải. Giữ `nav aria-label="Menu quản trị"`, quy tắc `adminOnly` (nhân viên thấy 5 mục: Tổng quan, Đơn đăng ký, Bệnh nhân, Phiếu tham vấn, Khách quan tâm). Màn hình nhỏ: chờ chốt. Tùy chọn: số đếm (đơn chờ / phiếu mới / khách mới) cạnh mục như thiết kế [sitemap §6.3](../06-ui-ux/sitemap-navigation.md) | S |
+| UI-03 | Tiến độ hiển thị bằng **vòng tròn %** | `ProgressBar` (thanh 6px + chữ "x/y bài · %") dùng ở 5 chỗ: Khóa học của tôi, trang khóa, trình học, Tổng quan (không tập > 7 ngày), hồ sơ bệnh nhân; danh sách bệnh nhân chỉ ghi "%" | Component `components/ProgressRing.tsx` (SVG): vòng nền `slate-100`, cung `ocean-500` (100% → `emerald-500`), số % ở giữa, bên cạnh "x/y bài hoàn thành"; 2 cỡ: `md` ~56px (thẻ khóa, trang khóa, hồ sơ) và `sm` ~36px (trình học, danh sách admin); giữ `role="progressbar"` + `aria-valuenow`; chuyển động tắt khi `prefers-reduced-motion`. Phạm vi thay chờ chốt | S |
+
+Kiểm thử dự kiến (E2E): **TC-99** bấm mắt ở trang đăng nhập → ô thành `text`, bấm lại → `password`, vẫn đăng nhập được;
+**TC-100** admin thấy menu dọc đúng 7 mục theo thứ tự mới, nhân viên thấy 5 mục; **TC-101** vòng tiến độ 0% → 50% → 100% (thay các bước
+đang kiểm tra chữ "x/y bài · %" ở TC-81, TC-84). Chạy lại toàn bộ E2E (96 bước) vì đổi bố cục admin.
+
+Tài liệu cập nhật khi xong: design-system (§8 component), screen-specifications (đăng nhập, khung admin), sitemap-navigation §4, §6.3,
+source-structure, SRS (FR mới cho UI-01 → 03), test-plan, README gốc, project-review, roadmap, lịch sử tài liệu.
 
 ### 3.1. Đợt 14 – Go-live MVP (ưu tiên số 1)
 
@@ -104,6 +132,15 @@ Mục tiêu: chạy thật trên production với nội dung thật, nhân viên
 ## 4. Checklist chi tiết theo đợt (mới nhất ở trên)
 
 Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
+
+#### Đợt 15 – Cải tiến giao diện ✅ (29/09/2026 · E2E 98/98)
+- [x] Chủ dự án chốt: 7 ô mật khẩu, tab cuộn ngang trên điện thoại, có số đếm trên menu, vòng tiến độ thay tất cả (§3.0)
+- [x] UI-01 `PasswordInput` + icon mắt · [x] áp dụng 7 ô mật khẩu
+- [x] UI-02 sidebar quản trị bên trái, thứ tự mới · [x] tab cuộn ngang < 1024px · [x] số đếm đơn chờ / phiếu mới / khách mới (`NavCount`, stream qua Suspense)
+- [x] Trang admin 2 cột (nội dung + form) chia cột từ `xl` thay vì `lg` để không chật cạnh sidebar
+- [x] UI-03 `ProgressRing` · [x] thay 5 chỗ + cột % danh sách bệnh nhân · [x] xóa `ProgressBar`
+- [x] typecheck / lint / build · [x] E2E TC-99 → TC-101 + chạy lại toàn bộ (98/98) · [x] tài liệu (SRS FR-191 → 193, design-system, screen-specs, sitemap, source-structure, user-stories, test-plan)
+- Để lại / đề xuất: "Tiến độ theo chương trình" ở Tổng quan giữ thanh ngang (so sánh nhiều chương trình – thanh dễ so hơn vòng tròn); số đếm trên menu chỉ làm mới khi tải trang / sau thao tác (không tự cập nhật theo thời gian thực – RK-33 vẫn mở)
 
 #### Đợt 14 – Go-live MVP ⬜
 - [ ] A-5 schema production · [ ] A-12 Vercel / domain / SMTP · [ ] A-13 backup · [ ] A-11 dọn dữ liệu test
@@ -213,6 +250,11 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [ ] R-11 Cấu hình trung tâm trên giao diện
 - [x] R-12 Vai trò nhân viên → Đợt 7
 - [ ] R-13 Mã giảm giá / combo
+
+### 5.5. Yêu cầu giao diện (UI) – 29/09/2026
+- [x] UI-01 Icon mắt hiện / ẩn mật khẩu → Đợt 15
+- [x] UI-02 Menu quản trị dọc bên trái, thứ tự mới (Khóa học lên thứ 4), số đếm → Đợt 15
+- [x] UI-03 Vòng tròn % tiến độ → Đợt 15
 
 ## 6. Phụ lục – thiết kế sơ bộ tính năng mở rộng (R-xx)
 

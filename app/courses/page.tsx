@@ -6,7 +6,7 @@ import { formatPrice, hotlineHref, siteConfig } from '@/lib/site-config'
 import { ArrowRightIcon, BookIcon, CheckIcon, ClockIcon } from '@/components/icons'
 import { daysLeft, formatDate, type OutlineRow } from '@/lib/courses'
 import { getCourseProgress, type CourseProgress } from '@/lib/progress'
-import ProgressBar from '@/components/ProgressBar'
+import ProgressRing from '@/components/ProgressRing'
 import StatusBadge from '@/components/StatusBadge'
 import { formatDay } from '@/lib/format'
 
@@ -63,7 +63,7 @@ function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolea
         </Link>
       </h3>
       <p className="mt-2 line-clamp-3 flex-1 text-sm text-slate-600">{course.description}</p>
-      {course.progress && <ProgressBar done={course.progress.done} total={course.progress.total} className="mt-4" />}
+      {course.progress && <ProgressRing done={course.progress.done} total={course.progress.total} className="mt-4" />}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm">
         {expired ? (
           <Link href={`/courses/${course.id}`} className="font-semibold text-slate-600 hover:text-ocean-700">

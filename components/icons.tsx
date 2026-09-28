@@ -150,6 +150,56 @@ export const LogOutIcon = (p: IconProps) => (
   </Svg>
 )
 
+export const EyeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+)
+
+export const EyeOffIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 11s3.5 7 10 7a9.7 9.7 0 0 0 5.39-1.61" />
+    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24M2 2l20 20" />
+  </Svg>
+)
+
+export const HomeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <path d="M9 22V12h6v10" />
+  </Svg>
+)
+
+export const ClipboardIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="8" y="2" width="8" height="4" rx="1" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 12h6M9 16h4" />
+  </Svg>
+)
+
+export const StethoscopeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 2v6a5 5 0 0 0 10 0V2M10 13v3a5 5 0 0 0 10 0v-2" />
+    <circle cx="20" cy="12" r="2" />
+  </Svg>
+)
+
+export const StarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
+  </Svg>
+)
+
+export const SettingsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="10" cy="12" r="2" />
+    <circle cx="18" cy="18" r="2" />
+  </Svg>
+)
+
 export const SpinnerIcon = ({ className = 'h-5 w-5' }: IconProps) => (
   <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />

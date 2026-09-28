@@ -269,6 +269,14 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-080 → FR-082 | ✅ Thành "Bệnh nhân" + chi tiết bệnh nhân (FR-163, FR-166) | 11 |
 | FR-090 → FR-093 | Thêm loại, nhóm, ảnh bìa, gói, buổi (FR-120, FR-130, FR-140) | 8 → 10 |
 
+### 2.21. Cải tiến giao diện (yêu cầu chủ dự án 29/09/2026 – Đợt 15)
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-191 | Mọi ô mật khẩu (đăng nhập, đăng ký, quên mật khẩu, tài khoản) có nút con mắt hiện / ẩn mật khẩu; nút không gửi form, có nhãn cho trình đọc màn hình (UI-01) | M | 15 | ✅ |
+| FR-192 | Menu quản trị: từ màn hình ≥ 1024px là cột dọc bên trái (dính khi cuộn), nhỏ hơn là hàng tab cuộn ngang; thứ tự Tổng quan · Đơn đăng ký · Bệnh nhân · Khóa học · Phiếu tham vấn · Khách quan tâm · Mẫu phiếu (nhân viên không thấy Khóa học, Mẫu phiếu); số đơn chờ duyệt / phiếu mới / khách mới cạnh mục tương ứng (UI-02) | M | 15 | ✅ |
+| FR-193 | Tiến độ học hiển thị bằng vòng tròn % (số % ở giữa, "x/y bài hoàn thành" bên cạnh) ở Khóa học của tôi, trang khóa, trình học, Tổng quan, hồ sơ và danh sách bệnh nhân (UI-03) | M | 15 | ✅ |
+
 ## 3. Yêu cầu phi chức năng (NFR)
 
 | ID | Nhóm | Yêu cầu | Cách đáp ứng hiện tại |

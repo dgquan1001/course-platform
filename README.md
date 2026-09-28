@@ -11,6 +11,7 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 > lộ trình theo **buổi → bài tập** mở lần lượt, checklist, % tiến độ; phiếu tham vấn bác sĩ; vai trò **bệnh nhân / nhân viên / admin**;
 > nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Bước tiếp theo: **go-live MVP** –
 > [`web design structure/10-review/roadmap.md`](web%20design%20structure/10-review/roadmap.md) §3.1.
+> **Đợt 15 (29/09/2026 – ✅ E2E 98/98)**: icon mắt ở ô mật khẩu, menu quản trị dọc bên trái có số việc cần xử lý, vòng tròn % tiến độ.
 
 ## Tính năng
 
@@ -25,7 +26,7 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   hết hạn thì không xem được video nhưng vẫn thấy khóa và danh sách bài
 - **Tập theo buổi**: khóa gồm các buổi, mỗi buổi nhiều bài tập. Trình học kiểu Udemy: video + cột nội dung theo buổi, bấm
   "Hoàn thành & bài tiếp theo" để tick bài (bỏ tick được), buổi sau mở khi tick đủ buổi trước, buổi vượt gói đã mua cần gia hạn.
-  Thanh tiến độ "x/y bài · %" và nút "Tiếp tục Buổi X – Bài Y" ở trang khóa và "Khóa học của tôi"
+  **Vòng tròn tiến độ** (% ở giữa, "x/y bài hoàn thành") và nút "Tiếp tục Buổi X – Bài Y" ở trang khóa và "Khóa học của tôi"
 - **Chính sách bảo mật** (`/chinh-sach-bao-mat`); khách tạo tài khoản phải tick đồng ý, tài khoản cũ được hỏi một lần khi đăng nhập
 - Box đăng ký 3 bước (dùng chung cho trang chủ `#dang-ky` và trang riêng `/register`):
   1. Chuyển khoản: mã QR VietQR tự điền số tiền theo khóa đã chọn + nội dung là SĐT
@@ -33,7 +34,8 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   3. Điền họ tên, số điện thoại, email (**không bắt buộc**), mật khẩu, chọn khóa học
      (chỉ các khóa đang mở đăng ký), tải ảnh chuyển khoản (JPG/PNG/WEBP/HEIC). Ảnh được
      **nén ngay trên trình duyệt** (tối đa 1600px, JPEG) nên ảnh 10MB chỉ còn khoảng 0,5MB khi upload
-- Đăng nhập (`/login`) bằng **email hoặc số điện thoại** (nhận cả dạng `0912 345 678`, `+84912345678`)
+- Đăng nhập (`/login`) bằng **email hoặc số điện thoại** (nhận cả dạng `0912 345 678`, `+84912345678`).
+  Mọi ô mật khẩu (đăng nhập, đăng ký, quên mật khẩu, tài khoản) có **nút con mắt** để hiện / ẩn mật khẩu
 - Quên mật khẩu (`/forgot-password`): nhận **mã 6 số qua email**, mã hết hạn sau 10 phút,
   tối đa 5 lần nhập sai, 60 giây mới được gửi lại. Tài khoản không có email được hướng dẫn gọi hotline
 - Menu **Tài khoản** trên header (rê chuột trên máy tính, bấm trên điện thoại): Tài khoản
@@ -48,6 +50,8 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 - Học viên đã có tài khoản có thể đăng nhập và đăng ký thêm khóa khác
 
 **Quản trị** (`/admin`) – vai trò **Admin** (toàn quyền) và **Nhân viên** (vận hành hằng ngày; không sửa khóa học, không phân quyền, không xem doanh thu)
+- **Menu quản trị** dọc bên trái (máy tính; điện thoại là hàng tab cuộn ngang): Tổng quan · Đơn đăng ký · Bệnh nhân · Khóa học · Phiếu tham vấn ·
+  Khách quan tâm · Mẫu phiếu (nhân viên không thấy Khóa học, Mẫu phiếu); cạnh mục có **số đơn chờ duyệt, phiếu tham vấn mới, khách mới**
 - **Tổng quan** (`/admin`): 8 thẻ chỉ số bấm được (bệnh nhân, mới 30 ngày Web / Zalo, đơn chờ, gói hiệu lực, sắp hết hạn, đã hết hạn,
   phiếu tham vấn mới, khách premium mới), việc cần làm (kèm Gọi / Zalo bệnh nhân sắp hết hạn), tiến độ trung bình theo chương trình,
   bệnh nhân không tập > 7 ngày; **doanh thu** tháng này / tháng trước theo chương trình, hình thức, nguồn, người xử lý (chỉ admin)
@@ -69,7 +73,7 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
   (giá chương trình chỉ sửa ở bảng gói).
   Bảng đơn có cột **Gói** (kèm nguồn, hình thức thanh toán) và **Hạn học**
 - Khách quan tâm (`/admin/leads`, nhân viên và admin): khách để lại SĐT ở khóa premium, gọi / nhắn Zalo, cập nhật trạng thái kèm ghi chú
-- Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, đặt giá, xem số học viên.
+- Khóa học: thêm / sửa / ẩn / hiện / xóa khóa học, xem số học viên (học phí chương trình đặt ở bảng gói).
   **Ẩn** = ngừng nhận đăng ký (học viên đã được duyệt vẫn học bình thường).
   **Xóa** = xóa khóa và bài học, nhưng **giữ nguyên đơn đăng ký** (tên khóa & học phí lúc đăng ký) làm lịch sử thanh toán
 - Dữ liệu khóa học / bài học được kiểm tra ở server (tên, học phí 0 – 1 tỷ, link video YouTube/TikTok https)
@@ -174,7 +178,7 @@ mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
 | `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang chỉ admin, duyệt đơn, xử lý khách quan tâm premium, xem trước mọi buổi (không tick); tạo bệnh nhân Zalo + cấp gói, hồ sơ bệnh nhân (gia hạn, sửa, cấp lại mật khẩu), lọc bệnh nhân, xử lý phiếu tham vấn, Tổng quan không có doanh thu; không tự nâng quyền / sửa khóa học / sửa tài khoản admin / tạo đơn sai quy tắc qua API |
 | `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (miễn phí / chương trình / premium, ảnh bìa, mở/ẩn), khóa theo loại, gói tháng, khung N buổi × M bài, sao chép / xóa / đổi thứ tự buổi, bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; danh sách bệnh nhân; mẫu phiếu tham vấn; Tổng quan khớp database + doanh thu; xóa khóa / tài khoản vẫn giữ lead, phiếu, đơn |
 
-Lần chạy gần nhất: 27/09/2026, sau Đợt 11 → 13 – **96/96 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
+Lần chạy gần nhất: 29/09/2026, sau Đợt 15 – **98/98 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
 
     npm run build
     npm run test:e2e
@@ -230,7 +234,8 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
         settings/consultation/  Mẫu phiếu tham vấn (chỉ admin)
         users/                  Đường dẫn cũ → patients
         actions.ts              Server action quản trị dùng chung (trả kết quả để hiện toast)
-        layout.tsx, AdminNav.tsx, loading.tsx, error.tsx
+        layout.tsx, AdminNav.tsx      Khung quản trị: sidebar trái / tab ngang trên điện thoại; NavCount.tsx: số việc cần xử lý
+        loading.tsx, error.tsx
     components/
       SiteHeader.tsx, SiteFooter.tsx
       Toaster.tsx               Thông báo nổi
@@ -240,7 +245,9 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
       StatusBadge.tsx, icons.tsx
       LoginReminders.tsx        Hộp đồng ý chính sách / nhắc đổi mật khẩu sau đăng nhập
       OneTimeSecret.tsx         Mật khẩu hiện một lần + tin nhắn gửi Zalo
-      StatCard.tsx, ProgressBar.tsx, SessionOutline.tsx, CourseCard.tsx, CourseCover.tsx, ProgramGrid.tsx
+      PasswordInput.tsx         Ô mật khẩu có nút con mắt hiện / ẩn
+      ProgressRing.tsx          Vòng tròn % tiến độ
+      StatCard.tsx, SessionOutline.tsx, CourseCard.tsx, CourseCover.tsx, ProgramGrid.tsx
     lib/
       site-config.ts            Thông tin thương hiệu, liên hệ, ngân hàng, QR
       auth.ts                   User hiện tại (cache theo request), kiểm tra quyền cho action và trang

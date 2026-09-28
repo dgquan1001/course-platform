@@ -69,7 +69,7 @@ export default async function AdminConsultationsPage({ searchParams }: { searchP
           // Tóm tắt: câu thang điểm đầu tiên (thường là mức đau)
           const scale = c.answers.find((a) => a.kind === 'scale')
           return (
-            <div key={c.id} id={`phieu-${c.id}`} className="card grid scroll-mt-24 gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
+            <div key={c.id} id={`phieu-${c.id}`} className="card grid scroll-mt-24 gap-4 p-4 sm:p-5 xl:grid-cols-[1fr_360px]">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {c.user_id ? (

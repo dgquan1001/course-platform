@@ -151,7 +151,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
     `btn-sm btn whitespace-nowrap border ${active ? 'border-ocean-500 bg-ocean-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'}`
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
       <section className="space-y-5">
         <nav aria-label="Loại khóa học" className="flex gap-2 overflow-x-auto pb-1">
           <Link href="/admin/courses" aria-current={!filter ? 'page' : undefined} className={tabClass(!filter)}>
@@ -177,7 +177,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
         })}
       </section>
 
-      <section className="card h-fit p-5 lg:sticky lg:top-20">
+      <section className="card h-fit p-5 xl:sticky xl:top-20">
         <h2 className="mb-4 text-lg font-bold">Thêm khóa học mới</h2>
         {/* key theo tab: chuyển tab thì form tạo lại với loại khóa chọn sẵn tương ứng */}
         <ActionForm key={filter ?? 'all'} action={createCourse} resetOnSuccess className="space-y-3">

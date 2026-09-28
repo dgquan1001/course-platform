@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/courses'
 import { lessonLabel, loadLearning } from '@/lib/progress'
-import ProgressBar from '@/components/ProgressBar'
+import ProgressRing from '@/components/ProgressRing'
 import SessionOutline from '@/components/SessionOutline'
 import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, ShieldIcon } from '@/components/icons'
 
@@ -57,7 +57,7 @@ export default async function CourseDetailPage({ params }: { params: { courseId:
           </Link>
           <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{course.title}</h1>
           {course.description && <p className="mt-2 max-w-3xl text-slate-600">{course.description}</p>}
-          {hasAccess && tracking && <ProgressBar done={progress.done} total={progress.total} className="mt-4 max-w-sm" />}
+          {hasAccess && tracking && <ProgressRing done={progress.done} total={progress.total} className="mt-4" />}
           {hasAccess && !!nextId && (
             <Link href={lessonHref(nextId)} className="btn-primary mt-6">
               {started && progress.next_lesson_id ? `Tiếp tục ${lessonLabel(sessions, progress.next_lesson_id)}` : 'Bắt đầu học'}

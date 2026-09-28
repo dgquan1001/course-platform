@@ -151,7 +151,7 @@ Mobile: 1 cột, Bước 1–2 ở trên, Bước 3 ở dưới.
           │ [!] lỗi từ ?error                             │
           │ Email hoặc số điện thoại [__________________] │
           │ Mật khẩu              Quên mật khẩu?          │
-          │ [__________________________________________]  │
+          │ [______________________________________ 👁]  │  ← Đợt 15: nút mắt hiện / ẩn (mọi ô mật khẩu)
           │ [               Đăng nhập                  ]  │
           │ Chưa có tài khoản? Đăng ký khóa học           │
           └───────────────────────────────────────────────┘
@@ -236,6 +236,21 @@ Mobile: video tràn viền (`-mx-4`), danh sách bài xuống dưới.
 Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc khóa học chưa được mở cho bạn." + [Quay lại khóa học].
 
 ## SCR-10 – Admin: Đơn đăng ký
+
+> Đợt 15 (UI-02): khung quản trị đổi thành sidebar trái trên máy tính – xem sơ đồ dưới; điện thoại vẫn là hàng tab cuộn ngang.
+>
+> ```text
+> ┌─ Bảng quản trị ─┐  ┌──────────── nội dung trang ─────────────┐
+> │ [Admin]         │  │ Tổng quan                 [+ Tạo bệnh nhân]│
+> │▌⌂ Tổng quan     │  │ …                                          │
+> │ ▤ Đơn đăng ký ③ │  │                                            │
+> │ 👥 Bệnh nhân    │  │                                            │
+> │ 📖 Khóa học     │  │                                            │
+> │ 🩺 Phiếu t.vấn ① │  │                                            │
+> │ ☆ Khách q.tâm   │  │                                            │
+> │ ⚙ Mẫu phiếu     │  │                                            │
+> └─────────────────┘  └────────────────────────────────────────────┘
+> ```
 
 ```text
 Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân viên], không có tab Khóa học
@@ -373,7 +388,7 @@ Mobile: khung giá chuyển thành thanh cố định đáy "từ 990.000đ [Đ�
 
 ## SCR-18 – Khóa học của tôi (sửa SCR-07)
 
-> ✅ Đợt 10: thẻ khóa có thanh tiến độ "x/y bài · z%" và nút "Tiếp tục Buổi X – Bài Y" (chưa tập thì "Vào học"); trang khóa có tiến độ, nút tiếp tục, nội dung theo buổi (🔒 + lý do).
+> ✅ Đợt 15: thanh tiến độ đổi thành vòng tròn % (`ProgressRing`) ở mọi nơi dưới đây. ✅ Đợt 10: thẻ khóa có thanh tiến độ "x/y bài · z%" và nút "Tiếp tục Buổi X – Bài Y" (chưa tập thì "Vào học"); trang khóa có tiến độ, nút tiếp tục, nội dung theo buổi (🔒 + lý do).
 > ✅ Đợt 9: thẻ khóa có nhãn "Còn N ngày" (vàng khi ≤ 7 ngày), nút "Gia hạn" (chương trình có gói) và "Vào học"; mục riêng **"Gói đã hết hạn"** (nhãn đỏ, "Xem khóa học", "Gia hạn để tập tiếp"). Trang khóa khi hết hạn: "Gói tập đã hết hạn ngày …", đề cương không có video, nút gia hạn. Thanh tiến độ ở Đợt 10.
 
 ```text

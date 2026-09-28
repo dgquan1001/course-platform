@@ -60,7 +60,11 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-Tab gạch chân (`nav aria-label="Menu quản trị"`, từ Đợt 11 – 13): **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`) · **Bệnh nhân** (`/admin/patients`) · **Phiếu tham vấn** (`/admin/consultations`) · **Khách quan tâm** (`/admin/leads`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
+`nav aria-label="Menu quản trị"` (Đợt 15 – UI-02): màn hình ≥ 1024px là **cột dọc bên trái** (sidebar dính khi cuộn, icon + nhãn),
+nhỏ hơn là hàng tab gạch chân cuộn ngang. Thứ tự: **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`, số đơn chờ duyệt) ·
+**Bệnh nhân** (`/admin/patients`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Phiếu tham vấn** (`/admin/consultations`, số phiếu mới) ·
+**Khách quan tâm** (`/admin/leads`, số khách mới để lại SĐT) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
+Số đếm là truy vấn `count` riêng (stream qua `Suspense`, không chặn trang), làm mới sau mỗi thao tác quản trị.
 Trang Khóa học có bộ lọc loại: Tất cả (chia 3 nhóm) · Chương trình · Miễn phí · Premium. Trang Bệnh nhân có tab Nhân viên & Admin (chỉ admin).
 Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên).
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
@@ -130,8 +134,7 @@ flowchart TB
 
 - Menu neo: **Miễn phí** · **Chương trình** · **Premium** · Bác sĩ · Liên hệ.
 - Menu Tài khoản thêm "Phiếu tham vấn của tôi"; staff/admin có "Quản trị".
-- `AdminNav`: Tổng quan · Đơn đăng ký (số chờ) · Bệnh nhân · Phiếu tham vấn (số mới) · Khách quan tâm (số mới) · *Khóa học* · *Cài đặt*
-  (*in nghiêng* = chỉ admin). Nút nổi bật "+ Tạo bệnh nhân" ở góc phải thanh quản trị.
+- `AdminNav`: ✅ Đợt 15 theo §4 (thứ tự mới, có số đếm; "Cài đặt" thành "Mẫu phiếu"). Nút "+ Tạo bệnh nhân" nằm ở góc phải trang Tổng quan / Bệnh nhân.
 - Footer: thêm link "Chính sách bảo mật".
 
 ## 7. Luồng chuyển hướng sau hành động

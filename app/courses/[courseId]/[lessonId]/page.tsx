@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getVideoEmbed } from '@/lib/video'
 import { lessonLabel, loadLearning } from '@/lib/progress'
 import { lockReason } from '@/lib/courses'
-import ProgressBar from '@/components/ProgressBar'
+import ProgressRing from '@/components/ProgressRing'
 import SessionOutline from '@/components/SessionOutline'
 import ActionForm from '@/components/ActionForm'
 import SubmitButton from '@/components/SubmitButton'
@@ -79,7 +79,7 @@ export default async function LessonPage({
           <span className="badge bg-violet-100 text-violet-700">Chế độ xem trước (nhân viên / admin)</span>
         ) : learning.user ? (
           <div className="flex items-center gap-4">
-            <ProgressBar done={progress.done} total={progress.total} className="w-48" />
+            <ProgressRing done={progress.done} total={progress.total} size="sm" />
             {/* Phiếu tham vấn gửi được bất cứ lúc nào (FR-171) */}
             <Link href={`/courses/consultation?course=${params.courseId}`} className="btn-outline btn-sm">
               📝 Phiếu tham vấn

@@ -85,7 +85,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: {
 
       <div className="space-y-3">
         {leads.map((l) => (
-          <div key={l.id} className="card grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
+          <div key={l.id} className="card grid gap-4 p-4 sm:p-5 xl:grid-cols-[1fr_360px]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-ocean-900">{l.full_name}</p>

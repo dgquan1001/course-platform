@@ -48,7 +48,8 @@ course-platform/
 │  ├─ SiteHeader.tsx, SiteFooter.tsx, NavigationProgress.tsx, Toaster.tsx
 │  ├─ ActionForm.tsx, SubmitButton.tsx, StatusBadge.tsx, icons.tsx
 │  ├─ CourseCard.tsx, CourseCover.tsx, ProgramGrid.tsx             # Đợt 8
-│  ├─ ProgressBar.tsx, SessionOutline.tsx                          # Đợt 10
+│  ├─ ProgressRing.tsx (Đợt 15, thay ProgressBar), SessionOutline.tsx # Đợt 10, 15
+│  ├─ PasswordInput.tsx                                             # Đợt 15: ô mật khẩu có nút mắt
 │  ├─ LoginReminders.tsx             # Đồng ý chính sách + nhắc đổi mật khẩu (thay ConsentReminder, Đợt 11)
 │  ├─ OneTimeSecret.tsx              # Mật khẩu hiện một lần + tin nhắn Zalo (Đợt 11)
 │  └─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
@@ -115,7 +116,7 @@ flowchart TB
 | Bảng/cột/quyền database | `supabase/schema.sql` + tài liệu 04-database |
 | Nhãn trạng thái (Chờ duyệt, Đã duyệt…) | `components/StatusBadge.tsx` |
 | Menu header | `components/SiteHeader.tsx` (`navLinks`) |
-| Tab admin | `app/admin/AdminNav.tsx` |
+| Menu quản trị (sidebar trái / tab ngang trên điện thoại) | `app/admin/AdminNav.tsx`, khung `app/admin/layout.tsx`, số đếm `app/admin/NavCount.tsx` |
 
 ## 4. Phụ thuộc giữa các module lib
 

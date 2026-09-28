@@ -7,7 +7,7 @@ import { formatPrice } from '@/lib/site-config'
 import { daysLeft } from '@/lib/courses'
 import { accountSourceLabel, displayName, formatDateTime, formatDay, paymentLabel, registrationSourceLabel } from '@/lib/format'
 import StatusBadge from '@/components/StatusBadge'
-import ProgressBar from '@/components/ProgressBar'
+import ProgressRing from '@/components/ProgressRing'
 import ActionForm from '@/components/ActionForm'
 import SubmitButton from '@/components/SubmitButton'
 import { ArrowLeftIcon } from '@/components/icons'
@@ -116,7 +116,7 @@ export default async function PatientPage({ params }: { params: { id: string } }
       {!isPatient ? (
         <p className="card p-6 text-sm text-slate-600">Đây là tài khoản nhân viên / admin – quản lý vai trò ở tab &quot;Nhân viên &amp; Admin&quot;.</p>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+        <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
           <div className="space-y-5">
             <section aria-label="Gói và tiến độ" className="card p-5">
               <h3 className="font-bold">Gói & tiến độ</h3>
@@ -138,7 +138,7 @@ export default async function PatientPage({ params }: { params: { id: string } }
                             </span>
                           )}
                         </div>
-                        <ProgressBar done={c.done} total={c.total} className="mt-2 max-w-md" />
+                        <ProgressRing done={c.done} total={c.total} className="mt-2" />
                         <p className="mt-1 text-xs text-slate-400">
                           {c.purchased ? `${c.purchased} buổi đã mua` : 'Mở mọi buổi'} ·{' '}
                           {c.last_activity ? `tập gần nhất ${formatDateTime(c.last_activity)}` : 'chưa tập'}

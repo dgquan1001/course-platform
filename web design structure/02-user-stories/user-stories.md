@@ -396,7 +396,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 
 ### US-13.05 – Thấy tiến độ ✅ (2 SP)
 - FR: FR-153 · BR: BR-91
-- **AC1** Given đã tick 18/72 bài (gói 1 tháng × 6 bài) Then thanh tiến độ "18/72 bài · 25%" ở trình học và thẻ khóa.
+- **AC1** Given đã tick 18/72 bài (gói 1 tháng × 6 bài) Then vòng tròn tiến độ "25%" kèm "18/72 bài hoàn thành" ở trình học và thẻ khóa (Đợt 15 đổi từ thanh ngang sang vòng tròn).
 
 ### US-13.06 – Nút hành động khi tập ✅ (2 SP)
 - FR: FR-154

@@ -30,7 +30,7 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 27/09/2026 · sau Đợt 11 → 13 · **96/96 bước PASS** (xem §3.1). Sau Đợt 10: 83/83; sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
+**Lần chạy gần nhất**: 29/09/2026 · sau Đợt 15 (cải tiến giao diện) · **98/98 bước PASS** (xem §3.1). Sau Đợt 11 → 13: 96/96; sau Đợt 10: 83/83; sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
 **63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
@@ -160,6 +160,9 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-96 | 11 | Hệ thống | ✅ PASS – Qua API, staff không tạo được: đơn nguồn web, đơn chờ, gói của chương trình khác, gói cho chính tài khoản nhân viên (RK-34); bệnh nhân không đọc được `patient_notes`, `account_events`, `consultations`, không gọi được `admin_patients`, `patient_progress`, `_patient_courses` | BR-97, BR-103, T32 |
 | TC-97 | + | Khách / Staff | ✅ PASS – Middleware nhẹ (ADR-016): khách vào `/courses/consultation`, `/admin/patients` → đăng nhập; staff vào `/admin/courses`, `/admin/courses/:id`, `/admin/settings/consultation` → `/admin`; tài khoản bị gỡ quyền admin vào `/admin`, `/admin/patients` → `/courses`; staff không thấy tab "Nhân viên & Admin"; menu staff = Tổng quan, Đơn đăng ký, Bệnh nhân, Phiếu tham vấn, Khách quan tâm | ADR-016, T31 |
 | TC-98 | 12 | Admin / Hệ thống | ✅ PASS – Xóa khóa premium còn khách quan tâm → lead giữ lại, `course_id` về null; xóa tài khoản đã gửi phiếu → phiếu giữ họ tên, SĐT, `user_id` về null (RK-29) | RK-29, database-design §7 |
+| TC-99 | 15 | Khách | ✅ PASS – Trang đăng nhập: gõ mật khẩu, bấm "Hiện mật khẩu" → ô thành `text`, giữ nội dung, không gửi form; bấm "Ẩn mật khẩu" → `password`; trang đăng ký có nút mắt. Các bước cũ điền `#password`, `#currentPassword`… chạy nguyên | FR-191, UI-01 |
+| TC-100 | 15 | Admin | ✅ PASS – Máy tính 1366px: menu quản trị đúng 7 mục theo thứ tự mới, xếp dọc, nằm bên trái nội dung; số cạnh "Đơn đăng ký" = số đơn `pending` trong database (không có đơn chờ thì không hiện). iPhone 13: cùng thứ tự, hàng ngang, cuộn ngang được. Nhân viên: 5 mục (TC-97) | FR-192, UI-02 |
+| TC-101 | 15 | Bệnh nhân | ✅ PASS – Vòng tiến độ `aria-valuenow` 0 → 50 → 100 kèm chữ "0/4 bài", "2/4 bài", "4/4 bài" ở trang khóa, trình học, thẻ "Khóa học của tôi" (thay kiểm tra chữ "x/y bài · %" của TC-81, TC-83); ảnh chụp `course-tile-progress.png`, `desktop-lesson-progress.png` | FR-193, UI-03 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -186,6 +189,10 @@ Nhân viên & Admin), TC-66 (menu nhân viên, `/admin` = Tổng quan), bước 
 Kết quả Đợt 11 → 13 (27/09/2026, schema mới đã chạy): **96/96 PASS**, dữ liệu test dọn sạch (kể cả phiếu, nhật ký tài khoản, câu hỏi thử,
 bộ đếm phiếu / ngày). Các lần chạy trước đỏ: TC-95 lần 1 là **lỗi thật** (form thêm khóa không đổi loại khi chuyển tab bằng link → thêm `key`), lần 2 do locator
 của test bắt nhầm ô giá trong bảng Gói; TC-88 do từ khóa tìm (SĐT test) trùng dãy số trong email test khác → tìm theo tên. Rà soát code khi viết test phát hiện RK-29, RK-34 (đã sửa, xem project-review §7.6).
+
+Đợt 15 (29/09/2026, không đổi schema): TC-99 ↔ "[Khách] Ô mật khẩu có nút con mắt…", TC-100 ↔ "[Admin] Menu quản trị: cột dọc bên trái…",
+TC-101 nằm trong các bước Đợt 10 đã sửa ("[Bệnh nhân] Buổi mở lần lượt…", "Checklist buổi 1…", "Bỏ tick…"); bước "[Nhân viên] Vào trang quản trị…" đọc nhãn menu
+qua `[data-nav-label]` (bỏ số đếm). Kết quả: **98/98 PASS** ngay lần chạy đầu, dữ liệu test dọn sạch; chạy thêm 2 lần để chụp ảnh vòng tiến độ (98/98).
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),

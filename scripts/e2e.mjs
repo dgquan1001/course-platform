@@ -149,6 +149,14 @@ function watch(page, label) {
 
 const toast = (page, text) => page.getByRole('status').filter({ hasText: text }).first().waitFor()
 const alertText = (page, text) => page.getByRole('alert').filter({ hasText: text }).waitFor()
+// Vòng tròn tiến độ (UI-03): chữ "x/y bài" + aria-valuenow = %
+async function progress(scope, done, total, pct) {
+  await scope.getByTestId('progress-text').filter({ hasText: `${done}/${total} bài` }).first().waitFor()
+  await scope.locator(`[data-testid=progress-ring][aria-valuenow="${pct}"]`).first().waitFor()
+}
+// Nhãn các mục menu quản trị (bỏ số đếm bên cạnh)
+const navLabels = async (page) =>
+  (await page.getByRole('navigation', { name: 'Menu quản trị' }).locator('[data-nav-label]').allTextContents()).map((t) => t.trim())
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const registerButton = (page) => page.getByRole('button', { name: 'Đăng ký', exact: true })
 
@@ -444,6 +452,19 @@ try {
   // =====================================================================
   phase('3. ADMIN – đăng nhập & chuẩn bị khóa học')
   // =====================================================================
+  await step('[Khách] Ô mật khẩu có nút con mắt: hiện / ẩn mật khẩu, không gửi form (đăng nhập, đăng ký)', async () => {
+    await admin.goto(`${BASE}/login`)
+    await admin.fill('#password', 'Thu#matkhau1')
+    await admin.getByRole('button', { name: 'Hiện mật khẩu' }).click()
+    assert((await admin.locator('#password').getAttribute('type')) === 'text', 'Bấm con mắt chưa hiện mật khẩu')
+    assert((await admin.locator('#password').inputValue()) === 'Thu#matkhau1', 'Mất nội dung ô mật khẩu')
+    assert(new URL(admin.url()).pathname === '/login' && !admin.url().includes('error='), 'Bấm con mắt làm gửi form')
+    await admin.getByRole('button', { name: 'Ẩn mật khẩu' }).click()
+    assert((await admin.locator('#password').getAttribute('type')) === 'password', 'Bấm lần 2 chưa ẩn mật khẩu')
+    await admin.goto(`${BASE}/register`)
+    await admin.getByRole('button', { name: 'Hiện mật khẩu' }).waitFor()
+  })
+
   await step('[Admin] Đăng nhập sai mật khẩu hiển thị lỗi', async () => {
     await admin.goto(`${BASE}/login`)
     await admin.fill('#identifier', ADMIN.email)
@@ -460,6 +481,33 @@ try {
     await link.and(admin.locator('[aria-current=page]')).waitFor()
     const bg = await link.evaluate((el) => getComputedStyle(el).backgroundColor)
     assert(bg !== 'rgba(0, 0, 0, 0)', `Nút Quản trị không đổi màu (background: ${bg})`)
+  })
+
+  await step('[Admin] Menu quản trị: cột dọc bên trái đúng thứ tự (máy tính), hàng tab cuộn ngang (điện thoại); số đơn chờ khớp database', async () => {
+    const order = ['Tổng quan', 'Đơn đăng ký', 'Bệnh nhân', 'Khóa học', 'Phiếu tham vấn', 'Khách quan tâm', 'Mẫu phiếu']
+    const labels = await navLabels(admin)
+    assert(JSON.stringify(labels) === JSON.stringify(order), `Thứ tự menu: ${labels}`)
+    const nav = admin.getByRole('navigation', { name: 'Menu quản trị' })
+    const [first, last] = [await nav.getByRole('link').first().boundingBox(), await nav.getByRole('link').last().boundingBox()]
+    const main = await admin.getByRole('heading', { name: 'Tổng quan' }).boundingBox()
+    assert(last.y > first.y && Math.abs(last.x - first.x) < 2, 'Menu chưa xếp dọc trên máy tính')
+    assert(first.x + first.width <= main.x, 'Menu chưa nằm bên trái nội dung')
+    // Số đơn chờ cạnh "Đơn đăng ký" = số đơn pending (nếu có)
+    const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+    const badge = admin.getByTestId('nav-count-registrations')
+    if (count) await badge.filter({ hasText: String(Math.min(count, 99)) }).waitFor()
+    else assert((await badge.count()) === 0, 'Có số đếm khi không có đơn chờ')
+
+    const ctx = await newContext({ ...devices['iPhone 13'] })
+    const phone = await ctx.newPage()
+    await login(phone, ADMIN.email, ADMIN.password, '/admin')
+    await phone.getByRole('heading', { name: 'Bảng quản trị' }).waitFor()
+    assert(JSON.stringify(await navLabels(phone)) === JSON.stringify(order), 'Thứ tự menu trên điện thoại sai')
+    const pnav = phone.getByRole('navigation', { name: 'Menu quản trị' })
+    const [a, b] = [await pnav.getByRole('link').nth(0).boundingBox(), await pnav.getByRole('link').nth(1).boundingBox()]
+    assert(Math.abs(a.y - b.y) < 2 && b.x > a.x, 'Menu trên điện thoại chưa là hàng ngang')
+    assert(await pnav.evaluate((el) => el.scrollWidth > el.clientWidth), 'Hàng tab trên điện thoại không cuộn ngang được')
+    await ctx.close()
   })
 
   await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; tab "Nhân viên & Admin" ghi người cấp; không tự đổi quyền mình', async () => {
@@ -1443,8 +1491,7 @@ try {
     await staff.getByRole('heading', { name: 'Bảng quản trị' }).waitFor()
     await staff.getByRole('heading', { name: 'Tổng quan' }).waitFor()
     await staff.getByRole('link', { name: 'Quản trị', exact: true }).waitFor()
-    const nav = staff.getByRole('navigation', { name: 'Menu quản trị' })
-    const tabs = (await nav.getByRole('link').allTextContents()).map((t) => t.trim())
+    const tabs = await navLabels(staff)
     assert(
       JSON.stringify(tabs) === JSON.stringify(['Tổng quan', 'Đơn đăng ký', 'Bệnh nhân', 'Phiếu tham vấn', 'Khách quan tâm']),
       `Menu của nhân viên: ${tabs}`
@@ -1739,7 +1786,7 @@ try {
     assert(!error, error?.message)
 
     await patient.goto(`${BASE}/courses/${created.courseIds.seq}`)
-    await patient.getByTestId('progress-text').filter({ hasText: '0/4 bài · 0%' }).waitFor()
+    await progress(patient, 0, 4, 0)
     await patient.getByText('Hoàn thành Buổi 1 để mở').first().waitFor()
     await patient.getByText('Gia hạn để mở buổi này').first().waitFor()
 
@@ -1767,12 +1814,15 @@ try {
     await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
     // Tick xong bài cuối buổi 1 → buổi 2 mở → chuyển thẳng sang Buổi 2 – Bài 1
     await patient.waitForURL(seqLessonUrl(1, 0))
-    await patient.getByTestId('progress-text').filter({ hasText: '2/4 bài · 50%' }).waitFor()
+    await progress(patient, 2, 4, 50)
     await patient.getByText('Buổi 2 · Bài 1/2').waitFor()
+    await patient.getByRole('status').evaluateAll((els) => els.forEach((el) => (el.style.visibility = 'hidden'))) // toast che vòng tiến độ
+    await patient.screenshot({ path: `${OUT}desktop-lesson-progress.png` })
 
     await patient.goto(`${BASE}/courses`)
     const tile = patient.locator('.card', { has: patient.getByRole('heading', { name: COURSE_SEQ.title }) })
-    await tile.getByTestId('progress-text').filter({ hasText: '2/4 bài · 50%' }).waitFor()
+    await progress(tile, 2, 4, 50)
+    await tile.screenshot({ path: `${OUT}course-tile-progress.png` })
     await tile.getByRole('link', { name: /Tiếp tục Buổi 2 – Bài 1/ }).waitFor()
     const { count } = await db.from('lesson_progress').select('lesson_id', { count: 'exact', head: true }).eq('user_id', RENEW.id).eq('course_id', created.courseIds.seq)
     assert(count === 2, `Số bài đã tick: ${count}`)
@@ -1797,7 +1847,7 @@ try {
     await patient.getByRole('button', { name: 'Hoàn thành & bài tiếp theo' }).click()
     await patient.waitForURL(/finished=1/)
     await patient.getByText('Chúc mừng! Bạn đã hoàn thành các buổi tập đã mở').waitFor()
-    await patient.getByTestId('progress-text').filter({ hasText: '4/4 bài · 100%' }).waitFor()
+    await progress(patient, 4, 4, 100)
     await patient.goto(seqLessonUrl(2, 0))
     await patient.getByText('Gia hạn để mở buổi này').first().waitFor()
     const { error } = await RENEW.session.from('lesson_progress').insert({ user_id: RENEW.id, lesson_id: seq.lesson(2, 0).id, course_id: created.courseIds.seq })

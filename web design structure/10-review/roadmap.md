@@ -45,7 +45,7 @@ có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/20
 | 13 | Dashboard | R-07 (doanh thu trên dashboard) | ✅ | 27/09/2026 | TC-93 → 94 | ↑ |
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
 | 14 | **Go-live MVP** | A-5, A-7 → A-13, V-12 | ⬜ **Tiếp theo** | — | Smoke test runbook §10 | — |
-| 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 | TC-99 → TC-101 | 98/98 |
+| 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
 
 ### 1.2. Tổng hợp theo nguồn
 

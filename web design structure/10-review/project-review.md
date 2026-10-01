@@ -13,8 +13,9 @@
 | Kiểm thử | E2E **98/98 PASS** (29/09, sau Đợt 15); lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
 | Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
 | Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
-| Còn mở quan trọng | RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RV-20 (giám sát lỗi, backup Storage) |
-| Tiếp theo | Đợt 14 – go-live MVP ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); Đợt 15 – cải tiến giao diện UI-01 → UI-03 ✅ 29/09 (§7.7) |
+| Hạ tầng (02/10) | Thử nghiệm trên Supabase Free + Vercel Hobby, vùng `sin1`, keepalive + sao lưu tuần (Đợt 16, chờ A-14); chuyển gói theo ngưỡng – §7.8 |
+| Còn mở quan trọng | RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RK-35 / RK-37 (giới hạn gói Free – theo dõi), RV-20 (giám sát lỗi) |
+| Tiếp theo | Đợt 14 – go-live MVP ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); Đợt 15 – cải tiến giao diện UI-01 → UI-03 ✅ 29/09 (§7.7); Đợt 16 – hạ tầng gói Free ✅ code 02/10 (§7.8) |
 
 Điểm đánh giá bên dưới (§1) là của bản 0.1 (26/09); v0.2 cải thiện: Kiểm thử 3.5 → 4.5 (96 bước, có kiểm tra API), Vận hành 3 → 3.5 (git, CI,
 rào chặn E2E, runbook; còn thiếu staging, giám sát).
@@ -327,6 +328,35 @@ Các lần chạy trước đỏ: (1) **lỗi thật** – form "Thêm khóa h�
 
 Không phát sinh risk case mới.
 
+### 7.8. Đánh giá hạ tầng – quy mô 500 người học cùng lúc (02/10/2026)
+
+**Yêu cầu chủ dự án**: tối đa 100–500 người học cùng lúc, database lưu tới 1.000 người. **Giai đoạn đầu** (thử nghiệm hiệu quả) chỉ vài chục
+người cùng lúc → chủ dự án chốt chạy **Supabase Free + Vercel Hobby**, chuyển gói theo ngưỡng ([roadmap §3.3](roadmap.md#33-lộ-trình-hạ-tầng--chuyển-gói-chủ-dự-án-chốt-02102026)).
+
+**Kết luận**: kiến trúc chịu được 500 người cùng lúc – video ở YouTube / TikTok (không tốn băng thông của mình), trang công khai ISR,
+mọi truy vấn qua PostgREST (không cạn kết nối database từ serverless). Giới hạn nằm ở **gói dịch vụ** và vài cấu hình ứng dụng.
+
+**Ước tính tải** (500 cùng lúc / 1.000 bệnh nhân): 3–8 request động/giây (cao điểm 10–20), 20–100 truy vấn/giây; database < 100 MB/năm;
+ảnh chuyển khoản ~2 GB/năm; băng thông web 25–40 GB/tháng. Sức chứa gói Free chi tiết: [runbook §12.1](../09-operations/deployment-runbook.md#121-gói-free-chứa-được-bao-nhiêu)
+– khoảng 50 người cùng lúc, 300–500 bệnh nhân hoạt động.
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
+| --- | --- | --- | --- | --- | --- |
+| RK-35 | 🟠 | Vercel Hobby chỉ cho mục đích **phi thương mại**; trung tâm thu tiền gói | 📖 điều khoản Vercel | Có thể bị khóa dự án | 🟡 Chấp nhận trong giai đoạn thử nghiệm; Vercel Pro ở giai đoạn 1 (A-13) |
+| RK-36 | 🔴 | Supabase Free **tạm dừng sau 7 ngày** không truy cập, **không có backup** | 📖 runbook §7 | Website ngừng; mất dữ liệu sức khỏe / thanh toán nếu sự cố | ✅ Đợt 16: `keepalive.yml` (3 ngày / lần), `backup.yml` (DB hằng tuần, Storage hằng tháng, mã hóa AES-256, giữ 90 ngày). Chờ A-14 |
+| RK-37 | 🟡 | Storage Free 1 GB ≈ 2.000 ảnh chuyển khoản tích lũy | 📖 ảnh nén ~0,5 MB; ảnh HEIC trên Chrome không nén được | Hết chỗ → không đăng ký / gia hạn được | Theo dõi hằng tháng (A-16); > 600 MB → Supabase Pro |
+| RK-38 | 🟠 | Không có `vercel.json` → hàm server có thể chạy ở vùng mặc định (Mỹ) trong khi Supabase ở Singapore; mỗi trang 3–6 lượt gọi qua lại | 📖 | Mỗi trang chậm thêm 1–2 giây, khó đạt NFR-16 | ✅ Đợt 16: `vercel.json` `regions: ["sin1"]`. Chờ A-15 xác nhận vùng Supabase |
+| RK-39 | 🟡 | Giới hạn **30 lần đăng nhập sai / IP / 15 phút**, 20 đơn / IP / giờ; mạng di động Việt Nam dùng CGNAT (nhiều thuê bao chung IP), Wi-Fi phòng khám cũng vậy | 📖 `lib/rate-limit.ts` | Giờ cao điểm, lỗi gõ sai của nhiều người cộng dồn → khóa cả IP 15 phút | Giai đoạn 2: nới giới hạn theo IP (VD 150), giữ giới hạn theo tài khoản là chính, bật Turnstile (A-4) |
+| RK-40 | 🟡 | Đăng nhập chạy phía server (`signInWithPassword` trong server action) → Supabase Auth thấy mọi lượt đăng nhập từ vài IP của Vercel; Auth có giới hạn theo IP | 📖 `app/login/actions.ts` | 300–500 người đăng nhập trong vài phút đầu buổi có thể bị "quá nhiều yêu cầu" | Giai đoạn 2: kiểm tra / nâng Supabase › Auth › Rate Limits; thử tải trước giai đoạn 3 |
+| RK-41 | 🟡 | Danh sách admin chỉ hiện **200 dòng** (đơn, bệnh nhân, phiếu, khách) – RV-12 | 📖 `.limit(200)` / `p_limit: 200` | > 200 bệnh nhân: nhân viên không thấy đủ | Giai đoạn 2 (backlog 2b, R-06) – **bắt buộc trước khi tới 1.000 bệnh nhân** |
+| RK-42 | 🔵 | Gmail SMTP ~500 thư/ngày | 📖 | Chưa ảnh hưởng (chỉ quên mật khẩu) | Khi làm R-01: Google Workspace / dịch vụ gửi thư |
+
+Không phải rủi ro ở quy mô 1.000 bệnh nhân: RK-30 (dashboard chỉ vài nhân viên mở), RK-24, kết nối database.
+
+**Kết quả Đợt 16 (02/10/2026)**: `vercel.json`, `keepalive.yml`, `backup.yml`, `scripts/backup-storage.mjs`; không đổi schema / giao diện
+nên không chạy lại E2E. `npm run backup:storage` chạy thử trên project hiện tại: 4 file / 2 bucket, giữ đúng đường dẫn. YAML hợp lệ,
+typecheck / lint sạch. Hai workflow chưa chạy thật trên GitHub – cần secrets (A-14); nên thử khôi phục bản sao lưu vào một project trống 1 lần.
+
 ### Đã kiểm tra – **không** phải rủi ro
 
 | Nghi vấn | Kết quả |
@@ -353,6 +383,7 @@ Không phát sinh risk case mới.
 | ~~Đợt 10 – Buổi – bài & trình học~~ | ✅ 27/09/2026, E2E 83/83, sửa RK-27, RK-28 (xem §7.5) | — |
 | ~~Đợt 11 → 13~~ | ✅ 27/09/2026, E2E 96/96, sửa RK-18, RK-29, RK-34 (xem §7.6) | — |
 | ~~Đợt 15 – Cải tiến giao diện~~ | UI-01 → UI-03 – ✅ 29/09/2026, E2E 98/98 (xem §7.7) | S |
+| ~~Đợt 16 – Hạ tầng gói Free~~ | RK-36, RK-38 – ✅ code 02/10/2026, chờ A-14, A-15 (xem §7.8) | XS |
 | **Tiếp theo** | **Đợt 14 – Go-live MVP** ([roadmap §3.1](roadmap.md#31-đợt-14--go-live-mvp-ưu-tiên-số-1)); sau đó backlog ưu tiên roadmap §3.2 (thông báo, giám sát, staging + CI) | — |
 
 **Thứ tự ưu tiên (lịch sử)**: Đợt 4 tiếp theo – E2E hiện vẫn chạy trên database thật (RK-10), bộ test đã tạo/xóa tài khoản admin và đổi quyền;

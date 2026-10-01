@@ -10,8 +10,10 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-Cập nhật: **29/09/2026** – xong **Đợt 15 – Cải tiến giao diện** (UI-01 → UI-03, §3.0): icon mắt ở ô mật khẩu, menu quản trị dọc bên trái
-có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/2026: xong Đợt 11, 12, 13 → **toàn bộ v0.2 đã có code + E2E**.
+Cập nhật: **02/10/2026** – **Đợt 16 – Hạ tầng gói Free** (§3.3): đánh giá hạ tầng cho 100–500 người học cùng lúc / 1.000 bệnh nhân
+(project-review §7.8), chủ dự án chốt thử nghiệm trên Supabase Free + Vercel Hobby với lộ trình chuyển gói theo ngưỡng; thêm vùng server
+Singapore, workflow giữ Supabase hoạt động và sao lưu hằng tuần (chờ chủ dự án cấu hình secrets – A-14).
+29/09/2026: xong Đợt 15 – Cải tiến giao diện (UI-01 → UI-03) · E2E 98/98. 27/09/2026: xong Đợt 11, 12, 13 → **toàn bộ v0.2 đã có code + E2E**.
 
 ## 0. Tóm tắt hiện trạng
 
@@ -20,8 +22,9 @@ có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/20
 | Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard |
 | Kiểm thử | E2E **98/98 PASS** (29/09/2026, sau Đợt 15, chạy trên project Supabase hiện tại – dữ liệu test) |
 | Hiệu năng | Middleware nhẹ (không gọi mạng khi token còn hạn), xác thực 1 lần / request, header + hộp nhắc dùng chung profile (ADR-016) |
-| Việc tiếp theo | **Đợt 14 – Go-live MVP** (§3.1): chủ yếu là việc của chủ dự án (A-5, A-7, A-8, A-9, A-11 → A-13). Đợt 15 (giao diện) ✅ không đổi schema nên không cần chạy lại SQL |
-| Rủi ro còn mở cần chú ý | RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging – chủ dự án chọn để sau), RK-30 (hiệu năng khi > vài nghìn bệnh nhân), RK-33 (chưa có thông báo khi có phiếu / lead mới) |
+| Hạ tầng | **Thử nghiệm trên gói Free** (Supabase Free + Vercel Hobby, vùng `sin1`), keepalive + sao lưu tuần qua GitHub Actions; chuyển gói theo ngưỡng ở §3.3 / runbook §12 |
+| Việc tiếp theo | **Đợt 14 – Go-live MVP** (§3.1): chủ yếu là việc của chủ dự án (A-5, A-7 → A-12, **A-14, A-15**). Đợt 15, 16 không đổi schema nên không cần chạy lại SQL |
+| Rủi ro còn mở cần chú ý | RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging – chủ dự án chọn để sau), RK-35 (Vercel Hobby phi thương mại – chấp nhận khi thử nghiệm), RK-37 (Storage Free 1 GB), RK-30 (hiệu năng khi > vài nghìn bệnh nhân), RK-33 (chưa có thông báo khi có phiếu / lead mới) |
 
 ## 1. Báo cáo tiến độ
 
@@ -46,14 +49,16 @@ có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/20
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
 | 14 | **Go-live MVP** | A-5, A-7 → A-13, V-12 | ⬜ **Tiếp theo** | — | Smoke test runbook §10 | — |
 | 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
+| 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ code (chờ A-14) | 02/10/2026 (`9e1e7b0`) | Chạy thử `backup:storage` trên project hiện tại; workflow chạy khi có secrets | — (không đổi giao diện) |
 
 ### 1.2. Tổng hợp theo nguồn
 
 | Nguồn | Tổng | ✅ Xong | 🟡 Một phần / chấp nhận có theo dõi | ⬜ Chưa làm |
 | --- | --- | --- | --- | --- |
-| RV (review vòng 1) | 20 | 10 | 3 (RV-10, RV-12, RV-17) | 7 |
+| RV (review vòng 1) | 20 | 10 | 4 (RV-10, RV-12, RV-17, RV-20) | 6 |
 | RK vòng 2–3 (RK-01 → 15) | 15 | 12 | 1 (RK-10) | 2 (RK-02, RK-15) |
 | RK v0.2 (RK-16 → 34) | 19 | 7 (RK-16, 18, 22, 27, 28, 29, 34) | 10 chấp nhận / theo dõi (RK-17, 19, 21, 23, 24, 25, 26, 30, 31, 32) | 2 (RK-20 chờ A-7, RK-33) |
+| RK hạ tầng (RK-35 → 42) | 8 | 2 (RK-36 chờ A-14, RK-38 chờ A-15) | 3 chấp nhận / theo dõi (RK-35, 37, 42) | 3 (RK-39, 40, 41 – giai đoạn 2) |
 | R (tính năng mở rộng, gồm R-00) | 14 | 7 (R-00, 02, 03, 04, 05, 09, 12) | 1 (R-07) | 6 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
 | UI (yêu cầu giao diện 29/09) | 3 | 3 | 0 | 0 |
@@ -69,7 +74,10 @@ có số đếm, vòng tròn % tiến độ · E2E 98/98. Trước đó 27/09/20
 | A-10 | Duyệt / sửa 6 câu hỏi mẫu phiếu tham vấn ở Quản trị › Mẫu phiếu | Đợt 12 | Đợt 14 | ⬜ |
 | A-11 | Quyết định **dọn dữ liệu test** trên production (xóa khóa `[E2E]`, tài khoản / đơn test; giữ admin) – dev chuẩn bị danh sách, chủ dự án xác nhận | V-12, FR-190 | Đợt 14 | ⬜ |
 | A-12 | Domain + Vercel production: `NEXT_PUBLIC_SITE_URL`, SMTP (email quên mật khẩu), Supabase Site URL (runbook §2, §4) | — | Đợt 14 | ⬜ |
-| A-13 | Supabase gói **Pro** (không tự tạm dừng, có backup hằng ngày) hoặc lịch `pg_dump` thủ công | RV-20 | Đợt 14 | ⬜ |
+| A-13 | Supabase gói **Pro** (không tự tạm dừng, có backup hằng ngày) + Vercel Pro | RV-20, RK-35 → 37 | Khi đạt ngưỡng giai đoạn 1 (§3.3) – chủ dự án chốt 02/10 thử nghiệm trên gói Free | ⏸ |
+| A-14 | Cấu hình GitHub secrets / variables cho sao lưu + giữ hoạt động (runbook §7.1), **merge vào `main`**, chạy tay 1 lần, lưu `BACKUP_PASSPHRASE` ở trình quản lý mật khẩu | RK-36, RV-20 | Đợt 14 (trước khi có dữ liệu thật) | ⬜ |
+| A-15 | Xác nhận project Supabase ở vùng **Singapore** (Settings › General); nếu khác, báo dev đổi `vercel.json` cho cùng vùng | RK-38 | Đợt 14 | ⬜ |
+| A-16 | Mỗi tháng ghi số liệu Usage (Supabase, Vercel) vào runbook §12.2, so với ngưỡng chuyển gói | RK-35, 37 | Hằng tháng | ⬜ |
 | A-6 | Xác nhận email liên hệ trong `site-config.ts` là email chính thức | RV-19 | Đợt 14 | ⬜ |
 | A-4 | Tạo khóa Cloudflare Turnstile cho domain production, đặt 2 biến trên Vercel | RK-06 | Khi có domain | ⬜ |
 | A-1 | Project Supabase **staging** cho E2E (runbook §1.1) | RK-10, G-12 | ⏸ Sau MVP (chủ dự án chốt 27/09) | ⬜ |
@@ -108,7 +116,7 @@ Mục tiêu: chạy thật trên production với nội dung thật, nhân viên
 | # | Việc | Ai | Ghi chú |
 | --- | --- | --- | --- |
 | 1 | Sao lưu → chạy `schema.sql` trên production (A-5) | Chủ dự án | An toàn khi chạy lại |
-| 2 | Cấu hình Vercel + domain + SMTP (A-12), Supabase Pro / backup (A-13) | Chủ dự án | |
+| 2 | Cấu hình Vercel + domain + SMTP (A-12); sao lưu + keepalive trên GitHub (A-14), kiểm tra vùng Supabase (A-15). Gói Pro (A-13) theo ngưỡng §3.3 | Chủ dự án | |
 | 3 | Dọn dữ liệu test (A-11) | Dev chuẩn bị SQL + chủ dự án xác nhận | Không tự chạy lệnh xóa trên production khi chưa xác nhận |
 | 4 | Nhập nội dung thật (A-8), duyệt chính sách (A-7), câu hỏi phiếu (A-10) | Chủ dự án / admin | |
 | 5 | Cấp vai trò nhân viên (A-9) | Admin | |
@@ -120,7 +128,8 @@ Mục tiêu: chạy thật trên production với nội dung thật, nhân viên
 | Ưu tiên | Mã | Hạng mục | Vì sao | Công sức |
 | --- | --- | --- | --- | --- |
 | 1 | RK-33 / R-01 | Thông báo cho nhân viên khi có đơn / phiếu / lead mới (email hoặc Zalo OA) và cho bệnh nhân khi đơn được duyệt | Không phải mở dashboard liên tục | S – M |
-| 2 | RV-20 | Giám sát lỗi (Sentry / Vercel logs), backup Storage ảnh chuyển khoản | Vận hành thật | S |
+| 2 | RV-20 | Giám sát lỗi (Sentry / Vercel logs). Backup DB + Storage ✅ Đợt 16 (workflow, chờ A-14) | Vận hành thật | XS |
+| 2b | RK-39 → 41, RV-12 | Chuẩn bị giai đoạn 2 (§3.3): phân trang danh sách admin, nới giới hạn đăng nhập theo IP, giới hạn Supabase Auth | Trước khi > 200 bệnh nhân / > 100 người cùng lúc | S |
 | 3 | A-1, A-2, A-3 | Staging + CI E2E | Thay đổi schema an toàn | S |
 | 4 | RV-12 + R-06 | Phân trang, lọc, xuất Excel đơn / bệnh nhân / doanh thu | Khi > 200 đơn / bệnh nhân | S |
 | 5 | — | Trình học điện thoại tách 2 tab "Bài này / Nội dung" | Chủ dự án chốt để sau (27/09) | S |
@@ -129,9 +138,33 @@ Mục tiêu: chạy thật trên production với nội dung thật, nhân viên
 | 8 | R-10 | Video riêng tư (chống chia sẻ link) | Bảo vệ nội dung trả phí | L |
 | — | RV-06, RV-08, RV-14, RV-15, R-11, R-13, RK-23 | Cải tiến nhỏ, cấu hình trên giao diện, mã giảm giá, khóa cho đội chuyên gia | Theo nhu cầu | — |
 
+### 3.3. Lộ trình hạ tầng & chuyển gói (chủ dự án chốt 02/10/2026)
+
+Giai đoạn thử nghiệm (vài chục người cùng lúc) chạy **gói Free**; chuyển gói khi gặp **một** dấu hiệu ở cột "Chuyển khi".
+Phân tích tải: [project-review §7.8](project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026);
+sức chứa gói Free, bảng theo dõi hằng tháng: [runbook §12](../09-operations/deployment-runbook.md#12-giai-đoạn-thử-nghiệm-trên-gói-free--lộ-trình-chuyển-gói-chốt-02102026).
+
+| Giai đoạn | Chuyển khi | Hạ tầng | Việc dev | Chi phí / tháng |
+| --- | --- | --- | --- | --- |
+| **0. Thử nghiệm** ← hiện tại | — | Supabase Free + Vercel Hobby `sin1`, keepalive, backup tuần | ✅ Đợt 16 | 0đ |
+| **1. Kinh doanh** | ≥ ~30 bệnh nhân trả phí / thu tiền đều · chạy quảng cáo · Storage > 600 MB · Vercel CPU > 70% · egress > 3,5 GB | **Supabase Pro trước**, Vercel Pro (A-13) | Không cần | ~45 USD |
+| **2. Mở rộng** | > 200 bệnh nhân · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như 1 | RV-12 phân trang, RK-39, RK-40, Sentry (backlog 2b) | ~45 USD |
+| **3. Mục tiêu** (300–500 cùng lúc, ~1.000 bệnh nhân) | CPU database > 60% giờ cao điểm | + Supabase compute Small, staging (A-1) | Chạy thử tải (k6) trên staging | ~60–80 USD |
+
 ## 4. Checklist chi tiết theo đợt (mới nhất ở trên)
 
 Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
+
+#### Đợt 16 – Hạ tầng gói Free ✅ code (02/10/2026 · chờ A-14, A-15)
+- [x] Đánh giá hạ tầng cho 100–500 người cùng lúc / 1.000 bệnh nhân → RK-35 → RK-42 (project-review §7.8)
+- [x] Chủ dự án chốt: thử nghiệm trên gói Free, chuyển gói theo ngưỡng (§3.3)
+- [x] `vercel.json`: vùng server `sin1` (Singapore) – RK-38
+- [x] `.github/workflows/keepalive.yml`: mỗi 3 ngày đọc danh sách khóa → Supabase Free không bị tạm dừng – RK-36
+- [x] `.github/workflows/backup.yml`: database hằng tuần (Supabase CLI), ảnh Storage tuần đầu mỗi tháng, mã hóa AES-256, artifact 90 ngày – RK-36, RV-20
+- [x] `scripts/backup-storage.mjs` (`npm run backup:storage`): chạy thử trên project hiện tại – tải đủ 4 file / 2 bucket, giữ cấu trúc thư mục
+- [x] typecheck / lint · [x] tài liệu (runbook §7.1, §12; project-review §7.8; README)
+- [ ] A-14 chủ dự án cấu hình secrets + merge `main` + chạy tay lần đầu · [ ] A-15 xác nhận vùng Supabase
+- Để lại / đề xuất: RK-39 → 41 làm ở giai đoạn 2; thử khôi phục bản sao lưu vào một project trống (nên làm 1 lần sau A-14)
 
 #### Đợt 15 – Cải tiến giao diện ✅ (29/09/2026 · E2E 98/98)
 - [x] Chủ dự án chốt: 7 ô mật khẩu, tab cuộn ngang trên điện thoại, có số đếm trên menu, vòng tiến độ thay tất cả (§3.0)
@@ -225,7 +258,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [ ] RV-17 Chính sách bảo mật – 🟡 kỹ thuật xong, nội dung chờ A-7
 - [ ] RV-18 Link video có thể bị chia sẻ (→ R-10)
 - [ ] RV-19 Xác nhận email liên hệ chính thức (A-6)
-- [ ] RV-20 Logging / giám sát lỗi, backup Storage
+- [ ] RV-20 Logging / giám sát lỗi, backup Storage – 🟡 Đợt 16: backup DB + Storage bằng GitHub Actions; còn giám sát lỗi
 
 ### 5.3. Risk case (RK)
 - [x] RK-01 · [ ] RK-02 · [x] RK-03 · [x] RK-04 · [x] RK-05 · [x] RK-06 · [x] RK-07 · [x] RK-08 · [x] RK-09
@@ -234,6 +267,8 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - v0.2 (chi tiết ở [project-review §7.5 – §7.6](project-review.md#75-review-phiên-bản-02--đợt-7--10-cập-nhật-27092026)):
   [x] RK-16 (có công cụ cấp bù) · 🔵 RK-17 · [x] RK-18 · 🟡 RK-19 · [ ] RK-20 (A-7) · 🔵 RK-21 · [x] RK-22 · 🟡 RK-23 · 🟡 RK-24 · 🔵 RK-25 ·
   🔵 RK-26 · [x] RK-27 · [x] RK-28 · [x] RK-29 · 🟡 RK-30 · 🔵 RK-31 · 🔵 RK-32 · [ ] RK-33 · [x] RK-34
+- Hạ tầng (chi tiết ở [project-review §7.8](project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026)):
+  🟡 RK-35 (chấp nhận khi thử nghiệm) · [x] RK-36 (workflow, chờ A-14) · 🟡 RK-37 · [x] RK-38 (chờ A-15) · [ ] RK-39 · [ ] RK-40 · [ ] RK-41 (= RV-12) · 🔵 RK-42
 
 ### 5.4. Tính năng mở rộng (R)
 - [x] R-00 Xử lý kết quả review (Đợt 1 → 5)

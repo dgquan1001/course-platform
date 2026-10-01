@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Be_Vietnam_Pro } from 'next/font/google'
 import { Suspense } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import NavigationProgress from '@/components/NavigationProgress'
 import SiteHeader from '@/components/SiteHeader'
 import Toaster from '@/components/Toaster'
@@ -54,6 +55,7 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <SiteFooter />
         <LoginReminders />
+        <SpeedInsights />
       </body>
     </html>
   )

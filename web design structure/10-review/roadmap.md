@@ -49,7 +49,7 @@ Singapore, workflow giữ Supabase hoạt động và sao lưu hằng tuần (ch
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
 | 14 | **Go-live MVP** | A-5, A-7 → A-13, V-12 | ⬜ **Tiếp theo** | — | Smoke test runbook §10 | — |
 | 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
-| 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ code (chờ A-14) | 02/10/2026 | Chạy thử `backup:storage` trên project hiện tại; workflow chạy khi có secrets | — (không đổi giao diện) |
+| 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ code (chờ A-14) | 02/10/2026 (`9e1e7b0`) | Chạy thử `backup:storage` trên project hiện tại; workflow chạy khi có secrets | — (không đổi giao diện) |
 
 ### 1.2. Tổng hợp theo nguồn
 

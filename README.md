@@ -12,6 +12,8 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 > nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Bước tiếp theo: **go-live MVP** –
 > [`web design structure/10-review/roadmap.md`](web%20design%20structure/10-review/roadmap.md) §3.1.
 > **Đợt 15 (29/09/2026 – ✅ E2E 98/98)**: icon mắt ở ô mật khẩu, menu quản trị dọc bên trái có số việc cần xử lý, vòng tròn % tiến độ.
+> **Đợt 16 (02/10/2026)**: thử nghiệm trên gói Free (Supabase Free + Vercel Hobby, vùng Singapore), tự giữ Supabase hoạt động và sao lưu
+> hằng tuần bằng GitHub Actions; lộ trình chuyển gói theo ngưỡng – runbook §12.
 
 ## Tính năng
 
@@ -207,6 +209,11 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
 
 1. Đẩy code lên GitHub (file `.env.local` đã được bỏ qua, không bị đẩy lên)
 2. Vào https://vercel.com, **Import** repo, thêm các biến môi trường ở bước 3 (gồm cả SMTP), **Deploy**
+3. `vercel.json` đặt server ở vùng **Singapore** (`sin1`) cho gần Supabase – project Supabase cũng nên ở Singapore
+   (nếu khác, sửa `regions` cho cùng vùng)
+4. Gói Free: bật sao lưu hằng tuần và giữ Supabase không bị tạm dừng – cấu hình secrets theo
+   `web design structure/09-operations/deployment-runbook.md` §7.1. Tải ảnh Storage về máy bất cứ lúc nào: `npm run backup:storage`.
+   Khi nào nên chuyển gói Pro: runbook §12
 
 ## Cấu trúc thư mục
 
@@ -266,6 +273,7 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
     supabase/schema.sql         Toàn bộ bảng, RLS, trigger, storage bucket
     scripts/
       create-admin.mjs          Tạo / nâng quyền tài khoản admin
+      backup-storage.mjs        Tải toàn bộ ảnh Storage về máy (sao lưu)
       e2e.mjs                   Kiểm thử end-to-end
       env.mjs                   Đọc .env.local cho các script
 
@@ -278,6 +286,6 @@ Bộ tài liệu đầy đủ (yêu cầu, user story, kiến trúc, database, A
 
 Danh sách ưu tiên sau khi go-live: `web design structure/10-review/roadmap.md` §3.2. Tóm tắt:
 - Thông báo email / Zalo khi đơn được duyệt, khi có phiếu tham vấn / khách premium mới (đã có sẵn `lib/mailer.ts`)
-- Giám sát lỗi, sao lưu ảnh chuyển khoản; staging + CI chạy E2E
+- Giám sát lỗi; staging + CI chạy E2E (sao lưu database + ảnh đã có từ Đợt 16)
 - Phân trang, xuất Excel đơn / bệnh nhân / doanh thu
 - Để video YouTube ở chế độ **Unlisted** để tránh bị tìm thấy công khai

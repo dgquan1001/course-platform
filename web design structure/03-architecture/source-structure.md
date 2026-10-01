@@ -68,9 +68,10 @@ course-platform/
 │  └─ supabase/ {server, client, public, admin}.ts
 ├─ middleware.ts                     # Nhẹ: đọc phiên từ cookie (getSession), chưa đăng nhập → /login (ADR-016)
 ├─ supabase/schema.sql               # Toàn bộ DB: bảng, index, hàm, trigger, RLS, storage (idempotent)
-├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs}   # e2e ~2.300 dòng, 96 bước
+├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs, backup-storage.mjs}   # e2e ~2.300 dòng, 98 bước; backup-storage: tải ảnh Storage
 ├─ public/images/
-├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb)
+├─ .github/workflows/ {ci.yml, keepalive.yml, backup.yml}   # CI; giữ Supabase Free hoạt động; sao lưu tuần (runbook §7.1)
+├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb), vercel.json (vùng sin1)
 └─ .env.local(.example)
 ```
 

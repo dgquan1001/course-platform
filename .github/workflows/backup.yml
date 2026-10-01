@@ -1,0 +1,86 @@
+# Sao lưu production khi còn ở gói Free (Supabase Free không có backup tự động). Runbook §7.
+#  - Database: hằng tuần (02:00 Chủ nhật giờ Việt Nam) – roles.sql, schema.sql, data.sql bằng Supabase CLI
+#  - Ảnh Storage (ảnh chuyển khoản, ảnh bìa): tuần đầu mỗi tháng hoặc khi chạy tay – tiết kiệm egress gói Free (5 GB/tháng)
+#  - Gói được mã hóa AES-256 bằng BACKUP_PASSPHRASE rồi lưu thành artifact 90 ngày (Actions › lần chạy › Artifacts)
+# Chỉ chạy khi đã cấu hình: Settings › Secrets and variables › Actions
+#   - Variables: BACKUP_ENABLED = true
+#   - Secrets:   PROD_SUPABASE_DB_URL (chuỗi "Session pooler", có mật khẩu DB), PROD_SUPABASE_URL,
+#                PROD_SUPABASE_ANON_KEY, PROD_SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE
+# Lịch (schedule) chỉ chạy trên nhánh mặc định (main).
+name: Sao lưu production
+
+on:
+  schedule:
+    - cron: '0 19 * * 6'
+  workflow_dispatch:
+    inputs:
+      storage:
+        description: 'Tải cả ảnh Storage'
+        type: boolean
+        default: true
+
+concurrency: backup
+
+jobs:
+  backup:
+    if: ${{ vars.BACKUP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.PROD_SUPABASE_DB_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Kiểm tra cấu hình
+        id: plan
+        env:
+          FORCE_STORAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.storage }}
+        run: |
+          for name in SUPABASE_DB_URL NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_PASSPHRASE; do
+            if [ -z "${!name}" ]; then echo "::error::Thiếu secret cho $name"; exit 1; fi
+          done
+          if [ "$FORCE_STORAGE" = "true" ] || [ "$(date -u +%-d)" -le 7 ]; then
+            echo "storage=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "stamp=$(TZ=Asia/Ho_Chi_Minh date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Sao lưu database
+        run: |
+          mkdir -p backup/db
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/db/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/db/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/db/data.sql --use-copy --data-only
+
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.storage == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Sao lưu ảnh Storage
+        if: steps.plan.outputs.storage == 'true'
+        run: |
+          npm ci
+          npm run backup:storage -- backup/storage
+
+      - name: Nén và mã hóa
+        run: |
+          tar -czf backup.tar.gz backup
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" -o "hv-backup-${{ steps.plan.outputs.stamp }}.tar.gz.gpg" backup.tar.gz
+          rm -rf backup backup.tar.gz
+          ls -lh hv-backup-*.gpg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hv-backup-${{ steps.plan.outputs.stamp }}
+          path: hv-backup-*.tar.gz.gpg
+          retention-days: 90
+          if-no-files-found: error

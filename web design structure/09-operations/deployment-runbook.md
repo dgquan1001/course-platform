@@ -103,12 +103,46 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 
 | Dữ liệu | Cách sao lưu | Tần suất đề xuất |
 | --- | --- | --- |
-| Database | Backup tự động của Supabase (gói Pro: hằng ngày, PITR) hoặc `pg_dump` định kỳ | Hằng ngày |
-| Storage (ảnh CK) | Không có trong backup DB → tải bằng Supabase CLI / script định kỳ | Hằng tuần |
+| Database | **Gói Free (hiện tại)**: workflow `.github/workflows/backup.yml` (Supabase CLI `db dump`). **Gói Pro**: backup tự động hằng ngày của Supabase (vẫn có thể giữ workflow làm bản sao thứ hai) | Hằng tuần (Free) / hằng ngày (Pro) |
+| Storage (ảnh CK, ảnh bìa) | Không có trong backup DB → cùng workflow (`npm run backup:storage`), hoặc chạy tay trên máy: `npm run backup:storage` | Tuần đầu mỗi tháng (tiết kiệm egress gói Free) |
 | Mã nguồn | GitHub | Mỗi commit |
 | Cấu hình | Lưu danh sách biến môi trường (không lưu giá trị bí mật trong repo) ở trình quản lý mật khẩu | Khi thay đổi |
 
-> Gói Free của Supabase **tạm dừng project sau 7 ngày không hoạt động** và không có PITR. Với production nên dùng gói Pro.
+> Gói Free của Supabase **tạm dừng project sau 7 ngày không hoạt động** và không có backup / PITR. Giai đoạn thử nghiệm dùng 2 workflow
+> ở §7.1 để bù; khi đạt ngưỡng ở §12 thì chuyển gói Pro.
+
+### 7.1. Bật sao lưu & giữ hoạt động trên GitHub (gói Free – roadmap Đợt 16)
+
+Hai workflow chỉ chạy theo lịch khi đã nằm trên nhánh **`main`** (merge PR) và đã cấu hình ở GitHub › Settings › Secrets and variables › Actions:
+
+| Loại | Tên | Giá trị |
+| --- | --- | --- |
+| Secret | `PROD_SUPABASE_URL` | Project URL của production |
+| Secret | `PROD_SUPABASE_ANON_KEY` | Khóa `anon` / `publishable` |
+| Secret | `PROD_SUPABASE_SERVICE_ROLE_KEY` | Khóa `service_role` / `secret` (để tải ảnh trong bucket riêng tư) |
+| Secret | `PROD_SUPABASE_DB_URL` | Supabase › **Connect** › **Session pooler** › URI (dạng `postgresql://postgres.<ref>:<mật khẩu>@aws-…pooler.supabase.com:5432/postgres`). Dùng **Session pooler** vì máy GitHub không kết nối được địa chỉ IPv6 của "Direct connection". Mật khẩu có ký tự đặc biệt thì phải mã hóa URL (VD `@` → `%40`) |
+| Secret | `BACKUP_PASSPHRASE` | Cụm mật khẩu dài tự đặt để mã hóa bản sao lưu. **Lưu ở trình quản lý mật khẩu** – mất cụm này là không giải mã được bản sao lưu |
+| Variable | `KEEPALIVE_ENABLED` = `true` | Bật `keepalive.yml`: mỗi 3 ngày đọc danh sách khóa → project không bị tạm dừng |
+| Variable | `BACKUP_ENABLED` = `true` | Bật `backup.yml`: database 02:00 Chủ nhật (giờ VN), ảnh Storage tuần đầu mỗi tháng |
+
+Sau khi cấu hình: Actions › "Sao lưu production" › **Run workflow** (tick "Tải cả ảnh Storage") để chạy thử ngay; tương tự "Giữ Supabase hoạt động".
+Bản sao lưu nằm ở trang lần chạy › **Artifacts** (`hv-backup-<ngày>`), giữ **90 ngày**. Muốn giữ lâu hơn: tải về mỗi tháng, cất ở Google Drive
+của trung tâm (file đã mã hóa). Workflow lỗi → GitHub gửi email cho người bật workflow.
+
+**Khôi phục** (thử trên một project Supabase mới trước khi làm với production):
+
+```bash
+# 1. Giải mã (Git Bash trên Windows có sẵn gpg)
+gpg --decrypt -o backup.tar.gz hv-backup-2026-10-04.tar.gz.gpg && tar -xzf backup.tar.gz
+# 2. Nạp vào database đích (chuỗi kết nối Session pooler của project đích; cần psql – Postgres client)
+psql --single-transaction --variable ON_ERROR_STOP=1 \
+  --file backup/db/roles.sql --file backup/db/schema.sql \
+  --command 'SET session_replication_role = replica' --file backup/db/data.sql \
+  --dbname "<chuỗi kết nối project đích>"
+```
+
+Ảnh: tải lên lại bucket cùng tên, giữ nguyên đường dẫn trong `backup/storage/<bucket>/…` (đường dẫn được lưu trong `registrations.payment_proof_path`).
+Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" của Supabase.
 
 ## 8. Xử lý sự cố
 
@@ -123,7 +157,8 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 | Trang chủ không cập nhật khóa mới | Cache ISR | Đợi ≤ 5 phút hoặc thao tác lưu trong admin |
 | Admin không thấy thumbnail ảnh | Ảnh HEIC trên Chrome | Bấm mở ảnh (tải về) hoặc dùng Safari |
 | Lỗi schema cache "column … not found" | PostgREST chưa tải lại schema | Chạy `notify pgrst, 'reload schema';` |
-| Project Supabase bị pause | Free tier không hoạt động 7 ngày | Restore trong dashboard; nâng gói |
+| Project Supabase bị pause | Free tier không hoạt động 7 ngày; workflow `keepalive.yml` chưa bật hoặc lỗi | Restore trong dashboard; bật / kiểm tra workflow (§7.1); nâng gói |
+| Workflow "Sao lưu production" lỗi ở bước database | `PROD_SUPABASE_DB_URL` dùng Direct connection (IPv6) hoặc mật khẩu chưa mã hóa URL | Dùng chuỗi **Session pooler**, mã hóa ký tự đặc biệt (§7.1) |
 | E2E báo "Chưa có bản build" / "Server không khởi động được" / trang 500 `MODULE_NOT_FOUND` | `npm run dev` đang chạy ghi đè thư mục `.next` | Build & test vào thư mục riêng: `NEXT_DIST_DIR=.next-e2e` (xem test-plan §2) |
 | Học viên báo mất khóa sau khi admin ẩn khóa | Chưa chạy `schema.sql` mới (policy RV-01) | Chạy lại `supabase/schema.sql` |
 | E2E báo "Từ chối chạy E2E trên project Supabase …" | Đang trỏ tới project không phải staging (RK-10) | Dùng env của staging (mục 1.1) |
@@ -161,3 +196,45 @@ Code v0.2 đã xong (Đợt 7 → 13, 27/09/2026). Trình tự đưa lên produc
 - Sentry (hoặc Vercel Log Drains) để bắt lỗi server action.
 - Supabase › Reports: số kết nối, dung lượng DB/Storage.
 - Cảnh báo khi số đơn `pending` > 24 giờ (truy vấn định kỳ hoặc email hằng ngày cho admin).
+- **Mỗi tháng** (giai đoạn gói Free): ghi số liệu ở Supabase › Organization › Usage và Vercel › Usage vào bảng §12.2, so với ngưỡng chuyển gói.
+
+## 12. Giai đoạn thử nghiệm trên gói Free & lộ trình chuyển gói (chốt 02/10/2026)
+
+Chủ dự án chọn chạy thử nghiệm (vài chục người xem cùng lúc) trên **Supabase Free + Vercel Hobby**, chuyển gói theo ngưỡng.
+Phân tích tải đầy đủ: [project-review §7.8](../10-review/project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026).
+
+### 12.1. Gói Free chứa được bao nhiêu
+
+Giả định mỗi bệnh nhân đang tập: ~30 buổi/tháng × ~8 lượt mở trang / tick; ~4 ảnh chuyển khoản/năm, mỗi ảnh ~0,5 MB (đã nén).
+Hạn mức gói theo bảng giá tại thời điểm viết – **đối chiếu lại trang giá** của Supabase / Vercel khi quyết định.
+
+| Hạn mức Free | Đủ cho khoảng | Cạn trước? |
+| --- | --- | --- |
+| Supabase database 500 MB | Hàng nghìn bệnh nhân (< 100 KB / người) | Không |
+| Supabase Storage 1 GB | ~2.000 ảnh chuyển khoản **tích lũy** (30 giao dịch/tháng → > 5 năm; 100/tháng → ~1,5 năm) | ⚠️ |
+| Supabase egress 5 GB/tháng | ~1.000 bệnh nhân hoạt động (video ở YouTube, không tính); sao lưu ảnh hằng tháng cũng tính vào đây | Không |
+| Supabase 50.000 MAU | Thoải mái | Không |
+| Vercel Hobby Active CPU 4 giờ/tháng | ~500–600 bệnh nhân tập đều (~0,1 giây CPU / trang động) | ⚠️ cạn đầu tiên |
+| Vercel Hobby 100 GB băng thông, 1 triệu request | ~1.000+ bệnh nhân | Không |
+| Gmail SMTP ~500 thư/ngày | Chỉ dùng quên mật khẩu | Không |
+
+→ Gói Free chịu được khoảng **50 người cùng lúc, 300–500 bệnh nhân hoạt động, vài nghìn giao dịch tích lũy**.
+Hạn chế không phải tải mà là: **tạm dừng sau 7 ngày** (bù bằng `keepalive.yml`), **không backup** (bù bằng `backup.yml`),
+**Vercel Hobby chỉ cho mục đích phi thương mại** (chấp nhận trong thời gian thử nghiệm ngắn).
+
+### 12.2. Ngưỡng chuyển gói (gặp **một** dấu hiệu là chuyển)
+
+| Giai đoạn | Dấu hiệu | Hạ tầng | Chi phí / tháng (ước tính) |
+| --- | --- | --- | --- |
+| 0. Thử nghiệm (hiện tại) | — | Supabase Free + Vercel Hobby (vùng `sin1`) + keepalive + backup tuần | 0đ |
+| 1. Kinh doanh | ≥ ~30 bệnh nhân trả phí / thu tiền đều hằng tháng · chuẩn bị chạy quảng cáo · Storage > 600 MB · Vercel Active CPU > 70% · egress > 3,5 GB | **Supabase Pro trước** (backup hằng ngày, không pause, 100 GB Storage), **Vercel Pro** (hợp lệ thương mại) | ~45 USD |
+| 2. Mở rộng | > 200 bệnh nhân (danh sách admin chỉ hiện 200 dòng) · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như 1 + đợt code: phân trang (RV-12), nới giới hạn đăng nhập theo IP (RK-39), giới hạn Supabase Auth (RK-40), Sentry | ~45 USD + 1 đợt code |
+| 3. Quy mô mục tiêu | 300–500 người cùng lúc, ~1.000 bệnh nhân · CPU database > 60% giờ cao điểm | Supabase compute Small; staging + chạy thử tải trước | ~60–80 USD |
+
+Nếu chỉ chuyển được một gói: **chuyển Supabase trước** (mất dữ liệu bệnh nhân / thanh toán là không lấy lại được).
+
+**Theo dõi hằng tháng** (điền khi xem Usage):
+
+| Tháng | Bệnh nhân hoạt động | DB (MB) | Storage (MB) | Egress (GB) | Vercel CPU (giờ) | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10/2026 | | | | | | |

@@ -251,7 +251,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 
 | ID | Yêu cầu | Ưu tiên | Đợt | TT |
 | --- | --- | --- | --- | --- |
-| FR-190 | Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi go-live | M | 8–10 | ✅ Chuyển đổi trong `schema.sql` (Đợt 8–10) · ⬜ dọn dữ liệu test trước go-live (roadmap Đợt 14) |
+| FR-190 | Khóa hiện có → `kind = program`; bài học hiện có → "Buổi 1"; giá cũ → gói 1 tháng; đơn đã duyệt cũ `access_until = null` (không thời hạn). Dữ liệu hiện tại là dữ liệu test nên có thể xóa trước khi chạy thử | M | 8–10 | ✅ Chuyển đổi trong `schema.sql` (Đợt 8–10) · ⬜ dọn dữ liệu test trước chạy thử (roadmap Đợt 14, bước 2.1 → 2.3) |
 
 ### 2.20. FR cũ thay đổi ở v0.2
 

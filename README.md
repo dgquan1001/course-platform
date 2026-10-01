@@ -9,11 +9,13 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 > **Phiên bản 0.2 (27/09/2026 – ✅ code hoàn tất, E2E 96/96)**: nền tảng chương trình tập luyện, phục hồi chức năng
 > cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng; khóa miễn phí công khai; khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo;
 > lộ trình theo **buổi → bài tập** mở lần lượt, checklist, % tiến độ; phiếu tham vấn bác sĩ; vai trò **bệnh nhân / nhân viên / admin**;
-> nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Bước tiếp theo: **go-live MVP** –
+> nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Bước tiếp theo: **chạy thử MVP (pilot)** theo kế hoạch 7 giai đoạn –
 > [`web design structure/10-review/roadmap.md`](web%20design%20structure/10-review/roadmap.md) §3.1.
 > **Đợt 15 (29/09/2026 – ✅ E2E 98/98)**: icon mắt ở ô mật khẩu, menu quản trị dọc bên trái có số việc cần xử lý, vòng tròn % tiến độ.
 > **Đợt 16 (02/10/2026)**: thử nghiệm trên gói Free (Supabase Free + Vercel Hobby, vùng Singapore), tự giữ Supabase hoạt động và sao lưu
-> hằng tuần bằng GitHub Actions; lộ trình chuyển gói theo ngưỡng – runbook §12.
+> hằng tuần bằng GitHub Actions (đã chạy thật 02/10); lộ trình chuyển gói theo ngưỡng – runbook §12.
+> **Chạy thử (Đợt 14)**: theo dõi ở roadmap §3.1, hướng dẫn từng bước ở `web design structure/09-operations/deployment-runbook.md` §10.
+> Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
 
 ## Tính năng
 
@@ -284,7 +286,7 @@ Bộ tài liệu đầy đủ (yêu cầu, user story, kiến trúc, database, A
 
 ## Gợi ý mở rộng
 
-Danh sách ưu tiên sau khi go-live: `web design structure/10-review/roadmap.md` §3.2. Tóm tắt:
+Danh sách ưu tiên sau đợt chạy thử: `web design structure/10-review/roadmap.md` §3.2. Tóm tắt:
 - Thông báo email / Zalo khi đơn được duyệt, khi có phiếu tham vấn / khách premium mới (đã có sẵn `lib/mailer.ts`)
 - Giám sát lỗi; staging + CI chạy E2E (sao lưu database + ảnh đã có từ Đợt 16)
 - Phân trang, xuất Excel đơn / bệnh nhân / doanh thu

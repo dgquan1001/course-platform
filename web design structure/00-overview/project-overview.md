@@ -108,7 +108,7 @@ Chi tiết: [03-architecture/system-architecture.md](../03-architecture/system-a
 
 ## 9. Định vị lại – phiên bản 0.2 (chốt 27/09/2026)
 
-> Trạng thái (27/09/2026): **✅ đã triển khai toàn bộ yêu cầu v0.2** (Đợt 7 → 13, E2E xem test-plan). Việc còn lại trước khi chạy thật: [roadmap.md](../10-review/roadmap.md) – Đợt 14 (go-live MVP).
+> Trạng thái (27/09/2026): **✅ đã triển khai toàn bộ yêu cầu v0.2** (Đợt 7 → 13, E2E xem test-plan). Việc còn lại trước khi chạy thật: [roadmap.md](../10-review/roadmap.md) – Đợt 14 (chạy thử MVP, kế hoạch 7 giai đoạn §3.1; cập nhật 02/10/2026).
 
 ### 9.1. Tầm nhìn
 Nền tảng dạy cho **bệnh nhân** và **đội chuyên gia**; giai đoạn này tập trung vào **bệnh nhân**. Bệnh nhân tập các chương trình

@@ -111,7 +111,7 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 > Gói Free của Supabase **tạm dừng project sau 7 ngày không hoạt động** và không có backup / PITR. Giai đoạn thử nghiệm dùng 2 workflow
 > ở §7.1 để bù; khi đạt ngưỡng ở §12 thì chuyển gói Pro.
 
-### 7.1. Bật sao lưu & giữ hoạt động trên GitHub (gói Free – roadmap Đợt 16)
+### 7.1. Bật sao lưu & giữ hoạt động trên GitHub (gói Free – roadmap Đợt 16) – ✅ đã bật, chạy thử thành công 02/10/2026
 
 Hai workflow chỉ chạy theo lịch khi đã nằm trên nhánh **`main`** (merge PR) và đã cấu hình ở GitHub › Settings › Secrets and variables › Actions:
 
@@ -174,22 +174,101 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 4. Nếu key bị commit lên git: xóa khỏi lịch sử (git filter-repo) **sau** khi đã xoay khóa.
 5. Ghi lại sự cố, nguyên nhân, biện pháp phòng ngừa.
 
-## 10. Chuyển lên phiên bản 0.2 – go-live MVP (roadmap Đợt 14)
+## 10. Chạy thử MVP (pilot) – hướng dẫn từng bước (roadmap Đợt 14)
 
-Code v0.2 đã xong (Đợt 7 → 13, 27/09/2026). Trình tự đưa lên production:
+Code v0.2 xong (Đợt 7 → 13), giao diện Đợt 15, hạ tầng gói Free Đợt 16. Mục này là **cách làm chi tiết** từng bước;
+trạng thái theo dõi ở [roadmap §3.1](../10-review/roadmap.md#31-đợt-14--chạy-thử-mvp-pilot--kế-hoạch-từng-bước).
+Làm theo thứ tự giai đoạn 1 → 7; trong một giai đoạn các bước không ghi "sau bước …" có thể làm song song.
 
-1. Sao lưu database (runbook §7) trước mỗi đợt có thay đổi schema.
-2. Chạy `supabase/schema.sql` mới nhất trên **staging** → E2E → rồi mới chạy trên production, sau đó deploy code của đợt.
-   Code đợt mới **không** chạy được với schema cũ (thiếu cột/hàm) – luôn chạy schema trước.
-3. Đợt 8: tạo bucket public `course-covers` (schema tự tạo), thêm domain Supabase Storage vào `images.remotePatterns` và CSP `img-src`.
-4. Sau deploy: cấp vai trò `staff` cho nhân viên ở Quản trị › Bệnh nhân (ô Vai trò) – tài khoản nhân viên tự đăng ký hoặc tạo bằng `create-admin` rồi hạ quyền.
-5. **Dọn dữ liệu test trước go-live** (hiện toàn bộ là dữ liệu test – 27/09/2026): xóa đơn, tài khoản học viên test, khóa học test
-   trong Supabase Dashboard (hoặc script SQL do dev chuẩn bị, chạy có xác nhận), giữ tài khoản admin; kiểm tra lại bucket `payment-proofs`.
-6. Soạn nội dung: ảnh bìa, 2 chương trình (Vẹo lưng, Vẹo ngực) với gói 1/3/6/12 tháng, khung buổi, khóa miễn phí, 3 khóa premium,
-   mẫu phiếu tham vấn, trang chính sách bảo mật (chủ trung tâm duyệt nội dung pháp lý).
-7. Smoke test sau deploy: khách xem khóa free, lead premium mở Zalo, đăng ký chọn gói, staff tạo bệnh nhân Zalo (mật khẩu hiện một lần),
-   bệnh nhân đăng nhập (hộp nhắc đổi mật khẩu), tick buổi 1, gửi phiếu tham vấn, staff xử lý phiếu, admin xem Tổng quan + doanh thu.
-8. Tuần đầu: mỗi ngày mở Tổng quan (đơn chờ, phiếu mới, lead mới); cuối tuần đối soát doanh thu tiền mặt theo nhân viên (bảng "Theo người duyệt / cấp gói").
+> Project Supabase hiện tại (đang chứa dữ liệu test) **chính là production** của đợt chạy thử – không tạo project mới.
+> Sau khi dọn dữ liệu (giai đoạn 2) **không chạy E2E trên project này nữa** (E2E tạo / xóa dữ liệu) – xem bước 2.5.
+
+### Giai đoạn 1 – Hạ tầng & cấu hình (chủ dự án, ~1 buổi)
+
+| Bước | Việc | Cách làm | Xong khi |
+| --- | --- | --- | --- |
+| 1.1 | ✅ Sao lưu + giữ Supabase hoạt động (A-14) | §7.1 – đã chạy thử 2 workflow 02/10/2026 | Actions có ✅ + artifact `hv-backup-…` |
+| 1.2 | Vùng Supabase (A-15) | Supabase › Project Settings › General › Region | Là Singapore; nếu khác báo dev đổi `vercel.json` |
+| 1.3 | Vercel production | Vercel › Add New › Project › import repo; **Production Branch = `main`**; Settings › **Node.js Version = 22.x** trở lên; Settings › Environment Variables (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, `SMTP_*`, `MAIL_FROM` (§2). **Không** đặt `MAIL_OUTBOX_DIR`, `E2E_SUPABASE_REF` | Deploy xanh, mở được trang chủ; Settings › Functions › Region = Singapore (sin1) |
+| 1.4 | Tên miền (tùy chọn khi chạy thử) | Dùng tạm `<tên>.vercel.app`, hoặc Vercel › Settings › Domains › thêm domain riêng, trỏ DNS theo hướng dẫn | `NEXT_PUBLIC_SITE_URL` = địa chỉ chính thức, đã redeploy |
+| 1.5 | Supabase Auth (sau 1.4) | Authentication › URL Configuration › **Site URL** = địa chỉ ở 1.4; Providers › Email: tắt "Confirm email"; cân nhắc tắt "Allow new users to sign up" (hệ thống tạo tài khoản bằng service role); Password: tối thiểu 8 ký tự | Lưu thành công |
+| 1.6 | Email quên mật khẩu (A-12) | Gmail của trung tâm: bật xác minh 2 bước → App Password → điền `SMTP_*` trên Vercel → redeploy (README "Cấu hình gửi email") | Quên mật khẩu bằng email thật nhận được mã 6 số |
+| 1.7 | Turnstile (A-4) | §6 "Bật Turnstile". **Tùy chọn** khi chỉ mời người quen; **bắt buộc** trước khi quảng bá công khai | Form đăng ký hiện ô xác minh |
+
+### Giai đoạn 2 – Dữ liệu sạch (dev chuẩn bị, chủ dự án xác nhận và chạy)
+
+| Bước | Việc | Cách làm | Xong khi |
+| --- | --- | --- | --- |
+| 2.1 | Script dọn dữ liệu test (A-11) | **Dev** viết `supabase/cleanup-test-data.sql` gồm 2 phần: (1) **xem trước** – đếm và liệt kê khóa, tài khoản, đơn, phiếu, lead sẽ xóa; (2) **xóa** – giữ tài khoản admin, mẫu phiếu tham vấn | File có trong repo, chủ dự án đã đọc danh sách xem trước |
+| 2.2 | Sao lưu ngay trước khi xóa (sau 2.1) | Actions › "Sao lưu production" › Run workflow (tick ảnh Storage) | Có artifact mới trong ngày |
+| 2.3 | Chạy dọn dữ liệu (sau 2.2) | Supabase › SQL Editor: chạy phần xem trước → đối chiếu → chạy phần xóa; xóa ảnh test trong Storage › `payment-proofs`, `course-covers` | Quản trị › Tổng quan: 0 bệnh nhân, 0 đơn; Khóa học trống (hoặc chỉ còn khóa thật) |
+| 2.4 | Schema mới nhất (A-5) | Đợt 15, 16 không đổi schema; nếu chưa chạy `supabase/schema.sql` từ sau Đợt 13 thì chạy lại (an toàn khi chạy nhiều lần) | Không lỗi khi chạy |
+| 2.5 | Project staging (A-1) – **đề xuất làm trước chạy thử** | §1.1. Gói Free cho 2 project nên không tốn tiền; từ nay mọi đợt code mới cần staging để chạy E2E | `npm run test:e2e` chạy được trên staging |
+
+### Giai đoạn 3 – Nội dung (chủ dự án / admin, trên giao diện Quản trị)
+
+| Bước | Việc | Cách làm | Xong khi |
+| --- | --- | --- | --- |
+| 3.1 | Thông tin trung tâm (A-6) | Kiểm tra hotline, Zalo, **email liên hệ** (hiện là Gmail cá nhân), tài khoản ngân hàng trong `lib/site-config.ts` – cần đổi thì báo dev | Mã QR ở box đăng ký quét ra đúng tên + số tài khoản |
+| 3.2 | Chính sách bảo mật (A-7) | Đọc `/chinh-sach-bao-mat`: thời hạn lưu, cam kết phản hồi 72 giờ, nhà cung cấp, email liên hệ – sửa gì báo dev | Chủ trung tâm duyệt (RK-20 đóng) |
+| 3.3 | Khóa miễn phí (A-8) | Quản trị › Khóa học › Miễn phí › thêm khóa, ảnh bìa, bài + link video. Video YouTube để chế độ **Unlisted** | Khách chưa đăng nhập xem được |
+| 3.4 | 2 chương trình Vẹo lưng, Vẹo ngực (A-8) | Thêm chương trình (nhóm bệnh, ảnh bìa, mô tả, "Bạn sẽ đạt được") → bảng **Gói**: giá 1 / 3 / 6 / 12 tháng, số buổi → **Nội dung**: tạo khung N buổi × M bài → điền tên bài + link video | Không còn cảnh báo "bài chưa có video", "số buổi ít hơn gói dài nhất" |
+| 3.5 | 3 khóa premium 1:4 / 1:2 / 1:1 (A-8) | Quản trị › Khóa học › Premium | Bấm "Mở Zalo ngay" mở đúng Zalo trung tâm |
+| 3.6 | Mẫu phiếu tham vấn (A-10) | Quản trị › Mẫu phiếu: sửa / bật tắt / sắp xếp 6 câu mẫu | Bác sĩ duyệt bộ câu hỏi |
+
+### Giai đoạn 4 – Con người & quy trình
+
+| Bước | Việc | Cách làm | Xong khi |
+| --- | --- | --- | --- |
+| 4.1 | Tài khoản nhân viên (A-9) | Nhân viên tự đăng ký ở `/register` (hoặc admin tạo ở Bệnh nhân › Tạo bệnh nhân) → admin: Bệnh nhân › ô Vai trò → **Nhân viên** | Nhân viên đăng nhập thấy menu 5 mục |
+| 4.2 | Hướng dẫn nhân viên (~30 phút) | Đi qua §6: duyệt đơn (mở ảnh, **đối chiếu sao kê ngân hàng** trước khi Duyệt), tạo bệnh nhân Zalo + gửi tin nhắn mật khẩu, cấp gói / gia hạn, cấp lại mật khẩu, xử lý phiếu tham vấn, khách quan tâm | Mỗi nhân viên tự làm thử 1 lần trên tài khoản test |
+| 4.3 | Mẫu tin nhắn Zalo | Chủ dự án soạn: lời mời chạy thử, gửi tài khoản (nút "Chép tin nhắn gửi Zalo" đã có sẵn), nhắc tập khi "không tập > 7 ngày", nhắc gia hạn | Lưu ở Zalo "Tin nhắn nhanh" |
+| 4.4 | Phân công | Ai mở **Tổng quan đầu mỗi ca** (chưa có thông báo – RK-33), ai đối soát tiền cuối tuần, ai liên hệ dev khi lỗi | Có danh sách người phụ trách |
+
+### Giai đoạn 5 – Nghiệm thu trước khi mời bệnh nhân (dev + chủ dự án, ~1 giờ)
+
+Thử trên **iPhone (Safari)**, **Android (Chrome)** và máy tính (admin). Tài khoản thử là người nội bộ; xong có thể giữ làm tài khoản thật hoặc xóa.
+
+- [ ] Khách: trang chủ hiện đúng 3 nhóm khóa, ảnh bìa; xem video khóa miễn phí không cần đăng nhập
+- [ ] Khách: khóa premium → để lại SĐT / "Mở Zalo ngay" → nhân viên thấy ở Khách quan tâm
+- [ ] Đăng ký chương trình bằng điện thoại: chọn gói, **chuyển khoản thật** theo QR (gói rẻ nhất), tải ảnh → nhân viên **Duyệt** → bệnh nhân thấy "Còn N ngày"
+- [ ] Nhân viên tạo bệnh nhân Zalo + cấp gói tiền mặt → đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi mật khẩu
+- [ ] Bệnh nhân: tick hết Buổi 1 → Buổi 2 mở; vòng tiến độ đổi; nút "Tiếp tục Buổi X – Bài Y" đúng
+- [ ] Bệnh nhân gửi phiếu tham vấn → nhân viên chuyển Mới → Đã liên hệ → Hoàn tất
+- [ ] Quên mật khẩu bằng email thật nhận mã
+- [ ] Admin: Tổng quan khớp số liệu, doanh thu hiện đúng 2 giao dịch thử
+- [ ] Vercel › Logs không có lỗi đỏ trong lúc thử
+
+### Giai đoạn 6 – Chạy thử (đề xuất 4 tuần, 10–30 bệnh nhân – chủ dự án chốt ở bước 6.1)
+
+| Bước | Việc | Cách làm |
+| --- | --- | --- |
+| 6.1 | Chốt nhóm chạy thử | Số người, nhóm bệnh (vẹo lưng / vẹo ngực), thời gian, giá (đầy đủ / ưu đãi / cấp gói 0đ ghi chú "chạy thử") – ghi vào roadmap §3.1 |
+| 6.2 | Mời theo đợt nhỏ | Tuần 1: 5–10 người (người quen, bệnh nhân cũ) → sửa lỗi phát sinh → tuần 2 trở đi mời thêm |
+| 6.3 | Hằng ngày | Mở **Tổng quan** đầu ca: đơn chờ duyệt, phiếu tham vấn mới, khách quan tâm mới; gọi / Zalo bệnh nhân sắp hết hạn |
+| 6.4 | Hằng tuần | Đối soát doanh thu "Theo người duyệt / cấp gói" với sao kê + tiền mặt; xem Actions có ✅ "Sao lưu production"; nhắn bệnh nhân "không tập > 7 ngày"; ghi góp ý / lỗi vào nhật ký §10.1 |
+| 6.5 | Hằng tháng | Ghi Usage vào §12.2 (A-16); tải 1 bản sao lưu `.gpg` cất vào Google Drive của trung tâm |
+| 6.6 | Khi có lỗi | Tra §8; gửi dev: ảnh chụp màn hình, giờ xảy ra, tài khoản (SĐT), thao tác vừa làm |
+
+### Giai đoạn 7 – Đánh giá & quyết định (cuối đợt chạy thử)
+
+| Chỉ số | Lấy ở đâu |
+| --- | --- |
+| Số bệnh nhân tham gia / đã kích hoạt gói | Tổng quan, Bệnh nhân |
+| Tỷ lệ tập đều (không nằm trong "không tập > 7 ngày") | Bệnh nhân › lọc "Không tập > 7 ngày" |
+| Tiến độ trung bình theo chương trình | Tổng quan |
+| Số phiếu tham vấn, thời gian từ Mới → Đã liên hệ | Phiếu tham vấn |
+| Tỷ lệ gia hạn; khách từ khóa miễn phí / premium chuyển thành bệnh nhân | Đơn đăng ký, Khách quan tâm |
+| Thời gian duyệt đơn trung bình; số lỗi; góp ý chính | Đơn đăng ký (Ngày đăng ký → Ngày xử lý), nhật ký §10.1 |
+
+Quyết định: **(a) mở rộng** → hạ tầng giai đoạn 1 (Supabase Pro trước, Vercel Pro – roadmap §3.3), bật Turnstile, quảng bá;
+**(b) điều chỉnh** → chủ dự án sắp lại backlog roadmap §3.2 theo góp ý; **(c) dừng / đổi hướng**. Ghi kết quả vào project-review.
+
+### 10.1. Nhật ký chạy thử
+
+| Ngày | Người ghi | Loại (lỗi / góp ý / sự cố / số liệu) | Nội dung | Xử lý | Trạng thái |
+| --- | --- | --- | --- | --- | --- |
+| | | | | | |
 
 ## 11. Giám sát (đề xuất)
 

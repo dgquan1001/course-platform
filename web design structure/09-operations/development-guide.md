@@ -2,7 +2,7 @@
 
 ## 1. Chuẩn bị
 
-- Node.js 18.17+ (khuyến nghị 20 LTS), npm.
+- Node.js **22+** (bắt buộc từ `@supabase/supabase-js` 2.117 – Node 20 báo "native WebSocket not found"; `package.json` `engines`), npm.
 - Chrome hoặc Edge (cho E2E).
 - Tài khoản Supabase (project dev riêng, **không** dùng production để phát triển).
 - VS Code + extension: ESLint, Tailwind CSS IntelliSense, Markdown Preview Mermaid Support.

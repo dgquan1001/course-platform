@@ -158,6 +158,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 | Admin không thấy thumbnail ảnh | Ảnh HEIC trên Chrome | Bấm mở ảnh (tải về) hoặc dùng Safari |
 | Lỗi schema cache "column … not found" | PostgREST chưa tải lại schema | Chạy `notify pgrst, 'reload schema';` |
 | Project Supabase bị pause | Free tier không hoạt động 7 ngày; workflow `keepalive.yml` chưa bật hoặc lỗi | Restore trong dashboard; bật / kiểm tra workflow (§7.1); nâng gói |
+| Script / workflow báo "Node.js detected but native WebSocket not found" | `@supabase/supabase-js` ≥ 2.117 cần **Node 22+** | Workflow dùng `node-version: 22`; `package.json` có `engines.node >= 22`; Vercel › Settings › Node.js Version chọn 22.x trở lên |
 | Workflow "Sao lưu production" lỗi ở bước database | `PROD_SUPABASE_DB_URL` dùng Direct connection (IPv6) hoặc mật khẩu chưa mã hóa URL | Dùng chuỗi **Session pooler**, mã hóa ký tự đặc biệt (§7.1) |
 | E2E báo "Chưa có bản build" / "Server không khởi động được" / trang 500 `MODULE_NOT_FOUND` | `npm run dev` đang chạy ghi đè thư mục `.next` | Build & test vào thư mục riêng: `NEXT_DIST_DIR=.next-e2e` (xem test-plan §2) |
 | Học viên báo mất khóa sau khi admin ẩn khóa | Chưa chạy `schema.sql` mới (policy RV-01) | Chạy lại `supabase/schema.sql` |

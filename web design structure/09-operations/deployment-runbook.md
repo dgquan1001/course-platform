@@ -10,6 +10,9 @@
 | Preview | Vercel Preview (mỗi PR) | **Nên** là project staging | Biến môi trường riêng cho Preview |
 | Production | Vercel Production | Project production | |
 
+> Sau Đợt 17 (ADR-017): Preview / Production chạy trên **Cloudflare Workers** (Workers Builds), E2E chuẩn chạy trên preview workerd –
+> xem [cloudflare-migration.md](cloudflare-migration.md).
+>
 > Hiện tại cấu hình mặc định chỉ dùng **một** project Supabase. Khuyến nghị tách staging/production trước khi có nhiều người phát triển.
 
 ### 1.1. Môi trường kiểm thử (staging) cho E2E (RK-10)
@@ -56,6 +59,9 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 8. Cập nhật `lib/site-config.ts` (hotline, email, Zalo, ngân hàng) và ảnh trong `public/images/`.
 
 ## 4. Triển khai lên Vercel
+
+> ⚠️ **04/10/2026 – chủ dự án chốt chuyển sang Cloudflare Workers** (ADR-017, roadmap Đợt 17). Mục này chỉ còn dùng cho đường lùi trong
+> 14 ngày sau cutover. Cách triển khai mới: [cloudflare-migration.md §4](cloudflare-migration.md#4-kế-hoạch-từng-giai-đoạn) – sẽ thay mục này khi xong Đợt 17.
 
 1. Đẩy code lên GitHub (kiểm tra `.env.local` **không** bị commit).
 2. Vercel › Import repo › Framework: Next.js.
@@ -281,6 +287,9 @@ Quyết định: **(a) mở rộng** → hạ tầng giai đoạn 1 (Supabase Pr
 ## 12. Giai đoạn thử nghiệm trên gói Free & lộ trình chuyển gói (chốt 02/10/2026)
 
 Chủ dự án chọn chạy thử nghiệm (vài chục người xem cùng lúc) trên **Supabase Free + Vercel Hobby**, chuyển gói theo ngưỡng.
+**Cập nhật 04/10/2026 (ADR-017)**: phần web chuyển sang **Cloudflare Workers Paid** (~5 USD/tháng, hợp lệ thương mại) – các dòng "Vercel"
+bên dưới thay bằng hạn mức Workers Paid (10 triệu request, 30 triệu ms CPU / tháng) sau Đợt 17. **Supabase Free giữ làm mặc định**, chỉ nâng
+Pro khi chạm hạn mức Storage / egress (roadmap §3.3).
 Phân tích tải đầy đủ: [project-review §7.8](../10-review/project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026).
 
 ### 12.1. Gói Free chứa được bao nhiêu

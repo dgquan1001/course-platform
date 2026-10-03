@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
   mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
 
@@ -13,9 +13,9 @@
 | Kiểm thử | E2E **98/98 PASS** (29/09, sau Đợt 15); lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
 | Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
 | Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
-| Hạ tầng (02/10) | Chạy thử trên Supabase Free + Vercel Hobby, vùng `sin1`, keepalive + sao lưu tuần đang chạy (Đợt 16, A-14 ✅); chuyển gói theo ngưỡng – §7.8 |
-| Còn mở quan trọng | RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RK-35 / RK-37 (giới hạn gói Free – theo dõi), RV-20 (giám sát lỗi) |
-| Tiếp theo | **Đợt 14 – Chạy thử MVP (pilot)**, 7 giai đoạn ([roadmap §3.1](roadmap.md#31-đợt-14--chạy-thử-mvp-pilot--kế-hoạch-từng-bước), cách làm ở runbook §10) – đang ở giai đoạn 1; Đợt 15 – cải tiến giao diện ✅ 29/09 (§7.7); Đợt 16 – hạ tầng gói Free ✅ 02/10 (§7.8) |
+| Hạ tầng (02/10 → 04/10) | Supabase Free, keepalive + sao lưu tuần đang chạy (Đợt 16, A-14 ✅). **04/10: chốt chuyển web sang Cloudflare Workers Paid** (ADR-017, Đợt 17) thay Vercel; rà soát ảnh hưởng phát hiện **RK-43 🔴** (IP giả qua `X-Forwarded-For`) – §7.9 |
+| Còn mở quan trọng | RK-43 → RK-52 (chuyển hạ tầng, thêm / sửa / xóa – §7.9), RK-20 (nội dung chính sách chờ duyệt – A-7), RK-33 (chưa có thông báo phiếu / lead mới), RK-10 (staging để sau), RK-35 / RK-37 (giới hạn gói Free – theo dõi), RV-20 (giám sát lỗi) |
+| Tiếp theo | **Đợt 17** (chuyển Cloudflare: P0 → P1) → **Đợt 18** (thêm / sửa / xóa bệnh nhân & khóa học) → Đợt 17 P2 → P5 → tiếp **Đợt 14 – Chạy thử MVP (pilot)**, 7 giai đoạn ([roadmap §3.1](roadmap.md#31-đợt-14--chạy-thử-mvp-pilot--kế-hoạch-từng-bước), cách làm ở runbook §10) – tạm dừng ở bước 1.2 chờ Đợt 17; Đợt 15 – cải tiến giao diện ✅ 29/09 (§7.7); Đợt 16 – hạ tầng gói Free ✅ 02/10 (§7.8) |
 
 Điểm đánh giá bên dưới (§1) là của bản 0.1 (26/09); v0.2 cải thiện: Kiểm thử 3.5 → 4.5 (96 bước, có kiểm tra API), Vận hành 3 → 3.5 (git, CI,
 rào chặn E2E, runbook; còn thiếu staging, giám sát).
@@ -342,7 +342,7 @@ mọi truy vấn qua PostgREST (không cạn kết nối database từ serverles
 
 | ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
 | --- | --- | --- | --- | --- | --- |
-| RK-35 | 🟠 | Vercel Hobby chỉ cho mục đích **phi thương mại**; trung tâm thu tiền gói | 📖 điều khoản Vercel | Có thể bị khóa dự án | 🟡 Chấp nhận trong giai đoạn thử nghiệm; Vercel Pro ở giai đoạn 1 (A-13) |
+| RK-35 | 🟠 | Vercel Hobby chỉ cho mục đích **phi thương mại**; trung tâm thu tiền gói | 📖 điều khoản Vercel | Có thể bị khóa dự án | 🟡 04/10: chuyển sang Cloudflare Workers Paid (ADR-017, Đợt 17) – đóng khi cutover xong |
 | RK-36 | 🔴 | Supabase Free **tạm dừng sau 7 ngày** không truy cập, **không có backup** | 📖 runbook §7 | Website ngừng; mất dữ liệu sức khỏe / thanh toán nếu sự cố | ✅ Đợt 16: `keepalive.yml` (3 ngày / lần), `backup.yml` (DB hằng tuần, Storage hằng tháng, mã hóa AES-256, giữ 90 ngày) – chạy thật thành công 02/10 |
 | RK-37 | 🟡 | Storage Free 1 GB ≈ 2.000 ảnh chuyển khoản tích lũy | 📖 ảnh nén ~0,5 MB; ảnh HEIC trên Chrome không nén được | Hết chỗ → không đăng ký / gia hạn được | Theo dõi hằng tháng (A-16); > 600 MB → Supabase Pro |
 | RK-38 | 🟠 | Không có `vercel.json` → hàm server có thể chạy ở vùng mặc định (Mỹ) trong khi Supabase ở Singapore; mỗi trang 3–6 lượt gọi qua lại | 📖 | Mỗi trang chậm thêm 1–2 giây, khó đạt NFR-16 | ✅ Đợt 16: `vercel.json` `regions: ["sin1"]`. Chờ A-15 xác nhận vùng Supabase |
@@ -361,6 +361,30 @@ typecheck / lint sạch.
 **Node 22+** ("native WebSocket not found") trong khi workflow đặt Node 20 (lỗi của dev; bước dump database đã qua). Sửa `aea7eb1`:
 mọi workflow dùng Node 22, `package.json` `engines.node >= 22` (Vercel cũng phải chạy Node 22+). Sau khi sửa, chủ dự án chạy thử thành công
 cả 2 workflow → **RK-36 đóng**, A-14 ✅. Còn lại: thử khôi phục bản sao lưu vào một project trống 1 lần (có thể dùng staging – A-1).
+
+### 7.9. Rà soát chuyển hạ tầng sang Cloudflare Workers (04/10/2026)
+
+**Bối cảnh**: chủ dự án chốt Supabase Free + Cloudflare Workers Paid (ADR-017) vì chi phí và lợi ích lâu dài; đồng thời yêu cầu thêm / sửa / xóa ở
+danh sách bệnh nhân và khóa học (Đợt 18). Rà soát toàn bộ `app/`, `lib/`, `middleware.ts`, `next.config.mjs`, `scripts/`, workflow, schema
+(khóa ngoại khi xóa tài khoản / khóa học). Bảng ảnh hưởng đầy đủ I-01 → I-32 và checklist CF-01 → CF-40:
+[cloudflare-migration.md](../09-operations/cloudflare-migration.md).
+
+| ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
+| --- | --- | --- | --- | --- | --- |
+| RK-43 | 🔴 | `clientIp()` lấy phần tử **đầu** `x-forwarded-for`. Cloudflare giữ header người dùng gửi và nối IP thật vào cuối → người dùng tự đặt được IP | 📖 `lib/rate-limit.ts:24-27`; tài liệu header Cloudflare | Vượt giới hạn đăng nhập sai / đăng ký / gửi mã quên mật khẩu / lead; `remoteip` Turnstile sai | Đợt 17 P2: dùng `cf-connecting-ip`; TC-102 giả header vẫn bị chặn. **Bắt buộc trước khi chạy thật trên Cloudflare** |
+| RK-44 | 🟠 | OpenNext đã ngừng hỗ trợ Next 14 → phải nâng Next 15 / React 19 | 📖 tài liệu OpenNext; `package.json` | 19 file đổi API async, 5 file đổi hook form; lỗi ngầm nếu sót | Đợt 17 P1 tách riêng, E2E 98/98 trên Node trước khi đụng Cloudflare |
+| RK-45 | 🟠 | Trang ISR (`revalidate = 300` ×3) + ~22 lần `revalidatePath` cần cache R2 + tag cache D1 + queue DO | 📖 tài liệu OpenNext caching | Thiếu cấu hình → trang chủ không làm mới sau khi admin sửa khóa, hoặc render động mỗi lần | Đợt 17 P2.2; TC-103 |
+| RK-46 | 🟠 | Email `nodemailer` (SMTP/TCP) chưa chắc chạy trên workerd; hộp thư giả E2E dùng `fs` | 📖 `lib/mailer.ts` | Quên mật khẩu hỏng; E2E không đọc được mã | P0 thử thật; dự phòng Resend (HTTP); hộp thư giả qua HTTP |
+| RK-47 | 🟡 | `next/image` trên Workers cần binding Images (tính phí) | 📖 3 chỗ dùng | Ảnh bìa lỗi / phát sinh phí | Giai đoạn đầu `unoptimized` (ảnh đã nén ở trình duyệt) |
+| RK-48 | 🟠 | `NEXT_PUBLIC_*` nhúng lúc build, khóa bí mật lúc chạy; CSP đọc URL Supabase lúc build | 📖 `next.config.mjs` | Sai chỗ → CSP chặn Supabase, trang lỗi, hoặc lộ service role nếu ghi vào file cấu hình | Bảng biến ở cloudflare-migration P3.4; CF-12 |
+| RK-49 | 🟡 | Đổi URL website: Supabase Site URL, Turnstile hostname, `NEXT_PUBLIC_SITE_URL`, ảnh chia sẻ, chính sách bảo mật ghi "Vercel" | 📖 `app/chinh-sach-bao-mat/page.tsx:86` | Link sai, Turnstile lỗi, thông tin pháp lý sai | P5 + CF-24, CF-35, CF-38 |
+| RK-50 | 🟠 | E2E hiện chạy `next start` (Node) – PASS trên Node không bảo đảm chạy trên workerd | 📖 `scripts/e2e.mjs` | Lỗi chỉ lộ ra trên production | E2E chế độ workers (`opennextjs-cloudflare preview`) là chuẩn nghiệm thu |
+| RK-51 | 🟠 | Chưa có khóa / xóa bệnh nhân; xóa tài khoản sẽ cascade tiến độ, ghi chú; phiếu tham vấn (dữ liệu sức khỏe) còn lại với `user_id = null` | 📖 `schema.sql` khóa ngoại | Không đáp ứng yêu cầu xóa dữ liệu; xóa nhầm mất tiến độ | Đợt 18 QL-03 / QL-04: khóa trước, xóa chỉ admin + điều kiện + gõ SĐT; Q-5 |
+| RK-52 | 🟠 | Xóa khóa học được cả khi còn học viên có gói còn hạn (chỉ cảnh báo) | 📖 `app/admin/courses/page.tsx:136-143` | Bệnh nhân đã trả tiền mất khóa đang học | Đợt 18 QL-08: chặn ở server + database, gợi ý Ẩn (Q-7) |
+
+**Không phải rủi ro khi chuyển**: `keepalive.yml`, `backup.yml`, script sao lưu / tạo admin (gọi thẳng Supabase); kết nối database (qua
+PostgREST, không cần Hyperdrive); phông chữ (tự host lúc build); thời gian chạy (CPU 30 giây / request trên gói Paid); `crypto` / `Buffer`
+(có trong `nodejs_compat` – vẫn kiểm tra bằng E2E).
 
 ### Đã kiểm tra – **không** phải rủi ro
 

@@ -21,6 +21,7 @@ giả định hoặc lặp lại tranh luận cũ. Mẫu: [../../templates/adr-t
 | [ADR-014](ADR-014-staff-provisioned-accounts.md) | Nhân viên tạo tài khoản cho bệnh nhân từ Zalo, mật khẩu hệ thống sinh | Accepted – ✅ Đợt 11 (có điều chỉnh) |
 | [ADR-015](ADR-015-consultation-and-leads.md) | Phiếu tham vấn bác sĩ và khách quan tâm premium | Accepted – ✅ Đợt 8 (khách quan tâm) · ✅ Đợt 12 (phiếu tham vấn, có điều chỉnh) |
 | [ADR-016](ADR-016-lightweight-middleware.md) | Middleware nhẹ: đọc phiên từ cookie, kiểm tra quyền ở trang (cache theo request) | Accepted – ✅ cùng Đợt 11 → 13 (sửa một phần ADR-011) |
+| [ADR-017](ADR-017-cloudflare-workers.md) | Chạy web trên Cloudflare Workers (OpenNext), giữ Supabase Free | Accepted – kế hoạch Đợt 17 (sửa phần "Vercel" của ADR-001) |
 
 > ADR-002 (RLS) và ADR-004 (chuyển khoản, duyệt thủ công) vẫn giữ nguyên, được mở rộng bởi ADR-011 → ADR-015.
 > ADR-006 (tạo tài khoản ở server) được mở rộng bởi ADR-014 cho luồng nhân viên tạo tài khoản.

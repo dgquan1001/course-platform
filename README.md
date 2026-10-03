@@ -15,6 +15,9 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 > **Đợt 16 (02/10/2026)**: thử nghiệm trên gói Free (Supabase Free + Vercel Hobby, vùng Singapore), tự giữ Supabase hoạt động và sao lưu
 > hằng tuần bằng GitHub Actions (đã chạy thật 02/10); lộ trình chuyển gói theo ngưỡng – runbook §12.
 > **Chạy thử (Đợt 14)**: theo dõi ở roadmap §3.1, hướng dẫn từng bước ở `web design structure/09-operations/deployment-runbook.md` §10.
+> **Kế hoạch 04/10/2026**: chuyển phần web sang **Cloudflare Workers Paid** (~5 USD/tháng, hợp lệ thương mại), giữ Supabase Free – ADR-017,
+> Đợt 17 ([`web design structure/09-operations/cloudflare-migration.md`](web%20design%20structure/09-operations/cloudflare-migration.md));
+> Đợt 18: thêm / sửa / xóa ở danh sách bệnh nhân và khóa học (roadmap §3.5). Mục "Deploy (Vercel)" bên dưới còn dùng tới khi xong Đợt 17.
 > Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
 
 ## Tính năng

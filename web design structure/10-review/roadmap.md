@@ -10,7 +10,10 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-Cập nhật: **02/10/2026** – **Đợt 16 – Hạ tầng gói Free ✅** (§3.3): chủ dự án chốt chạy thử trên Supabase Free + Vercel Hobby, chuyển gói
+Cập nhật: **04/10/2026** – chủ dự án chốt **chuyển phần web sang Cloudflare Workers Paid, giữ Supabase Free** (ADR-017) → kế hoạch
+**Đợt 17** (§3.4, chi tiết + checklist nghiệm thu ở [cloudflare-migration.md](../09-operations/cloudflare-migration.md)) và **Đợt 18 – thêm / sửa /
+xóa bệnh nhân & khóa học** (§3.5). Đợt 14 tạm dừng ở bước 1.2; bước 1.3 (Vercel) thay bằng Đợt 17.
+02/10/2026 – **Đợt 16 – Hạ tầng gói Free ✅** (§3.3): chủ dự án chốt chạy thử trên Supabase Free + Vercel Hobby, chuyển gói
 theo ngưỡng; vùng server Singapore; 2 workflow giữ Supabase hoạt động + sao lưu hằng tuần **đã chạy thử thành công** (A-14 ✅).
 **Đợt 14 viết lại thành kế hoạch chạy thử (pilot) 7 giai đoạn** – theo dõi ở §3.1, cách làm từng bước ở runbook §10.
 29/09/2026: xong Đợt 15 – Cải tiến giao diện (UI-01 → UI-03) · E2E 98/98. 27/09/2026: xong Đợt 11, 12, 13 → **toàn bộ v0.2 đã có code + E2E**.
@@ -22,9 +25,9 @@ theo ngưỡng; vùng server Singapore; 2 workflow giữ Supabase hoạt động
 | Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard |
 | Kiểm thử | E2E **98/98 PASS** (29/09/2026, sau Đợt 15, chạy trên project Supabase hiện tại – dữ liệu test) |
 | Hiệu năng | Middleware nhẹ (không gọi mạng khi token còn hạn), xác thực 1 lần / request, header + hộp nhắc dùng chung profile (ADR-016) |
-| Hạ tầng | **Chạy thử trên gói Free** (Supabase Free + Vercel Hobby, vùng `sin1`); keepalive + sao lưu tuần ✅ đang chạy (02/10); chuyển gói theo ngưỡng ở §3.3 / runbook §12 |
-| Việc tiếp theo | **Đợt 14 – Chạy thử MVP (pilot)** (§3.1): giai đoạn 1 hạ tầng & cấu hình → 2 dữ liệu sạch → 3 nội dung → 4 nhân viên → 5 nghiệm thu → 6 chạy thử ~4 tuần → 7 đánh giá. Việc dev: script dọn dữ liệu test (bước 2.1), hỗ trợ nghiệm thu |
-| Rủi ro còn mở cần chú ý | RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging – đề xuất làm trước chạy thử, bước 2.5), RK-33 (chưa có thông báo khi có phiếu / lead mới – nhân viên mở Tổng quan đầu ca), RK-35 (Vercel Hobby phi thương mại – chấp nhận khi thử nghiệm), RK-37 (Storage Free 1 GB) |
+| Hạ tầng | Hiện tại: Supabase Free + Vercel Hobby (chưa có production); keepalive + sao lưu tuần ✅ (02/10). **Chốt 04/10: chuyển web sang Cloudflare Workers Paid (~5 USD/tháng), giữ Supabase Free** – ADR-017, Đợt 17 (§3.4). Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
+| Việc tiếp theo | 1) **Đợt 17 P0 → P1** (thử nghiệm kỹ thuật, nâng Next 15) → 2) **Đợt 18** thêm / sửa / xóa bệnh nhân & khóa học (§3.5) → 3) **Đợt 17 P2 → P5** (chuyển Workers, nghiệm thu, cutover) → 4) tiếp **Đợt 14** từ bước 1.5 (§3.1) |
+| Rủi ro còn mở cần chú ý | **RK-43 🔴** (IP giả được qua `X-Forwarded-For` khi chạy sau Cloudflare – sửa trong Đợt 17 trước khi chạy thật), RK-44 → 52 (chuyển hạ tầng – project-review §7.9), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
 
 ## 1. Báo cáo tiến độ
 
@@ -47,9 +50,11 @@ theo ngưỡng; vùng server Singapore; 2 workflow giữ Supabase hoạt động
 | 12 | Phiếu tham vấn | RK-29 | ✅ | 27/09/2026 | TC-89 → 92 | ↑ |
 | 13 | Dashboard | R-07 (doanh thu trên dashboard) | ✅ | 27/09/2026 | TC-93 → 94 | ↑ |
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
-| 14 | **Chạy thử MVP (pilot)** – 7 giai đoạn (§3.1) | A-1, A-4 → A-12, A-15, A-17, V-12 | 🟡 **Đang làm** – giai đoạn 1 (bước 1.1 ✅) | — | Nghiệm thu runbook §10 giai đoạn 5 | — |
+| 14 | **Chạy thử MVP (pilot)** – 7 giai đoạn (§3.1) | A-1, A-4 → A-11, A-15, A-17, V-12 | ⏸ Tạm dừng ở bước 1.2 – chờ Đợt 17 (bước 1.3 → hạ tầng Cloudflare) | — | Nghiệm thu runbook §10 giai đoạn 5 | — |
 | 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
 | 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ | 02/10/2026 (`9e1e7b0`, sửa Node 22 `aea7eb1`) | 2 workflow chạy thật trên GitHub ✅ (A-14) | — (không đổi giao diện) |
+| 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, A-18 → A-22 | 📝 Kế hoạch (04/10) | — | Checklist CF-01 → CF-40, TC-102, TC-103 | E2E chế độ workers |
+| 18 | **Thêm / sửa / xóa bệnh nhân & khóa học** – §3.5 | QL-01 → QL-08, RK-51, RK-52 | 📝 Kế hoạch (04/10) – đã chốt Q-5 → Q-8, làm sau Đợt 17 P2 | — | TC-104 → TC-110 | — |
 
 ### 1.2. Tổng hợp theo nguồn
 
@@ -62,6 +67,8 @@ theo ngưỡng; vùng server Singapore; 2 workflow giữ Supabase hoạt động
 | R (tính năng mở rộng, gồm R-00) | 14 | 7 (R-00, 02, 03, 04, 05, 09, 12) | 1 (R-07) | 6 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
 | UI (yêu cầu giao diện 29/09) | 3 | 3 | 0 | 0 |
+| RK chuyển hạ tầng & quản lý (RK-43 → 52) | 10 | 0 | 0 | 10 (Đợt 17, 18) |
+| QL (thêm / sửa / xóa – 04/10) | 8 | 1 (QL-01 có sẵn) | 0 | 7 |
 
 ## 2. Việc cần chủ dự án làm (không tự động hóa được)
 
@@ -70,9 +77,14 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | # | Việc | Liên quan | Bước (§3.1) | Trạng thái |
 | --- | --- | --- | --- | --- |
 | A-14 | Cấu hình GitHub secrets / variables cho sao lưu + giữ hoạt động (runbook §7.1), merge `main`, chạy tay lần đầu, lưu `BACKUP_PASSPHRASE` | RK-36, RV-20 | 1.1 | ✅ 02/10/2026 |
-| A-15 | Xác nhận project Supabase ở vùng **Singapore**; nếu khác, báo dev đổi `vercel.json` | RK-38 | 1.2 | ⬜ |
-| A-12 | Vercel production (Node 22, biến môi trường), domain / `NEXT_PUBLIC_SITE_URL`, Supabase Site URL, SMTP Gmail trung tâm | — | 1.3 → 1.6 | ⬜ |
-| A-4 | Cloudflare Turnstile (2 biến trên Vercel) | RK-06 | 1.7 | ⬜ tùy chọn khi chạy thử, bắt buộc trước quảng bá |
+| A-15 | Xác nhận project Supabase ở vùng **Singapore** (ghi vào tài liệu; Smart Placement của Cloudflare tự đặt Worker gần Supabase) | RK-38 | 1.2 / Đợt 17 P3.7 | ⬜ |
+| A-18 | Tài khoản Cloudflare (email trung tâm, **bật 2FA**), đăng ký **Workers Paid** (5 USD/tháng), cảnh báo thanh toán | ADR-017 | Đợt 17 P3.1 | ⬜ |
+| A-19 | **Tên miền**: chủ dự án chốt 04/10 – **chạy thử trên `*.workers.dev`**, chọn / mua tên miền ở đợt sau (đổi nameserver về Cloudflare, bật tự gia hạn) | RK-49 | Sau Đợt 17 | ⏸ |
+| A-20 | Workers Builds kết nối GitHub + nhập biến môi trường / Secret theo [cloudflare-migration §4 P3.4](../09-operations/cloudflare-migration.md#p3--hạ-tầng-cloudflare-chủ-dự-án-dev-hướng-dẫn-qua-màn-hình); tạo R2, D1 | RK-48 | Đợt 17 P3.3 → P3.5 | ⬜ |
+| A-21 | Supabase Auth Site URL / Redirect URLs, Turnstile hostname theo domain mới; (nếu cần) tài khoản Resend + xác minh domain; Email Routing `lienhe@` | RK-49 | Đợt 17 P3.6, P5 | ⬜ |
+| A-22 | Nghiệm thu checklist CF-01 → CF-40 cùng dev, quyết định cutover; sau 14 ngày ổn định xóa project Vercel | — | Đợt 17 P4 → P6 | ⬜ |
+| A-12 | ~~Vercel production~~ → thay bằng A-18 → A-21. Phần còn lại: SMTP / email gửi đi, thử quên mật khẩu | — | 1.6 | ⬜ |
+| A-4 | Cloudflare Turnstile (2 biến trên Workers) | RK-06 | 1.7 | ⬜ tùy chọn khi chạy thử, bắt buộc trước quảng bá |
 | A-11 | Xác nhận & chạy **dọn dữ liệu test** (script dev chuẩn bị, sao lưu trước) | V-12, FR-190 | 2.1 → 2.3 | ⬜ chờ dev viết script |
 | A-5 | `supabase/schema.sql` mới nhất trên production | Tất cả | 2.4 | 🟡 đã chạy trên project này (cùng là production) – kiểm tra lần chạy gần nhất sau Đợt 13 |
 | A-1 | Project Supabase **staging** cho E2E (runbook §1.1) | RK-10, G-12 | 2.5 | ⬜ **đề xuất đưa lên trước chạy thử** (Free cho 2 project; sau khi dọn dữ liệu không chạy E2E trên production được nữa) |
@@ -83,7 +95,8 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-9 | Tài khoản nhân viên, cấp vai trò `staff`; hướng dẫn nhân viên; mẫu tin nhắn Zalo; phân công | Đợt 7 | 4.1 → 4.4 | ⬜ |
 | A-17 | Chốt nhóm chạy thử: số người, nhóm bệnh, thời gian, giá / ưu đãi | — | 6.1 | ⬜ |
 | A-16 | Mỗi tháng ghi Usage (Supabase, Vercel) vào runbook §12.2 | RK-35, 37 | 6.5 | ⬜ hằng tháng |
-| A-13 | Supabase **Pro** trước, rồi Vercel Pro | RV-20, RK-35 → 37 | 7 (khi đạt ngưỡng §3.3) | ⏸ |
+| A-13 | Supabase **Pro** – chỉ khi chạm hạn mức Free (§3.3); không cần Vercel Pro nữa (ADR-017) | RK-37 | Khi đạt ngưỡng | ⏸ |
+| A-23 | Chốt các câu hỏi Đợt 18 (Q-5 → Q-8, §3.5) | RK-51, RK-52 | Trước khi code Đợt 18 | ✅ 04/10/2026 |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 
 ## 3. Kế hoạch tiếp theo
@@ -126,9 +139,9 @@ giai đoạn trước xong (trừ giai đoạn 3 – nội dung, có thể nhậ
 | **1** | **Hạ tầng & cấu hình** (~1 buổi) | | | |
 | 1.1 | Sao lưu + giữ Supabase hoạt động trên GitHub | Chủ dự án | A-14 | ✅ 02/10/2026 |
 | 1.2 | Xác nhận vùng Supabase = Singapore | Chủ dự án | A-15 | ⬜ |
-| 1.3 | Vercel production: nhánh `main`, Node 22.x, biến môi trường, vùng sin1 | Chủ dự án | A-12 | ⬜ |
-| 1.4 | Tên miền (tạm `*.vercel.app` hoặc domain riêng) → `NEXT_PUBLIC_SITE_URL` | Chủ dự án | A-12 | ⬜ |
-| 1.5 | Supabase Auth: Site URL, tắt Confirm email, mật khẩu ≥ 8 | Chủ dự án | A-12 | ⬜ |
+| 1.3 | ~~Vercel production~~ → **Đợt 17** (§3.4): Cloudflare Workers production, biến môi trường, R2 / D1 | Chủ dự án + dev | A-18, A-20 | ⬜ |
+| 1.4 | Tên miền (tạm `*.workers.dev` hoặc domain riêng) → `NEXT_PUBLIC_SITE_URL` – Đợt 17 P3.2, P5 | Chủ dự án | A-19 | ⬜ |
+| 1.5 | Supabase Auth: Site URL (domain mới), tắt Confirm email, mật khẩu ≥ 8 | Chủ dự án | A-21 | ⬜ |
 | 1.6 | SMTP Gmail trung tâm, thử quên mật khẩu | Chủ dự án | A-12 | ⬜ |
 | 1.7 | Turnstile (tùy chọn khi chạy thử) | Chủ dự án | A-4 | ⬜ |
 | **2** | **Dữ liệu sạch** | | | |
@@ -176,24 +189,96 @@ vì phải tự mở Tổng quan, đưa **R-01 thông báo** (backlog 1) lên l�
 
 ### 3.3. Lộ trình hạ tầng & chuyển gói (chủ dự án chốt 02/10/2026)
 
-Giai đoạn thử nghiệm (vài chục người cùng lúc) chạy **gói Free**; chuyển gói khi gặp **một** dấu hiệu ở cột "Chuyển khi".
+**Cập nhật 04/10/2026 (ADR-017)**: phần web chuyển sang **Cloudflare Workers Paid** ngay từ đầu (hợp lệ thương mại, ~5 USD/tháng) thay cho
+Vercel Hobby → Vercel Pro. **Supabase Free là mặc định**, chỉ nâng Pro khi chạm hạn mức (không nâng theo lịch).
 Phân tích tải: [project-review §7.8](project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026);
 sức chứa gói Free, bảng theo dõi hằng tháng: [runbook §12](../09-operations/deployment-runbook.md#12-giai-đoạn-thử-nghiệm-trên-gói-free--lộ-trình-chuyển-gói-chốt-02102026).
 
 | Giai đoạn | Chuyển khi | Hạ tầng | Việc dev | Chi phí / tháng |
 | --- | --- | --- | --- | --- |
-| **0. Thử nghiệm** ← hiện tại | — | Supabase Free + Vercel Hobby `sin1`, keepalive, backup tuần (đang chạy từ 02/10) | ✅ Đợt 16 | 0đ |
-| **1. Kinh doanh** | ≥ ~30 bệnh nhân trả phí / thu tiền đều · chạy quảng cáo · Storage > 600 MB · Vercel CPU > 70% · egress > 3,5 GB | **Supabase Pro trước**, Vercel Pro (A-13) | Không cần | ~45 USD |
-| **2. Mở rộng** | > 200 bệnh nhân · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như 1 | RV-12 phân trang, RK-39, RK-40, Sentry (backlog 2b) | ~45 USD |
-| **3. Mục tiêu** (300–500 cùng lúc, ~1.000 bệnh nhân) | CPU database > 60% giờ cao điểm | + Supabase compute Small, staging (A-1) | Chạy thử tải (k6) trên staging | ~60–80 USD |
+| **0. Thử nghiệm + kinh doanh nhỏ** ← sau Đợt 17 | — | Supabase Free + **Cloudflare Workers Paid**, keepalive, backup (đang chạy từ 02/10) | Đợt 17 | ~5 USD (+ tên miền theo năm) |
+| **1. Chạm hạn mức Supabase Free** | Storage > 600 MB · egress > 3,5 GB/tháng · cần sao lưu hằng ngày tự động / hỗ trợ kỹ thuật | + **Supabase Pro** (A-13) – hoặc chuyển ảnh sang R2 để kéo dài Free (RK-37) | Tùy chọn: ảnh → R2 | ~30 USD |
+| **2. Mở rộng** | > 200 bệnh nhân · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên | RV-12 phân trang, RK-39, RK-40, giám sát lỗi (backlog 2b) | 5–30 USD |
+| **3. Mục tiêu** (300–500 cùng lúc, ~1.000 bệnh nhân) | CPU database > 60% giờ cao điểm | Supabase Pro + compute Small, staging (A-1) | Chạy thử tải (k6) trên staging | ~45–65 USD |
+
+### 3.4. Đợt 17 – Chuyển hạ tầng sang Cloudflare Workers (kế hoạch 04/10/2026)
+
+**Quyết định**: [ADR-017](../03-architecture/adr/ADR-017-cloudflare-workers.md) – Supabase Free + Cloudflare Workers Paid.
+**Kế hoạch chi tiết, rà soát ảnh hưởng (I-01 → I-32), checklist nghiệm thu (CF-01 → CF-40), phương án lùi**:
+[09-operations/cloudflare-migration.md](../09-operations/cloudflare-migration.md). Ước lượng: **4–6 ngày dev** + 1 buổi chủ dự án + 14 ngày theo dõi.
+
+| GĐ | Việc | Ai | Xong khi | Trạng thái |
+| --- | --- | --- | --- | --- |
+| P0 | Thử nghiệm kỹ thuật: OpenNext + Next 15, `nodemailer` trên workerd, hộp thư giả E2E, R2/D1 ở preview | Dev | Kết luận 4 câu hỏi, chọn cách gửi email | ⬜ |
+| P1 | Nâng **Next 15 / React 19** (async `cookies`/`headers`/`params` 19 file, `useActionState` 5 file, `@supabase/ssr` mới) – vẫn chạy Node | Dev | E2E 98/98 trên Node, commit riêng | ⬜ |
+| — | **Đợt 18** (§3.5) làm ở đây – code mới viết trên Next 15 | Dev | | |
+| P2 | OpenNext + `wrangler.jsonc`, cache R2/D1/DO, **IP từ `cf-connecting-ip` (RK-43)**, email, ảnh `unoptimized`, CSP, chính sách bảo mật, E2E chế độ workers + TC-102 (IP giả), TC-103 (ISR), CI build OpenNext | Dev | E2E toàn bộ PASS trên preview workerd | ⬜ |
+| P3 | Tài khoản Cloudflare + Workers Paid, tên miền, R2/D1, Workers Builds, biến / Secret, deploy `*.workers.dev` | Chủ dự án (dev hướng dẫn) | Worker chạy, đủ biến | ⬜ |
+| P4 | Nghiệm thu checklist CF-01 → CF-40 (iPhone + Android + máy tính) | Dev + chủ dự án | Mọi mục 🔴 đạt | ⬜ |
+| P5 | Cutover: domain, Supabase Site URL, Turnstile; smoke test; theo dõi 14 ngày | Chủ dự án + dev | 14 ngày không lỗi nghiêm trọng | ⬜ |
+| P6 | Gỡ Vercel, cập nhật tài liệu, đóng RK | Dev + chủ dự án | Không còn tham chiếu Vercel | ⬜ |
+
+Sau P5 tiếp tục **Đợt 14** từ bước 1.5 (§3.1). Chưa có bệnh nhân thật nên cutover không phải di chuyển dữ liệu.
+
+### 3.5. Đợt 18 – Thêm / sửa / xóa bệnh nhân & khóa học (yêu cầu chủ dự án 04/10/2026 – đã chốt Q-5 → Q-8)
+
+**Hiện trạng (rà soát code 04/10)**:
+
+| Danh sách | Thêm | Sửa | Xóa / ngừng |
+| --- | --- | --- | --- |
+| Bệnh nhân `/admin/patients` | ✅ Nút "+ Tạo bệnh nhân" (`/admin/patients/new`) | 🟡 Chỉ ở **hồ sơ** (`/admin/patients/[id]`): sửa thông tin + ghi chú, cấp gói, cấp lại mật khẩu; **danh sách không có nút thao tác** | ❌ **Không có** xóa hay khóa tài khoản |
+| Khóa học `/admin/courses` | 🟡 Form cố định cột phải (trên điện thoại nằm cuối trang, khó thấy) | 🟡 Có, nhưng giấu trong mục "Sửa thông tin" thu gọn ở cuối mỗi thẻ | 🟡 Có "Ẩn" và "Xóa" (nút xóa cũng giấu trong mục thu gọn); **xóa được cả khi còn học viên đang học** |
+
+Dữ liệu khi xóa tài khoản (đã kiểm tra `schema.sql`): `profiles`, `lesson_progress`, `patient_notes` bị xóa theo (cascade); **đơn đăng ký giữ lại**
+(có sẵn bản chụp họ tên / email / SĐT / tên khóa / số tiền), phiếu tham vấn, khách quan tâm, nhật ký giữ lại với `user_id = null`; ảnh chuyển khoản vẫn trong Storage.
+
+| Mã | Hạng mục | Thiết kế đề xuất | Quyền |
+| --- | --- | --- | --- |
+| QL-01 | Thêm bệnh nhân | Đã có – giữ; thêm nút ở trạng thái danh sách rỗng | Nhân viên, admin |
+| QL-02 | **Cột "Thao tác" ở danh sách bệnh nhân** | Cố định bên phải như bảng đơn (máy tính), hàng nút dưới thẻ (điện thoại): **Hồ sơ** · **Sửa** (hộp thoại họ tên / SĐT / email / ghi chú – dùng lại `updatePatientAction`) · menu "Thêm": Cấp gói / gia hạn, Cấp lại mật khẩu, Khóa / Mở khóa, Xóa | Theo từng mục |
+| QL-03 | **Khóa / mở khóa tài khoản** (ngừng hoạt động, đảo ngược được) | `profiles.disabled_at / disabled_by / disabled_reason` + chặn đăng nhập ở Supabase Auth (`ban_duration`); `requireUserPage` đăng xuất phiên đang mở; trang đăng nhập báo "Tài khoản đang tạm khóa – liên hệ hotline"; bộ lọc "Đã khóa"; ghi `account_events` | Nhân viên, admin (Q-6) |
+| QL-04 | **Xóa vĩnh viễn bệnh nhân** | Chỉ khi **không còn gói còn hạn và không có đơn chờ** (nếu có: thu hồi / từ chối trước, hoặc dùng Khóa); xác nhận bằng **gõ lại SĐT**; xóa tài khoản Auth (cascade như trên); giữ đơn + ảnh chuyển khoản làm chứng từ; phiếu tham vấn theo Q-5; nhật ký lưu tên người bị xóa + người xóa | **Chỉ admin** (Q-6) |
+| QL-05 | Sửa gói đã cấp sai (tùy chọn) | Ở hồ sơ: sửa số tiền / hình thức / ghi chú thanh toán của đơn đã duyệt (không sửa hạn – trigger tính); thu hồi gói kèm lý do (đã có ở bảng đơn, thêm lối tắt) | Nhân viên, admin |
+| QL-06 | **Hàng thao tác rõ ràng ở danh sách khóa học** | Mỗi thẻ khóa: **Sửa** (mở form ngay đầu thẻ / hộp thoại) · Ẩn / Hiện · Quản lý buổi – bài · Xem trang · **Xóa** (đỏ) – không còn giấu trong mục thu gọn | Admin |
+| QL-07 | Thêm khóa học dễ thấy | Nút "+ Thêm khóa học" ở đầu danh sách (mọi màn hình) mở form (chọn sẵn loại theo tab đang xem) | Admin |
+| QL-08 | **Xóa khóa an toàn** | **Chặn xóa** khi còn học viên có gói còn hạn hoặc đơn chờ → gợi ý "Ẩn khóa học" (Q-7); xác nhận bằng gõ tên khóa; xóa luôn ảnh bìa trong Storage; đơn cũ vẫn giữ (RV-02) | Admin |
+
+**Chủ dự án đã chốt (04/10/2026, A-23 ✅)**:
+
+| # | Câu hỏi | Chốt |
+| --- | --- | --- |
+| Q-5 | Xóa bệnh nhân có xóa luôn **phiếu tham vấn** (dữ liệu sức khỏe) không? | ✅ **Có** – dữ liệu sức khỏe; đơn + ảnh chuyển khoản giữ làm chứng từ |
+| Q-6 | Ai được Khóa / Xóa? | ✅ Khóa: nhân viên + admin · Xóa vĩnh viễn: chỉ admin |
+| Q-7 | Khóa học còn học viên đang học: chặn xóa hay cho xóa kèm cảnh báo? | ✅ **Chặn**, chỉ cho Ẩn (học viên vẫn học tiếp – RV-01) |
+| Q-8 | Sửa nhanh ở danh sách: hộp thoại hay chuyển sang trang hồ sơ? | Theo đề xuất (dev tự quyết): hộp thoại cho thông tin cơ bản; cấp gói mở hồ sơ |
+
+**Schema** (chủ dự án chạy `supabase/schema.sql` sau khi dev xong): cột khóa tài khoản ở `profiles` + trigger chỉ nhân viên / admin đổi; hàm
+`admin_patients()` thêm trạng thái "Đã khóa"; hàm kiểm tra điều kiện xóa bệnh nhân / khóa học (dùng chung cho giao diện và server action);
+`account_events` lưu tên người bị xóa. **Kiểm thử dự kiến**: TC-104 sửa nhanh từ danh sách · TC-105 khóa → không đăng nhập được, phiên cũ
+bị đăng xuất, mở khóa → đăng nhập lại được · TC-106 nhân viên không xóa được (cả qua API) · TC-107 admin xóa bệnh nhân còn gói bị chặn;
+hết gói → xóa được, đơn + doanh thu Tổng quan không đổi · TC-108 nút Sửa / Xóa khóa ở danh sách · TC-109 xóa khóa còn học viên bị chặn
+· TC-110 thêm khóa từ nút đầu danh sách. Ước lượng: **2–3 ngày** (gồm E2E, tài liệu).
 
 ## 4. Checklist chi tiết theo đợt (mới nhất ở trên)
 
 Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
 
-#### Đợt 14 – Chạy thử MVP (pilot) 🟡 (bắt đầu 02/10/2026)
+#### Đợt 18 – Thêm / sửa / xóa bệnh nhân & khóa học 📝 (kế hoạch 04/10/2026)
+- [x] Chủ dự án chốt Q-5 → Q-8 (A-23, 04/10/2026)
+- [ ] Schema: khóa tài khoản, `admin_patients()` lọc "Đã khóa", hàm kiểm tra điều kiện xóa, `account_events` lưu tên
+- [ ] Bệnh nhân: [ ] QL-02 cột Thao tác + hộp thoại Sửa · [ ] QL-03 Khóa / mở khóa · [ ] QL-04 Xóa (admin) · [ ] QL-05 sửa gói (tùy chọn)
+- [ ] Khóa học: [ ] QL-06 hàng thao tác · [ ] QL-07 nút Thêm · [ ] QL-08 chặn xóa khi còn học viên, xóa ảnh bìa
+- [ ] typecheck / lint / build · [ ] E2E TC-104 → TC-110 + chạy lại toàn bộ · [ ] tài liệu (SRS, user-stories EP-14 / EP-11, business-rules, database, API, screen-specs, security ma trận quyền, test-plan, project-review, README)
+
+#### Đợt 17 – Chuyển hạ tầng sang Cloudflare Workers 📝 (kế hoạch 04/10/2026)
+- [x] Rà soát ảnh hưởng + kế hoạch + checklist nghiệm thu ([cloudflare-migration.md](../09-operations/cloudflare-migration.md)), ADR-017, RK-43 → RK-50
+- [ ] P0 thử nghiệm kỹ thuật · [ ] P1 Next 15 (E2E Node 98/98) · [ ] P2 Workers (E2E workers + TC-102, TC-103)
+- [ ] P3 hạ tầng (A-18 → A-20) · [ ] P4 nghiệm thu CF-01 → CF-40 (A-22) · [ ] P5 cutover + 14 ngày (A-21) · [ ] P6 gỡ Vercel, tài liệu
+- Để lại / đề xuất: chuyển ảnh chuyển khoản sang R2 khi Storage Supabase > 600 MB (RK-37); thông báo R-01 dùng Cron / Queues của Cloudflare
+
+#### Đợt 14 – Chạy thử MVP (pilot) ⏸ (bắt đầu 02/10/2026 – tạm dừng 04/10 chờ Đợt 17)
 - [x] Kế hoạch 7 giai đoạn (§3.1) + hướng dẫn từng bước (runbook §10), nhật ký chạy thử (runbook §10.1)
-- [x] Giai đoạn 1: [x] 1.1 sao lưu + keepalive · [ ] 1.2 vùng Supabase · [ ] 1.3 Vercel · [ ] 1.4 tên miền · [ ] 1.5 Supabase Auth · [ ] 1.6 SMTP · [ ] 1.7 Turnstile (tùy chọn)
+- [ ] Giai đoạn 1: [x] 1.1 sao lưu + keepalive · [ ] 1.2 vùng Supabase · [ ] 1.3 Cloudflare (Đợt 17) · [ ] 1.4 tên miền · [ ] 1.5 Supabase Auth · [ ] 1.6 SMTP · [ ] 1.7 Turnstile (tùy chọn)
 - [ ] Giai đoạn 2: [ ] 2.1 script dọn dữ liệu (dev) · [ ] 2.2 sao lưu · [ ] 2.3 dọn · [ ] 2.4 schema · [ ] 2.5 staging
 - [ ] Giai đoạn 3: [ ] 3.1 thông tin trung tâm · [ ] 3.2 chính sách · [ ] 3.3 khóa miễn phí · [ ] 3.4 chương trình · [ ] 3.5 premium · [ ] 3.6 mẫu phiếu
 - [ ] Giai đoạn 4: [ ] 4.1 nhân viên · [ ] 4.2 hướng dẫn · [ ] 4.3 tin nhắn Zalo · [ ] 4.4 phân công
@@ -309,7 +394,9 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
   [x] RK-16 (có công cụ cấp bù) · 🔵 RK-17 · [x] RK-18 · 🟡 RK-19 · [ ] RK-20 (A-7) · 🔵 RK-21 · [x] RK-22 · 🟡 RK-23 · 🟡 RK-24 · 🔵 RK-25 ·
   🔵 RK-26 · [x] RK-27 · [x] RK-28 · [x] RK-29 · 🟡 RK-30 · 🔵 RK-31 · 🔵 RK-32 · [ ] RK-33 · [x] RK-34
 - Hạ tầng (chi tiết ở [project-review §7.8](project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026)):
-  🟡 RK-35 (chấp nhận khi thử nghiệm) · [x] RK-36 (workflow đang chạy) · 🟡 RK-37 · [x] RK-38 (chờ A-15) · [ ] RK-39 · [ ] RK-40 · [ ] RK-41 (= RV-12) · 🔵 RK-42
+  🟡 RK-35 (→ đóng khi xong Đợt 17 – ADR-017) · [x] RK-36 (workflow đang chạy) · 🟡 RK-37 · [x] RK-38 (chờ A-15) · [ ] RK-39 · [ ] RK-40 · [ ] RK-41 (= RV-12) · 🔵 RK-42
+- Chuyển hạ tầng & quản lý (chi tiết ở [project-review §7.9](project-review.md#79-rà-soát-chuyển-hạ-tầng-sang-cloudflare-workers-04102026)):
+  [ ] RK-43 🔴 · [ ] RK-44 · [ ] RK-45 · [ ] RK-46 · [ ] RK-47 · [ ] RK-48 · [ ] RK-49 · [ ] RK-50 (Đợt 17) · [ ] RK-51 · [ ] RK-52 (Đợt 18)
 
 ### 5.4. Tính năng mở rộng (R)
 - [x] R-00 Xử lý kết quả review (Đợt 1 → 5)
@@ -332,6 +419,11 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] UI-02 Menu quản trị dọc bên trái, thứ tự mới (Khóa học lên thứ 4), số đếm → Đợt 15
 - [x] UI-03 Vòng tròn % tiến độ → Đợt 15
 
+### 5.6. Quản lý danh sách (QL) – 04/10/2026
+- [x] QL-01 Thêm bệnh nhân (có sẵn từ Đợt 11)
+- [ ] QL-02 Cột thao tác + sửa nhanh ở danh sách bệnh nhân · [ ] QL-03 Khóa / mở khóa tài khoản · [ ] QL-04 Xóa bệnh nhân (admin) · [ ] QL-05 Sửa gói đã cấp (tùy chọn)
+- [ ] QL-06 Hàng thao tác ở danh sách khóa học · [ ] QL-07 Nút thêm khóa dễ thấy · [ ] QL-08 Chặn xóa khóa còn học viên
+
 ## 6. Phụ lục – thiết kế sơ bộ tính năng mở rộng (R-xx)
 
 | ID | Hạng mục | Story | Giá trị | Công sức | Trạng thái |
@@ -352,7 +444,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 
 **R-01 – Thông báo.** Trong `setRegistrationStatus` sau khi cập nhật thành công (`approved` / `rejected`) gửi email qua `sendMail`
 (mẫu mới trong `lib/mailer.ts`); lỗi gửi không làm hỏng thao tác (try/catch, ghi log). Thêm: email tóm tắt hằng ngày cho nhân viên
-(đơn chờ, phiếu mới, lead mới) bằng Vercel Cron gọi route handler có secret. Zalo OA ZNS nếu cần (tốn phí).
+(đơn chờ, phiếu mới, lead mới) bằng Cloudflare Cron Triggers (sau Đợt 17) gọi route handler có secret. Zalo OA ZNS nếu cần (tốn phí).
 
 **R-06 – Phân trang, xuất Excel.** Query param `?page=&from=&to=&q=`; `.range()` + `count: 'exact'`. Xuất CSV qua route handler
 `app/admin/export/route.ts` (kiểm tra quyền, UTF-8 BOM cho Excel). Với bệnh nhân: thêm `p_offset` cho `admin_patients()`.

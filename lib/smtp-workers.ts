@@ -1,3 +1,4 @@
+import 'server-only'
 // Client SMTP tối giản cho Cloudflare Workers (Đợt 17, RK-46): `nodemailer` không chạy trên workerd, thư viện có sẵn import
 // `cloudflare:sockets` tĩnh nên webpack / OpenNext không đóng gói được. Ở đây nạp socket lúc chạy.
 // Hỗ trợ: SSL ngay từ đầu (cổng 465) hoặc STARTTLS (587), AUTH PLAIN, thư text + HTML (UTF-8, base64). Chỉ gọi khi chạy trên Workers.

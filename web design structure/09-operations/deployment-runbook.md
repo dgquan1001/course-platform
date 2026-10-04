@@ -52,7 +52,7 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 1. `npm install`
 2. Tạo project Supabase (khuyến nghị vùng **Singapore** cho người dùng Việt Nam).
 3. Supabase › SQL Editor › dán toàn bộ `supabase/schema.sql` › **Run**.
-4. Supabase › Authentication › Providers › Email: có thể **tắt** "Confirm email" (tài khoản đăng ký đã được tạo sẵn ở trạng thái xác nhận); cân nhắc tắt "Allow new users to sign up" vì hệ thống không dùng `signUp` từ client.
+4. Supabase › Authentication › Providers › Email: có thể **tắt** "Confirm email" (tài khoản đăng ký đã được tạo sẵn ở trạng thái xác nhận); **tắt "Allow new users to sign up"** (bắt buộc – SEC-01: hệ thống không dùng `signUp` từ client; để bật thì ai có khóa `anon` cũng tạo được tài khoản rác qua API). Tạo tài khoản bằng service role vẫn chạy.
 5. Copy `.env.local.example` → `.env.local`, điền khóa (Project Settings › API).
 6. Tạo admin: `npm run create-admin -- admin@gmail.com MatKhauManh123 "Tên Admin"`.
 7. `npm run dev` → đăng nhập admin → Quản trị › Khóa học → thêm khóa & bài học.
@@ -227,7 +227,7 @@ Làm theo thứ tự giai đoạn 1 → 7; trong một giai đoạn các bước
 | 1.2 | Vùng Supabase (A-15) | Supabase › Project Settings › General › Region | Ghi vào tài liệu (Smart Placement tự đặt Worker gần Supabase) |
 | 1.3 | Cloudflare Workers production (A-18, A-20) – **Đợt 17** | §4 "Triển khai lên Cloudflare Workers" bước 1 → 8 | Mở được trang chủ trên `https://hv-web.<tài-khoản>.workers.dev`; Workers Logs không có lỗi |
 | 1.4 | Tên miền (chốt 04/10: **chạy tạm `workers.dev`**, mua ở đợt sau – A-19) | Khi có tên miền: thêm vào Cloudflare (đổi nameserver) → Workers › hv-web › Domains & Routes › Custom Domain | `NEXT_PUBLIC_SITE_URL` = địa chỉ chính thức, đã build lại |
-| 1.5 | Supabase Auth (sau 1.4) | Authentication › URL Configuration › **Site URL** = địa chỉ ở 1.4; Providers › Email: tắt "Confirm email"; cân nhắc tắt "Allow new users to sign up" (hệ thống tạo tài khoản bằng service role); Password: tối thiểu 8 ký tự | Lưu thành công |
+| 1.5 | Supabase Auth (sau 1.4) | Authentication › URL Configuration › **Site URL** = địa chỉ ở 1.4; Providers › Email: tắt "Confirm email"; **tắt "Allow new users to sign up"** (A-24, SEC-01 – hệ thống tạo tài khoản bằng service role); Password: tối thiểu 8 ký tự | Lưu thành công |
 | 1.6 | Email quên mật khẩu (A-12) | Gmail của trung tâm: bật xác minh 2 bước → App Password → điền `SMTP_*` trên Cloudflare (§4 bước 4) (README "Cấu hình gửi email") | Quên mật khẩu bằng email thật nhận được mã 6 số |
 | 1.7 | Turnstile (A-4) | §6 "Bật Turnstile". **Tùy chọn** khi chỉ mời người quen; **bắt buộc** trước khi quảng bá công khai | Form đăng ký hiện ô xác minh |
 

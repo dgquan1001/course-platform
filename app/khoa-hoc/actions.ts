@@ -50,7 +50,10 @@ export async function createLeadAction(courseId: string, formData: FormData): Pr
     full_name: anonymous ? null : fullName,
     phone: anonymous ? null : phone,
   })
-  if (error) return { ok: false, error: `Không gửi được thông tin: ${error.message}` }
+  if (error) {
+    console.error('[lead]', error.message)
+    return { ok: false, error: 'Không gửi được thông tin, vui lòng thử lại hoặc bấm "Mở Zalo ngay".' }
+  }
 
   revalidatePath('/admin/leads')
   return {

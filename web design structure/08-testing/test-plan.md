@@ -35,8 +35,23 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 04/10/2026 · sau Đợt 17 P0 → P2 (Next 15, Cloudflare Workers) · **Node: 99/99 PASS** · **Workers: 100/100 PASS** (kèm 12 lỗi hydration ghi nhận riêng – RK-54) (xem §3.1, đoạn "Đợt 17"). 29/09/2026 · sau Đợt 15: 98/98. Sau Đợt 11 → 13: 96/96; sau Đợt 10: 83/83; sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
-**63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
+**Lần chạy gần nhất**: **05/10/2026** · sau rà soát performance & security (project-review §7.10) · **Node 99/99 PASS** · **Cloudflare Workers 100/100 PASS**
+(17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
+
+**Các lần chạy theo thời gian (cũ → mới)**:
+
+| Ngày | Sau đợt | Kết quả |
+| --- | --- | --- |
+| 26/09/2026 | Đợt 1 (review vòng 1) | 46/46 |
+| 26/09/2026 | Đợt 2 → 3 | 53/53 → 57/57 |
+| 26/09/2026 | Đợt 4 → 5 | **63/63** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) – chi tiết dọn dữ liệu ở đoạn dưới |
+| 27/09/2026 | Đợt 7 / 8 / 9 / 10 | 67/67 / 73/73 / 78/78 / 83/83 |
+| 27/09/2026 | Đợt 11 → 13 | 96/96 |
+| 29/09/2026 | Đợt 15 | 98/98 |
+| 04/10/2026 | Đợt 17 P0 → P2 (Next 15, Cloudflare) | Node 99/99 · Workers 100/100 (12 lỗi RK-54 ghi riêng) |
+| 05/10/2026 | Rà soát performance & security | Node 99/99 · Workers 100/100 (17 lỗi RK-54 ghi riêng) |
+
+Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
 đã xác minh: vẫn xảy ra khi build không có header bảo mật, và Playwright báo lỗi iframe khác domain là lỗi của trang (stack rỗng).

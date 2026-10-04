@@ -8,4 +8,6 @@ export default defineCloudflareConfig({
   incrementalCache: r2IncrementalCache,
   tagCache: d1NextTagCache,
   queue: doQueue,
+  // Trang ISR đã có trong cache được trả thẳng, không phải nạp Next server → nhanh hơn, ít CPU (dự án không dùng PPR)
+  enableCacheInterception: true,
 })

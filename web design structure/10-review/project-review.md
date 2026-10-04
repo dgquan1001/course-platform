@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9; rà soát performance & security – §7.10)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
   mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
 
@@ -389,6 +389,42 @@ danh sách bệnh nhân và khóa học (Đợt 18). Rà soát toàn bộ `app/`
 **Không phải rủi ro khi chuyển**: `keepalive.yml`, `backup.yml`, script sao lưu / tạo admin (gọi thẳng Supabase); kết nối database (qua
 PostgREST, không cần Hyperdrive); phông chữ (tự host lúc build); thời gian chạy (CPU 30 giây / request trên gói Paid); `crypto` / `Buffer`
 (có trong `nodejs_compat` – vẫn kiểm tra bằng E2E).
+
+### 7.10. Rà soát performance & security toàn dự án (04/10/2026, sau khi deploy Cloudflare)
+
+**Phạm vi**: toàn bộ `app/`, `lib/`, `middleware.ts`, `next.config.mjs`, `wrangler.jsonc`, `open-next.config.ts`, `scripts/`, `supabase/schema.sql`,
+cấu hình Supabase Auth (đọc `/auth/v1/settings`), website thật `https://hv-web.bsdomanhcuong.workers.dev` (đo bằng `curl`), `npm audit`.
+
+**Security**
+
+| ID | Mức | Phát hiện | Bằng chứng | Xử lý |
+| --- | --- | --- | --- | --- |
+| SEC-01 | 🟠 | Supabase **cho phép đăng ký công khai** (`disable_signup: false`) – ai có khóa `anon` (công khai trong trang) gọi được `/auth/v1/signup` tạo tài khoản, bỏ qua form đăng ký, giới hạn tần suất và Turnstile của website | 🔬 `GET /auth/v1/settings`; website không dùng `signUp` (mọi tài khoản tạo bằng service role) | ⬜ **A-24**: Supabase › Authentication › Sign In / Providers › tắt **Allow new users to sign up** (tạo tài khoản bằng service role vẫn chạy) |
+| SEC-02 | 🟡 | Quên mật khẩu / form khách quan tâm trả **nguyên văn lỗi kỹ thuật** cho khách (VD lỗi SMTP lộ máy chủ thư, lỗi database) | 📖 `app/forgot-password/actions.ts`, `app/khoa-hoc/actions.ts` | ✅ Thông báo chung cho khách, chi tiết ghi `console.error` → Workers Logs |
+| SEC-03 | 🟡 | Module chỉ dành cho server (service role, gửi mail, giới hạn tần suất, sinh mật khẩu, tìm tài khoản) chưa có rào chặn import nhầm vào client | 📖 | ✅ `import 'server-only'` ở `lib/supabase/admin.ts`, `lib/rate-limit.ts`, `lib/mailer.ts`, `lib/smtp-workers.ts`, `lib/generate-password.ts`, `lib/accounts.ts` – import nhầm thì build lỗi |
+| SEC-04 | ✅ | Khóa `service_role` không lọt vào file gửi trình duyệt | 🔬 tìm 30 ký tự cuối của khóa trong `.open-next/assets`, `.next-e2e/static`, `public/`: 0 kết quả (khớp phần đầu chỉ là JWT header chung với khóa `anon`) | — |
+| SEC-05 | ✅ | RLS bật **16/16 bảng**; mọi hàm `security definer` có `set search_path`; hàm quản trị chỉ cấp cho `authenticated` và tự kiểm vai trò (TC-96) | 🔬 quét `schema.sql` | — |
+| SEC-06 | ✅ | Mọi server action kiểm tra quyền (`requireStaff` / `requireAdmin` / `run()` / `getUser`) hoặc là action công khai có giới hạn tần suất (đăng nhập, đăng ký, quên mật khẩu, lead) | 🔬 quét 39 action | — |
+| SEC-07 | ✅ | Header bảo mật trên Cloudflare: CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`; không `x-powered-by` | 🔬 `curl -I` website thật | — |
+| SEC-08 | 🟡 | `npm audit`: 9 lỗ hổng (1 moderate, 8 high) – **chỉ ở công cụ build / dev** (postcss trong Next lúc build, eslint-config-next, tailwind → chokidar / micromatch / braces); không có trong Worker chạy thật | 🔬 `npm audit`; `npm audit fix` không sửa được (cần nâng major) | 🟡 Chấp nhận; sửa khi nâng Next 16 (chờ OpenNext) / eslint 9 |
+| SEC-09 | 🟡 | Quên mật khẩu cho biết tài khoản có tồn tại / có email hay không (dò danh sách tài khoản) | 📖 | 🟡 Chấp nhận (bệnh nhân lớn tuổi cần hướng dẫn rõ; đã giới hạn 10 lần / giờ / IP); xem lại trước khi quảng bá |
+| SEC-10 | 🟡 | Tài khoản Cloudflare đăng nhập bằng GitHub cá nhân, chỉ 1 thành viên | 📖 | ⬜ A-25: mời email trung tâm làm Super Administrator + 2FA khi chốt email |
+| SEC-11 | 🟡 | Turnstile chưa bật trên website công khai `workers.dev` (RK-06) | 📖 | ⬜ A-4 trước khi quảng bá |
+| SEC-12 | 🔵 | CSP còn `'unsafe-inline'` cho script (Next chèn script nội tuyến); chuyển sang nonce làm mọi trang thành động (mất ISR) | 📖 | Giữ nguyên |
+
+**Performance** (đo từ máy chủ dự án ở Việt Nam, 04/10/2026)
+
+| ID | Phát hiện | Số đo | Xử lý |
+| --- | --- | --- | --- |
+| PERF-01 | Mạng được Cloudflare định tuyến qua **Hồng Kông (HKG)**, không phải PoP Việt Nam như ước tính ở ADR-017 (phụ thuộc nhà mạng) | `cdn-cgi/trace`: `colo=HKG`, `loc=VN`; kết nối TCP ~0,27 giây; file tĩnh TTFB 0,39 – 0,50 giây | Không do code. Ghi nhận; đo lại từ 4G / Wi-Fi khác khi nghiệm thu (CF-20) |
+| PERF-02 | Trang ISR đã lưu đệm (`/`, `/register`, `/khoa-hoc/[id]`) TTFB 0,54 – 1,5 giây → Worker tốn ~0,1 – 0,4 giây ngoài phần mạng | `x-nextjs-cache: HIT` | ✅ Bật `enableCacheInterception` – đo lại 05/10 (bản `a400e7a4`): `x-opennext-cache: HIT`, `/register` 0,37 – 1,0 giây, `/login` 0,22 – 0,89, `/` 0,65 – 1,2 |
+| PERF-03 | Trang động (đăng nhập, quản trị) gọi Supabase Singapore từ Worker ở HKG: mỗi truy vấn thêm ~35 ms | `cf-placement: local-HKG` | Smart Placement đã bật – Cloudflare tự dời Worker gần Supabase khi đủ lưu lượng |
+| PERF-04 | Dung lượng: HTML trang chủ 12 KB (nén), JS tải lần đầu 103 KB, Worker 1,6 MiB nén, khởi động 16 ms; ảnh `public/` 40 KB + 128 KB; tài nguyên tĩnh cache 1 năm | 🔬 | Đạt |
+| PERF-05 | Ảnh không tối ưu ở server (`unoptimized`, RK-47) – khi có nhiều khóa có ảnh bìa, trang chủ nặng dần | Ảnh bìa đã nén ≤ 1600px phía trình duyệt | Theo dõi; > 12 khóa có ảnh → cân nhắc Cloudflare Images / ảnh nhỏ cho thẻ khóa |
+| PERF-06 | Danh sách quản trị giới hạn 200 dòng (RV-12, RK-41) | 📖 | Backlog 2b – trước khi > 200 bệnh nhân |
+| PERF-07 | RK-54: lỗi hydration lác đác ở trang quản trị trên workerd (React dựng lại phía trình duyệt) | E2E workers | CF-41 kiểm trên Cloudflare thật |
+
+**Kết quả**: sửa SEC-02, SEC-03, PERF-02 trong lượt rà soát; việc còn lại đưa vào [roadmap §0.1](roadmap.md#01-việc-cần-làm-tiếp-theo--từng-bước-to-do) (A-24, A-25, A-4).
 
 ### Đã kiểm tra – **không** phải rủi ro
 

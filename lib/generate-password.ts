@@ -1,3 +1,4 @@
+import 'server-only'
 import { randomInt } from 'crypto'
 import { MIN_PASSWORD_LENGTH } from '@/lib/password'
 

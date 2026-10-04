@@ -44,6 +44,9 @@ npm run dev
 - Production chạy trong **workerd**, không phải Node đầy đủ: không dùng `fs`, `child_process`, thư viện cần TCP thô (VD `nodemailer` – đã thay bằng
   `lib/smtp-workers.ts`) hay binary native (`sharp`). Thêm thư viện mới → chạy `npx opennextjs-cloudflare build` + `npm run test:e2e:workers`.
 - IP người dùng chỉ lấy qua `clientIp()` (`cf-connecting-ip`) – **không** đọc `x-forwarded-for` trực tiếp (RK-43).
+- Module chỉ chạy ở server (service role, gửi mail, giới hạn tần suất, sinh mật khẩu…) mở đầu bằng `import 'server-only'` (SEC-03).
+- Action công khai **không** trả nguyên `error.message` của database / SMTP cho khách: trả thông báo chung, ghi `console.error` (xem ở Workers Logs) – SEC-02.
+- Deploy từ máy Windows: `npm run deploy:win` (không dùng `npm run deploy` – treo ở bước D1).
 - Biến môi trường: `NEXT_PUBLIC_*` nhúng lúc build; khóa bí mật đặt Secret trên Cloudflare, chạy thử trên máy dùng `.dev.vars` (không commit).
 - Không cần `getCloudflareContext()` trừ khi dùng trực tiếp R2 / D1 / KV.
 

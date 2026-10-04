@@ -1,3 +1,4 @@
+import 'server-only'
 import { siteConfig } from '@/lib/site-config'
 import { sendSmtpOnWorkers } from '@/lib/smtp-workers'
 

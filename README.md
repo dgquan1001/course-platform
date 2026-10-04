@@ -6,20 +6,30 @@ Bác sĩ Đỗ Mạnh Cường. Video bài học được nhúng từ YouTube ho
 
 Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Storage) + Tailwind CSS; chạy trên Cloudflare Workers (OpenNext) từ Đợt 17.
 
-> **Phiên bản 0.2 (27/09/2026 – ✅ code hoàn tất, E2E 96/96)**: nền tảng chương trình tập luyện, phục hồi chức năng
-> cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng; khóa miễn phí công khai; khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo;
-> lộ trình theo **buổi → bài tập** mở lần lượt, checklist, % tiến độ; phiếu tham vấn bác sĩ; vai trò **bệnh nhân / nhân viên / admin**;
-> nhân viên tạo tài khoản cho khách đến từ Zalo; dashboard quản trị tập trung. Bước tiếp theo: **chạy thử MVP (pilot)** theo kế hoạch 7 giai đoạn –
-> [`web design structure/10-review/roadmap.md`](web%20design%20structure/10-review/roadmap.md) §3.1.
-> **Đợt 15 (29/09/2026 – ✅ E2E 98/98)**: icon mắt ở ô mật khẩu, menu quản trị dọc bên trái có số việc cần xử lý, vòng tròn % tiến độ.
-> **Đợt 16 (02/10/2026)**: thử nghiệm trên gói Free (Supabase Free + Vercel Hobby, vùng Singapore), tự giữ Supabase hoạt động và sao lưu
-> hằng tuần bằng GitHub Actions (đã chạy thật 02/10); lộ trình chuyển gói theo ngưỡng – runbook §12.
-> **Chạy thử (Đợt 14)**: theo dõi ở roadmap §3.1, hướng dẫn từng bước ở `web design structure/09-operations/deployment-runbook.md` §10.
-> **Đợt 17 (04/10/2026) – P0 → P2 xong (code)**: Next 15.5 / React 19, chạy được trên Cloudflare Workers (OpenNext), E2E Node 99/99, Workers 100/100; chờ chủ dự án tạo tài khoản Cloudflare để deploy (runbook §4).
-> **Kế hoạch 04/10/2026**: chuyển phần web sang **Cloudflare Workers Paid** (~5 USD/tháng, hợp lệ thương mại), giữ Supabase Free – ADR-017,
-> Đợt 17 ([`web design structure/09-operations/cloudflare-migration.md`](web%20design%20structure/09-operations/cloudflare-migration.md));
-> Đợt 18: thêm / sửa / xóa ở danh sách bệnh nhân và khóa học (roadmap §3.5). Mục "Deploy (Vercel)" bên dưới còn dùng tới khi xong Đợt 17.
-> Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
+## Hiện trạng (05/10/2026)
+
+- **Website**: https://hv-web.bsdomanhcuong.workers.dev – Cloudflare Workers Paid + Supabase Free (ADR-017). Deploy từ máy: `npm run deploy:win`.
+- **Chức năng**: phiên bản 0.2 đầy đủ – chương trình tập phục hồi chức năng cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng,
+  khóa miễn phí công khai, khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo, lộ trình **buổi → bài tập** mở lần lượt + checklist + % tiến độ,
+  phiếu tham vấn bác sĩ, vai trò **bệnh nhân / nhân viên / admin**, nhân viên tạo tài khoản cho khách Zalo, dashboard quản trị.
+- **Kiểm thử**: E2E Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
+- **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) (cấu hình Supabase / SMTP → nghiệm thu
+  trên Cloudflare → gộp `main` + tự động deploy → Đợt 18 thêm / sửa / xóa → Đợt 14 chạy thử MVP).
+- Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
+
+### Dòng thời gian (cũ → mới)
+
+| Ngày | Mốc | Kết quả |
+| --- | --- | --- |
+| 26/09/2026 | v0.1 + Đợt 1 → 5: sửa review, nhiều admin, CI, chống lạm dụng, header bảo mật | E2E 63/63 |
+| 27/09/2026 | Định vị lại v0.2 + Đợt 7 → 13: nhân viên, loại khóa / premium, gói tháng, buổi – bài, bệnh nhân từ Zalo, phiếu tham vấn, dashboard | E2E 96/96 |
+| 29/09/2026 | Đợt 15: icon mắt ô mật khẩu, menu quản trị dọc có số việc cần xử lý, vòng tròn % tiến độ | E2E 98/98 |
+| 02/10/2026 | Đợt 16: hạ tầng gói Free, giữ Supabase hoạt động + sao lưu tuần (GitHub Actions); Đợt 14: kế hoạch chạy thử MVP 7 giai đoạn | Workflow chạy thật ✅ |
+| 04/10/2026 | Chốt chuyển web sang Cloudflare Workers (ADR-017); Đợt 17 P0 → P2: Next 15 / React 19, OpenNext, IP `cf-connecting-ip`, SMTP cho Workers | E2E Node 99/99, Workers 100/100 |
+| 04/10/2026 | Đợt 17 P3: deploy lên Cloudflare (`hv-web.bsdomanhcuong.workers.dev`) | Smoke test ✅ |
+| 05/10/2026 | Rà soát performance & security (project-review §7.10), roadmap §0.1 to-do từng bước | E2E Node 99/99, Workers 100/100 |
+
+Chi tiết từng lần cập nhật tài liệu: [`web design structure/README.md`](web%20design%20structure/README.md) › "Lịch sử tài liệu".
 
 ## Tính năng
 

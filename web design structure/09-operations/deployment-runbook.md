@@ -79,7 +79,11 @@ Kế hoạch đầy đủ, rà soát ảnh hưởng, checklist nghiệm thu CF-0
 7. Supabase › Authentication › URL Configuration: Site URL + Redirect URLs = địa chỉ `workers.dev` (sau này là tên miền).
 8. Workers › hv-web › Settings: kiểm tra **Observability (Workers Logs)** đang bật và Placement = **Smart** (đã khai báo trong `wrangler.jsonc`).
 
-**Các lần sau**: push `main` → tự build + deploy. **Lùi phiên bản**: Workers › hv-web › Deployments › chọn bản trước › **Rollback** (< 1 phút).
+**Đã làm 04/10/2026**: tài khoản Cloudflare (tạm đăng nhập bằng GitHub, email `dgquan1001@gmail.com` – khi chốt email trung tâm: Manage Account › Members › mời làm **Super Administrator** + 2FA), Workers Paid, subdomain `bsdomanhcuong.workers.dev`, R2 `hv-web-cache`, D1 `hv-web-tag-cache` (`55b32318-…`, bảng `revalidations` đã tạo), Secret `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_PORT`; deploy **https://hv-web.bsdomanhcuong.workers.dev**. Chưa làm: `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` (A-12), Supabase Site URL (bước 7), Workers Builds (bước 5 – sau khi gộp nhánh vào `main`).
+
+**Deploy từ máy Windows**: `npm run deploy:win` (`scripts/deploy-cloudflare.mjs`: build → nạp R2 → tạo bảng D1 → `wrangler deploy` với `OPEN_NEXT_DEPLOY=true`). `npm run deploy` / `wrangler deploy` trên Windows **treo** ở bước tạo bảng D1 (§8). Địa chỉ website lúc build lấy từ `.env.production.local` (`NEXT_PUBLIC_SITE_URL=https://hv-web.bsdomanhcuong.workers.dev`, chỉ trên máy, không commit). Biến SMTP đặt dạng **Secret** (kể cả không bí mật) để không bị xóa khi deploy lại từ máy.
+
+**Các lần sau**: push `main` → tự build + deploy (khi đã bật Workers Builds) hoặc `npm run deploy:win`. **Lùi phiên bản**: Workers › hv-web › Deployments › chọn bản trước › **Rollback** (< 1 phút).
 **Chạy thử bản Workers trên máy**: `npm run preview` (cần `.dev.vars` chứa các biến lúc chạy – định dạng `.env`, **không commit**). Windows: xem §8 "npm run preview treo". Trước khi build bản Cloudflare trên máy nên xóa `.next/cache` (bộ nhớ đệm cũ của `next dev` có thể bị đóng gói vào cache R2).
 
 ### 4.1. Vercel (đường lùi tới hết Đợt 17 P5, sau đó gỡ)
@@ -177,6 +181,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 | "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa đặt Secret trên Cloudflare | `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (không cần build lại) |
 | Trang lỗi CSP chặn Supabase / trang trắng sau deploy | Thiếu `NEXT_PUBLIC_*` ở **Build variables** (nhúng lúc build) | Thêm ở Workers Builds › Build variables, build lại |
 | Quên mật khẩu báo lỗi gửi thư trên Cloudflare | SMTP sai hoặc Gmail chặn | Xem Workers Logs (`SMTP: 535…` = sai App Password); thư gửi qua `lib/smtp-workers.ts` (cổng 465 hoặc 587) |
+| `npm run deploy` / `wrangler deploy` treo ở "Creating D1 table if necessary..." (Windows) | Như dòng dưới – `wrangler deploy` tự chuyển sang `opennextjs-cloudflare deploy` | Dùng `npm run deploy:win` |
 | `npm run preview` treo ở "Creating D1 table if necessary..." (Windows) | OpenNext gọi wrangler qua `npm exec` + shell, Windows chèn ký tự escape sai vào câu SQL (OpenNext cũng cảnh báo chưa hỗ trợ đầy đủ Windows; Linux / Workers Builds không bị) | Trên Windows: `node node_modules/wrangler/bin/wrangler.js d1 execute NEXT_TAG_CACHE_D1 --local --command "CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, stale INTEGER, expire INTEGER default NULL, UNIQUE(tag) ON CONFLICT REPLACE);"` rồi `npx wrangler dev` (E2E `--workers` tự làm vậy); hoặc dùng WSL |
 | Trang chủ không đổi sau khi admin sửa khóa (Cloudflare) | Thiếu R2 / D1 / Durable Object hoặc `database_id` D1 sai | Kiểm tra `wrangler.jsonc`, `npx wrangler d1 list`; deploy lại (lệnh deploy tự tạo bảng `revalidations`) |
 | Bấm tab trong trang quản trị / "Hoàn thành & bài tiếp theo" không chuyển trang | Có `loading.tsx` dưới `/admin` hoặc `/courses` + trang chỉ đổi `?tham-số` + dữ liệu lớn – lỗi router Next 15.5 (RK-53, project-review §7.9) | Không thêm `loading.tsx` (dùng thanh tiến trình có sẵn) |

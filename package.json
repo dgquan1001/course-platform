@@ -18,7 +18,8 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "test:e2e:workers": "node scripts/e2e.mjs --workers"
+    "test:e2e:workers": "node scripts/e2e.mjs --workers",
+    "deploy:win": "node scripts/deploy-cloudflare.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.8",

@@ -274,7 +274,9 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | 04/10/2026 | Lỗi Next 15 | Đổi tab `/admin/registrations?status=` không chuyển trang: Next 15.5 hủy điều hướng khi có `app/admin/loading.tsx` + trang chỉ đổi tham số + dữ liệu lớn (tái hiện bằng tài khoản tạm, thu hẹp từng phần) | Bỏ `app/admin/loading.tsx` (RK-53) |
 | 04/10/2026 | E2E | **Node 99/99**, **Workers 100/100** (TC-102, TC-103 PASS); RK-54: 12 lỗi hydration #418 ở `/admin/**` trên workerd, ghi nhận riêng | Kiểm lại CF-41 sau deploy |
 | 04/10/2026 | Windows | `opennextjs-cloudflare preview` treo ở bước tạo bảng D1 (`npm exec` chèn `^^^`) – E2E tự tạo bảng + `wrangler dev`; Linux / Workers Builds không bị | runbook §8 |
-| 04/10/2026 | Deploy | Máy dev chưa `wrangler login` → chưa deploy được | Chờ chủ dự án P3 (runbook §4) |
+| 04/10/2026 | P3 | Chủ dự án: tài khoản Cloudflare (đăng nhập GitHub), Workers Paid, `wrangler login`, bật R2, subdomain `bsdomanhcuong`. Dev: R2 `hv-web-cache`, D1 `hv-web-tag-cache` + bảng, Secret Supabase / SMTP_HOST / SMTP_PORT | Còn: SMTP_USER / SMTP_PASS / MAIL_FROM, Supabase Site URL, Workers Builds |
+| 04/10/2026 | Deploy | **https://hv-web.bsdomanhcuong.workers.dev** (bản `d8fea07c`, 1,6 MiB nén, khởi động 16 ms). Windows: `wrangler deploy` tự chuyển sang `opennextjs-cloudflare deploy` và treo ở D1 → `npm run deploy:win` | runbook §4 |
+| 04/10/2026 | Smoke | 5 trang công khai 200 (0,7 – 3 giây lần đầu), `/courses`, `/admin` → 307 `/login`, trang lạ 404; đủ header bảo mật, không `x-powered-by`; trang chủ `x-nextjs-cache: HIT`; `/_next/static` cache 1 năm | Còn checklist CF-01 → CF-41 với tài khoản thật |
 
 ## 7. Phương án lùi (rollback)
 

@@ -24,8 +24,8 @@
     {
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "hv-web-tag-cache",
-      // Chủ dự án: `npx wrangler d1 create hv-web-tag-cache` rồi dán database_id vào đây (Đợt 17 P3.3)
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      // Tạo 04/10/2026 (`wrangler d1 create hv-web-tag-cache`)
+      "database_id": "55b32318-64e3-4753-bd5a-bbce5ecc1e45"
     }
   ],
   "durable_objects": {

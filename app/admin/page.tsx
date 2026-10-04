@@ -52,10 +52,11 @@ const sinceText = (value: string | null) => {
 
 // Tổng quan (SCR-22, FR-180 → FR-184): chỉ số, việc cần làm, tiến độ theo chương trình; doanh thu chỉ admin.
 // /admin?status=… (đường dẫn cũ của bảng đơn) chuyển sang /admin/registrations?status=…
-export default async function AdminDashboardPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function AdminDashboardPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams
   if (searchParams.status) redirect(`/admin/registrations?status=${encodeURIComponent(searchParams.status)}`)
   const me = await requireStaffPage()
-  const supabase = createClient()
+  const supabase = await createClient()
   const months = monthStarts()
 
   const [{ data, error }, thisMonth, lastMonth] = await Promise.all([

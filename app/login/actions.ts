@@ -21,7 +21,7 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`)
 
   // Chống dò mật khẩu: đếm số lần sai theo IP + tài khoản và theo IP (kể cả tài khoản không tồn tại)
-  const ip = clientIp()
+  const ip = await clientIp()
   const accountKey = `login-fail:${ip}:${normalizePhone(identifier) ?? identifier.toLowerCase()}`
   const ipKey = `login-fail-ip:${ip}`
   const allowed =
@@ -33,7 +33,7 @@ export async function loginAction(formData: FormData) {
   const account = identifier ? await findAccount(identifier) : null
   const email = account?.authEmail ?? identifier.toLowerCase()
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
@@ -45,6 +45,6 @@ export async function loginAction(formData: FormData) {
     )
   }
 
-  setFlash('Đăng nhập thành công. Chào mừng bạn quay lại!')
+  await setFlash('Đăng nhập thành công. Chào mừng bạn quay lại!')
   redirect(next)
 }

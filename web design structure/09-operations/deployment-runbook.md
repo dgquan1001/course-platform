@@ -5,10 +5,10 @@
 | Môi trường | Next.js | Supabase | Ghi chú |
 | --- | --- | --- | --- |
 | Local | `npm run dev` (:3000) | Project dev/staging | `.env.local` |
-| E2E | `next start` (:3123) do script khởi động | **Project kiểm thử (staging)** – script từ chối chạy nếu `E2E_SUPABASE_REF` không khớp | Email ghi ra file |
+| E2E | `next start` (:3123) – `npm run test:e2e`; hoặc **workerd** qua `opennextjs-cloudflare preview` – `npm run test:e2e:workers` (chuẩn nghiệm thu từ Đợt 17) | **Project kiểm thử (staging)** – script từ chối chạy nếu `E2E_SUPABASE_REF` không khớp | Email gửi tới hộp thư giả (`MAIL_OUTBOX_URL`) |
 | CI | GitHub Actions `.github/workflows/ci.yml` | `check`: không cần Supabase; `e2e`: project staging (secrets) | Xem mục 1.1 |
-| Preview | Vercel Preview (mỗi PR) | **Nên** là project staging | Biến môi trường riêng cho Preview |
-| Production | Vercel Production | Project production | |
+| Preview | Cloudflare **Workers Builds** – link xem trước cho mỗi nhánh khác `main` | **Nên** là project staging | Biến môi trường riêng cho bản xem trước |
+| Production | Cloudflare Workers `hv-web` (nhánh `main`) – ADR-017 | Project production | Vercel chỉ còn là đường lùi tới hết Đợt 17 P5 |
 
 > Sau Đợt 17 (ADR-017): Preview / Production chạy trên **Cloudflare Workers** (Workers Builds), E2E chuẩn chạy trên preview workerd –
 > xem [cloudflare-migration.md](cloudflare-migration.md).
@@ -42,7 +42,7 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 | `SMTP_PORT` | | Server | `465` (SSL) hoặc `587` |
 | `SMTP_USER`, `SMTP_PASS` | Cho quên MK | Server | Gmail + App Password 16 ký tự |
 | `MAIL_FROM` | | Server | VD `Trung tâm HV <email@gmail.com>` |
-| `MAIL_OUTBOX_DIR` | ❌ **Không đặt ở production** | Server | Ghi thư ra file thay vì gửi (chỉ cho test) |
+| `MAIL_OUTBOX_URL` | ❌ **Không đặt ở production** | Server | Gửi thư (JSON) tới hộp thư giả của `scripts/e2e.mjs` thay vì gửi thật (chỉ cho test; thay `MAIL_OUTBOX_DIR` từ Đợt 17 vì Workers không có hệ thống file) |
 | `E2E_PORT`, `BROWSER_CHANNEL` | | Script | Tùy chọn cho E2E |
 | `E2E_SUPABASE_REF` | Cho E2E | Script | Mã project Supabase **kiểm thử**; thiếu hoặc sai → E2E từ chối chạy. ❌ Không đặt ở production |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Tùy chọn | Client / **chỉ server** | Cloudflare Turnstile chống bot ở form đăng ký; bỏ trống thì tắt |
@@ -58,16 +58,35 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 7. `npm run dev` → đăng nhập admin → Quản trị › Khóa học → thêm khóa & bài học.
 8. Cập nhật `lib/site-config.ts` (hotline, email, Zalo, ngân hàng) và ảnh trong `public/images/`.
 
-## 4. Triển khai lên Vercel
+## 4. Triển khai lên Cloudflare Workers (ADR-017, Đợt 17)
 
-> ⚠️ **04/10/2026 – chủ dự án chốt chuyển sang Cloudflare Workers** (ADR-017, roadmap Đợt 17). Mục này chỉ còn dùng cho đường lùi trong
-> 14 ngày sau cutover. Cách triển khai mới: [cloudflare-migration.md §4](cloudflare-migration.md#4-kế-hoạch-từng-giai-đoạn) – sẽ thay mục này khi xong Đợt 17.
+Kế hoạch đầy đủ, rà soát ảnh hưởng, checklist nghiệm thu CF-01 → CF-41 và đường lùi: [cloudflare-migration.md](cloudflare-migration.md).
 
-1. Đẩy code lên GitHub (kiểm tra `.env.local` **không** bị commit).
-2. Vercel › Import repo › Framework: Next.js.
-3. Thêm toàn bộ biến ở mục 2 (trừ `MAIL_OUTBOX_DIR`) cho Production (và Preview nếu dùng staging).
-4. Deploy. Sau khi có domain: cập nhật `NEXT_PUBLIC_SITE_URL`, redeploy.
-5. Supabase › Authentication › URL Configuration: đặt Site URL = domain production.
+**Lần đầu (chủ dự án, dev hướng dẫn – Đợt 17 P3):**
+1. Tạo tài khoản Cloudflare bằng email trung tâm, bật **2FA**; Workers & Pages › Plans › **Workers Paid** (5 USD/tháng); Billing › đặt cảnh báo.
+2. Trên máy dev: `npx wrangler login` (mở trình duyệt để cho phép) → `npx wrangler whoami` thấy đúng tài khoản.
+3. Tạo bộ nhớ đệm trang tĩnh:
+   - `npx wrangler r2 bucket create hv-web-cache`
+   - `npx wrangler d1 create hv-web-tag-cache` → chép `database_id` vào `wrangler.jsonc` (thay `00000000-…`), commit.
+4. Khóa bí mật (chạy từng lệnh, dán giá trị khi được hỏi – **không** ghi vào file):
+   `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `… SMTP_PASS`, `… TURNSTILE_SECRET_KEY` (nếu bật Turnstile).
+   Biến thường (Workers › hv-web › Settings › Variables): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM`.
+5. **Workers Builds** (Workers › hv-web › Settings › Builds › Connect GitHub): repo này, nhánh production `main`,
+   Build command `npx opennextjs-cloudflare build`, Deploy command `npx opennextjs-cloudflare deploy`; Build variables:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (tạm `https://hv-web.<tài-khoản>.workers.dev`),
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (nếu bật), `NODE_VERSION=22`. **Không** đặt `MAIL_OUTBOX_URL`, `E2E_SUPABASE_REF`.
+6. Deploy lần đầu: push `main` (Workers Builds tự chạy) hoặc trên máy `npm run deploy` (lấy biến build từ `.env.local`).
+7. Supabase › Authentication › URL Configuration: Site URL + Redirect URLs = địa chỉ `workers.dev` (sau này là tên miền).
+8. Workers › hv-web › Settings: kiểm tra **Observability (Workers Logs)** đang bật và Placement = **Smart** (đã khai báo trong `wrangler.jsonc`).
+
+**Các lần sau**: push `main` → tự build + deploy. **Lùi phiên bản**: Workers › hv-web › Deployments › chọn bản trước › **Rollback** (< 1 phút).
+**Chạy thử bản Workers trên máy**: `npm run preview` (cần `.dev.vars` chứa các biến lúc chạy – định dạng `.env`, **không commit**). Windows: xem §8 "npm run preview treo". Trước khi build bản Cloudflare trên máy nên xóa `.next/cache` (bộ nhớ đệm cũ của `next dev` có thể bị đóng gói vào cache R2).
+
+### 4.1. Vercel (đường lùi tới hết Đợt 17 P5, sau đó gỡ)
+
+1. Vercel › Import repo › Framework: Next.js; Node.js Version 22.x.
+2. Thêm toàn bộ biến ở mục 2 (trừ `MAIL_OUTBOX_URL`) cho Production; `vercel.json` đặt vùng `sin1`.
+3. Khi cần lùi: deploy lên Vercel, đổi Supabase Site URL về địa chỉ Vercel (cloudflare-migration §7).
 
 ### Checklist sau deploy (smoke test)
 
@@ -75,7 +94,8 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 - [ ] Đăng nhập admin, mở `/admin` (Tổng quan) và `/admin/registrations` xem được ảnh chuyển khoản.
 - [ ] Gửi thử mã quên mật khẩu tới email thật.
 - [ ] Mở một bài học bằng tài khoản học viên test.
-- [ ] Không có lỗi trong Vercel › Logs.
+- [ ] Không có lỗi trong Workers › hv-web › Logs (Observability).
+- [ ] Sửa tên một khóa ở admin → trang chủ (tab ẩn danh) hiện tên mới (bộ nhớ đệm R2 / D1 hoạt động).
 
 ## 5. Thay đổi database trên production
 
@@ -96,12 +116,12 @@ E2E tạo/xóa tài khoản, khóa học, đổi quyền admin nên **không** �
 | Nhân viên cấp nhầm / cần hủy gói | Quản trị › Đơn đăng ký › tab Đã duyệt › "Thu hồi" kèm lý do (hạn học của đơn đó bị xóa; nếu có đơn gia hạn sau đó, cấp bù – RK-16) |
 | Sửa câu hỏi phiếu tham vấn | Quản trị › Mẫu phiếu (chỉ admin) – phiếu đã gửi không bị ảnh hưởng |
 | Mở khóa đăng nhập bị khóa tạm | Tự hết sau 15 phút; gỡ ngay: `delete from rate_limits where key like 'login-fail:%<SĐT hoặc email>%';` |
-| Bật Turnstile | Cloudflare › Turnstile › Add site (domain production) → đặt 2 biến Turnstile trên Vercel → redeploy → thử đăng ký trên điện thoại thật |
+| Bật Turnstile | Cloudflare › Turnstile › Add site (domain production) (thêm hostname `workers.dev` / tên miền) → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` ở Build variables + `npx wrangler secret put TURNSTILE_SECRET_KEY` → deploy lại → thử đăng ký trên điện thoại thật |
 | Đặt lại mật khẩu cho bệnh nhân không có email | Hồ sơ bệnh nhân › "Cấp lại mật khẩu" (nhân viên / admin; mật khẩu mới hiện một lần, bệnh nhân được nhắc đổi). Tài khoản nhân viên / admin: Supabase › Authentication › Users hoặc `npm run create-admin` |
 | Tìm tài khoản theo SĐT | `select * from profiles where phone = '0912345678';` |
 | Xóa tài khoản theo yêu cầu | Supabase › Authentication › Users › Delete: xóa profile, mã reset, tiến độ, ghi chú nội bộ; **đơn đăng ký, phiếu tham vấn, lead được giữ** (`user_id` → null). Nếu bệnh nhân yêu cầu xóa hẳn dữ liệu sức khỏe: `delete from consultations where phone = '<SĐT>';`. Chỉ xóa thư mục `payment-proofs/<user_id>/` khi được yêu cầu xóa cả dữ liệu thanh toán (khi đó xóa luôn các đơn tương ứng) |
 | Rà soát link video không hợp lệ | `select l.id, c.title, l.title, l.video_url from lessons l join courses c on c.id = l.course_id where l.video_url !~ '^https://'` rồi mở trang admin khóa học: bài lỗi có cảnh báo đỏ (26/09/2026: 0 bài lỗi) |
-| Đổi thông tin ngân hàng/hotline | Sửa `lib/site-config.ts` → deploy |
+| Đổi thông tin ngân hàng/hotline | Sửa `lib/site-config.ts` → push `main` (Workers Builds tự deploy) |
 | Làm mới trang chủ ngay | Sửa bất kỳ khóa học trong admin (gọi `revalidatePath`), hoặc redeploy |
 | Dọn mã reset cũ | `delete from password_resets where created_at < now() - interval '30 days';` |
 
@@ -154,7 +174,12 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 
 | Triệu chứng | Nguyên nhân thường gặp | Xử lý |
 | --- | --- | --- |
-| "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa cấu hình trên Vercel | Thêm biến, redeploy |
+| "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa đặt Secret trên Cloudflare | `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (không cần build lại) |
+| Trang lỗi CSP chặn Supabase / trang trắng sau deploy | Thiếu `NEXT_PUBLIC_*` ở **Build variables** (nhúng lúc build) | Thêm ở Workers Builds › Build variables, build lại |
+| Quên mật khẩu báo lỗi gửi thư trên Cloudflare | SMTP sai hoặc Gmail chặn | Xem Workers Logs (`SMTP: 535…` = sai App Password); thư gửi qua `lib/smtp-workers.ts` (cổng 465 hoặc 587) |
+| `npm run preview` treo ở "Creating D1 table if necessary..." (Windows) | OpenNext gọi wrangler qua `npm exec` + shell, Windows chèn ký tự escape sai vào câu SQL (OpenNext cũng cảnh báo chưa hỗ trợ đầy đủ Windows; Linux / Workers Builds không bị) | Trên Windows: `node node_modules/wrangler/bin/wrangler.js d1 execute NEXT_TAG_CACHE_D1 --local --command "CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, stale INTEGER, expire INTEGER default NULL, UNIQUE(tag) ON CONFLICT REPLACE);"` rồi `npx wrangler dev` (E2E `--workers` tự làm vậy); hoặc dùng WSL |
+| Trang chủ không đổi sau khi admin sửa khóa (Cloudflare) | Thiếu R2 / D1 / Durable Object hoặc `database_id` D1 sai | Kiểm tra `wrangler.jsonc`, `npx wrangler d1 list`; deploy lại (lệnh deploy tự tạo bảng `revalidations`) |
+| Bấm tab trong trang quản trị / "Hoàn thành & bài tiếp theo" không chuyển trang | Có `loading.tsx` dưới `/admin` hoặc `/courses` + trang chỉ đổi `?tham-số` + dữ liệu lớn – lỗi router Next 15.5 (RK-53, project-review §7.9) | Không thêm `loading.tsx` (dùng thanh tiến trình có sẵn) |
 | "Hệ thống chưa cấu hình gửi email" | Thiếu SMTP_* | Cấu hình SMTP |
 | Gmail báo lỗi xác thực | App Password sai/bị thu hồi, chưa bật 2FA | Tạo lại App Password |
 | Đăng ký báo "Database error creating new user" | SĐT trùng unique index khi tạo profile (race) hoặc trigger lỗi | Kiểm tra `profiles` theo SĐT; xem log Postgres |
@@ -164,7 +189,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 | Admin không thấy thumbnail ảnh | Ảnh HEIC trên Chrome | Bấm mở ảnh (tải về) hoặc dùng Safari |
 | Lỗi schema cache "column … not found" | PostgREST chưa tải lại schema | Chạy `notify pgrst, 'reload schema';` |
 | Project Supabase bị pause | Free tier không hoạt động 7 ngày; workflow `keepalive.yml` chưa bật hoặc lỗi | Restore trong dashboard; bật / kiểm tra workflow (§7.1); nâng gói |
-| Script / workflow báo "Node.js detected but native WebSocket not found" | `@supabase/supabase-js` ≥ 2.117 cần **Node 22+** | Workflow dùng `node-version: 22`; `package.json` có `engines.node >= 22`; Vercel › Settings › Node.js Version chọn 22.x trở lên |
+| Script / workflow báo "Node.js detected but native WebSocket not found" | `@supabase/supabase-js` ≥ 2.117 cần **Node 22+** | Workflow dùng `node-version: 22`; `package.json` có `engines.node >= 22`; Workers Builds: biến build `NODE_VERSION=22` |
 | Workflow "Sao lưu production" lỗi ở bước database | `PROD_SUPABASE_DB_URL` dùng Direct connection (IPv6) hoặc mật khẩu chưa mã hóa URL | Dùng chuỗi **Session pooler**, mã hóa ký tự đặc biệt (§7.1) |
 | E2E báo "Chưa có bản build" / "Server không khởi động được" / trang 500 `MODULE_NOT_FOUND` | `npm run dev` đang chạy ghi đè thư mục `.next` | Build & test vào thư mục riêng: `NEXT_DIST_DIR=.next-e2e` (xem test-plan §2) |
 | Học viên báo mất khóa sau khi admin ẩn khóa | Chưa chạy `schema.sql` mới (policy RV-01) | Chạy lại `supabase/schema.sql` |
@@ -175,7 +200,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 ## 9. Sự cố bảo mật: lộ service role key
 
 1. Supabase › Project Settings › API › **Roll/Regenerate** service role (hoặc tạo secret key mới, thu hồi key cũ).
-2. Cập nhật `SUPABASE_SERVICE_ROLE_KEY` trên Vercel và `.env.local`, redeploy.
+2. Cập nhật `SUPABASE_SERVICE_ROLE_KEY`: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (Cloudflare), GitHub secret `PROD_SUPABASE_SERVICE_ROLE_KEY`, `.env.local`.
 3. Kiểm tra `profiles.role = 'admin'` có tài khoản lạ không; kiểm tra `registrations` bị sửa bất thường.
 4. Nếu key bị commit lên git: xóa khỏi lịch sử (git filter-repo) **sau** khi đã xoay khóa.
 5. Ghi lại sự cố, nguyên nhân, biện pháp phòng ngừa.
@@ -194,11 +219,11 @@ Làm theo thứ tự giai đoạn 1 → 7; trong một giai đoạn các bước
 | Bước | Việc | Cách làm | Xong khi |
 | --- | --- | --- | --- |
 | 1.1 | ✅ Sao lưu + giữ Supabase hoạt động (A-14) | §7.1 – đã chạy thử 2 workflow 02/10/2026 | Actions có ✅ + artifact `hv-backup-…` |
-| 1.2 | Vùng Supabase (A-15) | Supabase › Project Settings › General › Region | Là Singapore; nếu khác báo dev đổi `vercel.json` |
-| 1.3 | Vercel production | Vercel › Add New › Project › import repo; **Production Branch = `main`**; Settings › **Node.js Version = 22.x** trở lên; Settings › Environment Variables (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, `SMTP_*`, `MAIL_FROM` (§2). **Không** đặt `MAIL_OUTBOX_DIR`, `E2E_SUPABASE_REF` | Deploy xanh, mở được trang chủ; Settings › Functions › Region = Singapore (sin1) |
-| 1.4 | Tên miền (tùy chọn khi chạy thử) | Dùng tạm `<tên>.vercel.app`, hoặc Vercel › Settings › Domains › thêm domain riêng, trỏ DNS theo hướng dẫn | `NEXT_PUBLIC_SITE_URL` = địa chỉ chính thức, đã redeploy |
+| 1.2 | Vùng Supabase (A-15) | Supabase › Project Settings › General › Region | Ghi vào tài liệu (Smart Placement tự đặt Worker gần Supabase) |
+| 1.3 | Cloudflare Workers production (A-18, A-20) – **Đợt 17** | §4 "Triển khai lên Cloudflare Workers" bước 1 → 8 | Mở được trang chủ trên `https://hv-web.<tài-khoản>.workers.dev`; Workers Logs không có lỗi |
+| 1.4 | Tên miền (chốt 04/10: **chạy tạm `workers.dev`**, mua ở đợt sau – A-19) | Khi có tên miền: thêm vào Cloudflare (đổi nameserver) → Workers › hv-web › Domains & Routes › Custom Domain | `NEXT_PUBLIC_SITE_URL` = địa chỉ chính thức, đã build lại |
 | 1.5 | Supabase Auth (sau 1.4) | Authentication › URL Configuration › **Site URL** = địa chỉ ở 1.4; Providers › Email: tắt "Confirm email"; cân nhắc tắt "Allow new users to sign up" (hệ thống tạo tài khoản bằng service role); Password: tối thiểu 8 ký tự | Lưu thành công |
-| 1.6 | Email quên mật khẩu (A-12) | Gmail của trung tâm: bật xác minh 2 bước → App Password → điền `SMTP_*` trên Vercel → redeploy (README "Cấu hình gửi email") | Quên mật khẩu bằng email thật nhận được mã 6 số |
+| 1.6 | Email quên mật khẩu (A-12) | Gmail của trung tâm: bật xác minh 2 bước → App Password → điền `SMTP_*` trên Cloudflare (§4 bước 4) (README "Cấu hình gửi email") | Quên mật khẩu bằng email thật nhận được mã 6 số |
 | 1.7 | Turnstile (A-4) | §6 "Bật Turnstile". **Tùy chọn** khi chỉ mời người quen; **bắt buộc** trước khi quảng bá công khai | Form đăng ký hiện ô xác minh |
 
 ### Giai đoạn 2 – Dữ liệu sạch (dev chuẩn bị, chủ dự án xác nhận và chạy)
@@ -243,7 +268,7 @@ Thử trên **iPhone (Safari)**, **Android (Chrome)** và máy tính (admin). T�
 - [ ] Bệnh nhân gửi phiếu tham vấn → nhân viên chuyển Mới → Đã liên hệ → Hoàn tất
 - [ ] Quên mật khẩu bằng email thật nhận mã
 - [ ] Admin: Tổng quan khớp số liệu, doanh thu hiện đúng 2 giao dịch thử
-- [ ] Vercel › Logs không có lỗi đỏ trong lúc thử
+- [ ] Workers › hv-web › Logs không có lỗi đỏ trong lúc thử; kèm checklist CF-01 → CF-41 ([cloudflare-migration §5](cloudflare-migration.md#5-checklist-nghiệm-thu-inspection))
 
 ### Giai đoạn 6 – Chạy thử (đề xuất 4 tuần, 10–30 bệnh nhân – chủ dự án chốt ở bước 6.1)
 
@@ -267,7 +292,7 @@ Thử trên **iPhone (Safari)**, **Android (Chrome)** và máy tính (admin). T�
 | Tỷ lệ gia hạn; khách từ khóa miễn phí / premium chuyển thành bệnh nhân | Đơn đăng ký, Khách quan tâm |
 | Thời gian duyệt đơn trung bình; số lỗi; góp ý chính | Đơn đăng ký (Ngày đăng ký → Ngày xử lý), nhật ký §10.1 |
 
-Quyết định: **(a) mở rộng** → hạ tầng giai đoạn 1 (Supabase Pro trước, Vercel Pro – roadmap §3.3), bật Turnstile, quảng bá;
+Quyết định: **(a) mở rộng** → hạ tầng theo ngưỡng (Supabase Pro khi chạm hạn mức – roadmap §3.3; web đã ở Cloudflare Workers Paid), bật Turnstile, quảng bá;
 **(b) điều chỉnh** → chủ dự án sắp lại backlog roadmap §3.2 theo góp ý; **(c) dừng / đổi hướng**. Ghi kết quả vào project-review.
 
 ### 10.1. Nhật ký chạy thử
@@ -278,11 +303,11 @@ Quyết định: **(a) mở rộng** → hạ tầng giai đoạn 1 (Supabase Pr
 
 ## 11. Giám sát (đề xuất)
 
-- Vercel Analytics / Speed Insights cho hiệu năng.
-- Sentry (hoặc Vercel Log Drains) để bắt lỗi server action.
+- Cloudflare **Web Analytics** (miễn phí) cho lượt xem; Workers › Metrics (request, lỗi, CPU).
+- **Workers Logs** (giữ 7 ngày, 20 triệu dòng/tháng trong gói Paid) để bắt lỗi server action; Sentry nếu cần cảnh báo.
 - Supabase › Reports: số kết nối, dung lượng DB/Storage.
 - Cảnh báo khi số đơn `pending` > 24 giờ (truy vấn định kỳ hoặc email hằng ngày cho admin).
-- **Mỗi tháng** (giai đoạn gói Free): ghi số liệu ở Supabase › Organization › Usage và Vercel › Usage vào bảng §12.2, so với ngưỡng chuyển gói.
+- **Mỗi tháng** (giai đoạn gói Free): ghi số liệu ở Supabase › Organization › Usage và Cloudflare › Workers & Pages › Usage vào bảng §12.2, so với ngưỡng chuyển gói.
 
 ## 12. Giai đoạn thử nghiệm trên gói Free & lộ trình chuyển gói (chốt 02/10/2026)
 
@@ -295,7 +320,7 @@ Phân tích tải đầy đủ: [project-review §7.8](../10-review/project-revi
 ### 12.1. Gói Free chứa được bao nhiêu
 
 Giả định mỗi bệnh nhân đang tập: ~30 buổi/tháng × ~8 lượt mở trang / tick; ~4 ảnh chuyển khoản/năm, mỗi ảnh ~0,5 MB (đã nén).
-Hạn mức gói theo bảng giá tại thời điểm viết – **đối chiếu lại trang giá** của Supabase / Vercel khi quyết định.
+Hạn mức gói theo bảng giá tại thời điểm viết – **đối chiếu lại trang giá** của Supabase / Cloudflare (tra 04/10/2026) khi quyết định.
 
 | Hạn mức Free | Đủ cho khoảng | Cạn trước? |
 | --- | --- | --- |
@@ -303,27 +328,27 @@ Hạn mức gói theo bảng giá tại thời điểm viết – **đối chi�
 | Supabase Storage 1 GB | ~2.000 ảnh chuyển khoản **tích lũy** (30 giao dịch/tháng → > 5 năm; 100/tháng → ~1,5 năm) | ⚠️ |
 | Supabase egress 5 GB/tháng | ~1.000 bệnh nhân hoạt động (video ở YouTube, không tính); sao lưu ảnh hằng tháng cũng tính vào đây | Không |
 | Supabase 50.000 MAU | Thoải mái | Không |
-| Vercel Hobby Active CPU 4 giờ/tháng | ~500–600 bệnh nhân tập đều (~0,1 giây CPU / trang động) | ⚠️ cạn đầu tiên |
-| Vercel Hobby 100 GB băng thông, 1 triệu request | ~1.000+ bệnh nhân | Không |
+| Cloudflare Workers Paid: 10 triệu request, 30 triệu ms CPU / tháng (vượt: 0,30 USD / triệu request, 0,02 USD / triệu ms CPU) | Vài nghìn bệnh nhân tập đều | Không |
+| R2 10 GB, D1 5 GB, Durable Objects 1 triệu request (bộ nhớ đệm trang) | Thoải mái | Không |
 | Gmail SMTP ~500 thư/ngày | Chỉ dùng quên mật khẩu | Không |
 
 → Gói Free chịu được khoảng **50 người cùng lúc, 300–500 bệnh nhân hoạt động, vài nghìn giao dịch tích lũy**.
 Hạn chế không phải tải mà là: **tạm dừng sau 7 ngày** (bù bằng `keepalive.yml`), **không backup** (bù bằng `backup.yml`),
-**Vercel Hobby chỉ cho mục đích phi thương mại** (chấp nhận trong thời gian thử nghiệm ngắn).
+Vercel Hobby chỉ cho mục đích phi thương mại → đã giải quyết bằng Cloudflare Workers Paid (ADR-017).
 
 ### 12.2. Ngưỡng chuyển gói (gặp **một** dấu hiệu là chuyển)
 
 | Giai đoạn | Dấu hiệu | Hạ tầng | Chi phí / tháng (ước tính) |
 | --- | --- | --- | --- |
-| 0. Thử nghiệm (hiện tại) | — | Supabase Free + Vercel Hobby (vùng `sin1`) + keepalive + backup tuần | 0đ |
-| 1. Kinh doanh | ≥ ~30 bệnh nhân trả phí / thu tiền đều hằng tháng · chuẩn bị chạy quảng cáo · Storage > 600 MB · Vercel Active CPU > 70% · egress > 3,5 GB | **Supabase Pro trước** (backup hằng ngày, không pause, 100 GB Storage), **Vercel Pro** (hợp lệ thương mại) | ~45 USD |
-| 2. Mở rộng | > 200 bệnh nhân (danh sách admin chỉ hiện 200 dòng) · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như 1 + đợt code: phân trang (RV-12), nới giới hạn đăng nhập theo IP (RK-39), giới hạn Supabase Auth (RK-40), Sentry | ~45 USD + 1 đợt code |
-| 3. Quy mô mục tiêu | 300–500 người cùng lúc, ~1.000 bệnh nhân · CPU database > 60% giờ cao điểm | Supabase compute Small; staging + chạy thử tải trước | ~60–80 USD |
+| 0. Thử nghiệm + kinh doanh nhỏ (sau Đợt 17) | — | Supabase Free + **Cloudflare Workers Paid** + keepalive + backup | ~5 USD |
+| 1. Chạm hạn mức Supabase Free | Storage > 600 MB · egress > 3,5 GB/tháng · cần backup hằng ngày tự động / hỗ trợ kỹ thuật | + **Supabase Pro** (hoặc chuyển ảnh sang R2 để kéo dài Free – RK-37) | ~30 USD |
+| 2. Mở rộng | > 200 bệnh nhân (danh sách admin chỉ hiện 200 dòng) · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên + đợt code: phân trang (RV-12), nới giới hạn đăng nhập theo IP (RK-39), giới hạn Supabase Auth (RK-40), giám sát lỗi | 5–30 USD + 1 đợt code |
+| 3. Quy mô mục tiêu | 300–500 người cùng lúc, ~1.000 bệnh nhân · CPU database > 60% giờ cao điểm | Supabase Pro + compute Small; staging + chạy thử tải trước | ~45–65 USD |
 
-Nếu chỉ chuyển được một gói: **chuyển Supabase trước** (mất dữ liệu bệnh nhân / thanh toán là không lấy lại được).
+Supabase Free là mặc định – **không nâng theo lịch**, chỉ nâng khi gặp dấu hiệu ở dòng 1 (chủ dự án chốt 04/10/2026).
 
 **Theo dõi hằng tháng** (điền khi xem Usage):
 
-| Tháng | Bệnh nhân hoạt động | DB (MB) | Storage (MB) | Egress (GB) | Vercel CPU (giờ) | Ghi chú |
+| Tháng | Bệnh nhân hoạt động | DB (MB) | Storage (MB) | Egress (GB) | Workers request / CPU (ms) | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
 | 10/2026 | | | | | | |

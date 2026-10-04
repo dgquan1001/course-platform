@@ -7,6 +7,9 @@ import NavCount from './NavCount'
 
 export const metadata: Metadata = { title: 'Quản trị' }
 
+// Không thêm app/admin/loading.tsx: với Next 15.5, trang chỉ đổi ?tham-số (tab Đơn đăng ký, Khách quan tâm…) và dữ liệu lớn thì router
+// hủy điều hướng, bấm tab không chuyển (RK-53, Đợt 17). Khi chờ tải đã có thanh tiến trình NavigationProgress.
+
 // Số việc cần xử lý cạnh menu: stream sau, không chặn trang
 const counts = {
   '/admin/registrations': <Suspense fallback={null}><NavCount kind="registrations" /></Suspense>,

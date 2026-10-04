@@ -26,7 +26,7 @@ course-platform/
 │  │  ├─ consultation/ {page, ConsultationForm (client)}  # Phiếu tham vấn (Đợt 12)
 │  │  └─ [courseId]/ {page, [lessonId]/page}              # Trang khóa, trình học theo buổi (Đợt 10)
 │  └─ admin/                         # Nhân viên + admin (layout gọi requireStaffPage)
-│     ├─ layout.tsx, AdminNav.tsx, loading.tsx, error.tsx
+│     ├─ layout.tsx, AdminNav.tsx, error.tsx (bỏ loading.tsx ở Đợt 17 – RK-53)
 │     ├─ actions.ts                  # Action quản trị dùng chung: đơn, lead, phiếu tham vấn, mẫu phiếu, phân quyền, khóa – gói – buổi – bài
 │     ├─ page.tsx                    # Tổng quan / dashboard (Đợt 13); /admin?status= → registrations
 │     ├─ registrations/page.tsx      # Đơn đăng ký (Đợt 7)
@@ -64,14 +64,15 @@ course-platform/
 │  ├─ progress.ts                    # loadLearning, getCourseProgress, lessonLabel
 │  ├─ consultation.ts                # Loại câu hỏi, trạng thái, định dạng câu trả lời phiếu tham vấn
 │  ├─ format.ts                      # Ngày giờ VN, nhãn hình thức thanh toán / nguồn, displayName
-│  ├─ image-type.ts, compress-image.ts, rate-limit.ts, turnstile.ts, consent.ts, mailer.ts, flash.ts, video.ts, action-result.ts
+│  ├─ image-type.ts, compress-image.ts, rate-limit.ts, turnstile.ts, consent.ts, mailer.ts, smtp-workers.ts + cloudflare-sockets.d.ts (gửi SMTP trên Workers – Đợt 17), flash.ts, video.ts, action-result.ts
 │  └─ supabase/ {server, client, public, admin}.ts
 ├─ middleware.ts                     # Nhẹ: đọc phiên từ cookie (getSession), chưa đăng nhập → /login (ADR-016)
 ├─ supabase/schema.sql               # Toàn bộ DB: bảng, index, hàm, trigger, RLS, storage (idempotent)
-├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs, backup-storage.mjs}   # e2e ~2.300 dòng, 98 bước; backup-storage: tải ảnh Storage
+├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs, backup-storage.mjs}   # e2e ~2.400 dòng, chạy trên Node hoặc Cloudflare Workers (--workers); backup-storage: tải ảnh Storage
 ├─ public/images/
 ├─ .github/workflows/ {ci.yml, keepalive.yml, backup.yml}   # CI; giữ Supabase Free hoạt động; sao lưu tuần (runbook §7.1)
-├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb), vercel.json (vùng sin1)
+├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized), vercel.json (vùng sin1 – đường lùi, gỡ ở Đợt 17 P6)
+├─ wrangler.jsonc (Worker hv-web: R2 / D1 / Durable Object cho ISR, Smart Placement), open-next.config.ts, public/_headers   # Cloudflare – ADR-017
 └─ .env.local(.example)
 ```
 

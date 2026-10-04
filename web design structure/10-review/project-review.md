@@ -10,7 +10,7 @@
 | Hạng mục | Hiện trạng |
 | --- | --- |
 | Chức năng | v0.2 hoàn tất (Đợt 7 → 13): 3 vai trò, 3 loại khóa, gói tháng + hạn học cộng dồn, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard + doanh thu |
-| Kiểm thử | E2E **98/98 PASS** (29/09, sau Đợt 15); lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
+| Kiểm thử | 04/10 sau Đợt 17 P0 → P2: E2E **Node 99/99**, **Cloudflare Workers 100/100** (RK-54 ghi nhận riêng); 29/09 sau Đợt 15: 98/98; lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
 | Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
 | Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
 | Hạ tầng (02/10 → 04/10) | Supabase Free, keepalive + sao lưu tuần đang chạy (Đợt 16, A-14 ✅). **04/10: chốt chuyển web sang Cloudflare Workers Paid** (ADR-017, Đợt 17) thay Vercel; rà soát ảnh hưởng phát hiện **RK-43 🔴** (IP giả qua `X-Forwarded-For`) – §7.9 |
@@ -366,7 +366,7 @@ cả 2 workflow → **RK-36 đóng**, A-14 ✅. Còn lại: thử khôi phục b
 
 **Bối cảnh**: chủ dự án chốt Supabase Free + Cloudflare Workers Paid (ADR-017) vì chi phí và lợi ích lâu dài; đồng thời yêu cầu thêm / sửa / xóa ở
 danh sách bệnh nhân và khóa học (Đợt 18). Rà soát toàn bộ `app/`, `lib/`, `middleware.ts`, `next.config.mjs`, `scripts/`, workflow, schema
-(khóa ngoại khi xóa tài khoản / khóa học). Bảng ảnh hưởng đầy đủ I-01 → I-32 và checklist CF-01 → CF-40:
+(khóa ngoại khi xóa tài khoản / khóa học). Bảng ảnh hưởng đầy đủ I-01 → I-32 và checklist CF-01 → CF-41:
 [cloudflare-migration.md](../09-operations/cloudflare-migration.md).
 
 | ID | Mức | Risk case | Bằng chứng | Tác động | Xử lý / đề xuất |
@@ -381,6 +381,10 @@ danh sách bệnh nhân và khóa học (Đợt 18). Rà soát toàn bộ `app/`
 | RK-50 | 🟠 | E2E hiện chạy `next start` (Node) – PASS trên Node không bảo đảm chạy trên workerd | 📖 `scripts/e2e.mjs` | Lỗi chỉ lộ ra trên production | E2E chế độ workers (`opennextjs-cloudflare preview`) là chuẩn nghiệm thu |
 | RK-51 | 🟠 | Chưa có khóa / xóa bệnh nhân; xóa tài khoản sẽ cascade tiến độ, ghi chú; phiếu tham vấn (dữ liệu sức khỏe) còn lại với `user_id = null` | 📖 `schema.sql` khóa ngoại | Không đáp ứng yêu cầu xóa dữ liệu; xóa nhầm mất tiến độ | Đợt 18 QL-03 / QL-04: khóa trước, xóa chỉ admin + điều kiện + gõ SĐT; Q-5 |
 | RK-52 | 🟠 | Xóa khóa học được cả khi còn học viên có gói còn hạn (chỉ cảnh báo) | 📖 `app/admin/courses/page.tsx:136-143` | Bệnh nhân đã trả tiền mất khóa đang học | Đợt 18 QL-08: chặn ở server + database, gợi ý Ẩn (Q-7) |
+| RK-53 | 🔴 | *(phát hiện khi chạy E2E sau khi nâng Next 15)* Bấm tab ở **Đơn đăng ký** (`?status=`) không chuyển trang: router Next 15.5 hủy điều hướng khi nhánh `/admin` có `loading.tsx`, trang chỉ đổi tham số và dữ liệu đủ lớn (trang nhỏ như Khách quan tâm không bị) | 🔬 E2E bước "Đơn đăng ký hiển thị dạng bảng…" đỏ 2 lần; tái hiện bằng tài khoản admin tạm: RSC trả 200 rồi bị hủy, không tải lại trang; thu hẹp 10 bản build: bỏ ảnh / form / lịch sử vẫn lỗi, 0 dòng thì chạy, thêm chữ dài vào bản tối giản thì lỗi, tắt middleware vẫn lỗi, **bỏ `app/admin/loading.tsx` thì hết** | Nhân viên không lọc được đơn theo trạng thái; bệnh nhân không chuyển được sang bài tiếp theo | ✅ Đợt 17: xóa `app/admin/loading.tsx` và `app/courses/loading.tsx` (cùng lỗi: bấm "Hoàn thành & bài tiếp theo" không chuyển bài – E2E Node lần 3); thanh tiến trình vẫn báo đang tải; ghi chú trong `app/admin/layout.tsx`, runbook §8 |
+| RK-54 | 🟡 | *(chỉ khi chạy trên workerd của `wrangler dev`)* Lỗi hydration React #418 lác đác ở trang quản trị `/admin/**` (8 – 13 lần / lượt E2E, mỗi lượt ~150 lần mở trang quản trị); React tự dựng lại trang phía trình duyệt, **mọi chức năng vẫn đúng** (99/99 bước) | 🔬 Đã loại trừ (04/10): định dạng ngày / số (`Intl` của workerd giống Node), ký tự UTF-8 bị cắt (0 ký tự U+FFFD trong HTML trình duyệt nhận), dữ liệu RSC lệch HTML (khớp), số đếm menu stream qua Suspense (đếm sẵn vẫn lỗi – đã hoàn tác), Playwright chặn yêu cầu tải trang (chỉ chặn POST vẫn lỗi). Không lỗi trên Node (`next start`) và ở `/courses` | Trang quản trị dựng lại phía trình duyệt: chậm hơn một chút, có thể nháy | 🟡 Mở – E2E chế độ workers ghi nhận riêng (không làm đỏ test); **kiểm lại trên Cloudflare thật** (checklist CF-41) – nếu còn: thử bản Next / OpenNext mới hơn, hoặc build React development phía trình duyệt để xem phần lệch |
+
+**Kết quả Đợt 17 P0 → P2 (04/10/2026)**: code chạy được trên Cloudflare Workers (bản giả lập workerd của wrangler) – E2E **100/100** (TC-102, TC-103 mới), Node **99/99**, `next dev` chạy bình thường. Lỗi thật phát hiện nhờ E2E: **RK-53** (đã sửa), RK-54 (mở, không ảnh hưởng chức năng); thêm 2 lỗi nhỏ do Next 15: prefetch trang giới thiệu khóa đang ẩn gây 404 trong console (`prefetch={false}`), trang `/khoa-hoc/[id]` mất ISR (thêm `generateStaticParams`). Chưa deploy: máy dev chưa `wrangler login` – chờ chủ dự án P3 (runbook §4).
 
 **Không phải rủi ro khi chuyển**: `keepalive.yml`, `backup.yml`, script sao lưu / tạo admin (gọi thẳng Supabase); kết nối database (qua
 PostgREST, không cần Hyperdrive); phông chữ (tự host lúc build); thời gian chạy (CPU 30 giây / request trên gói Paid); `crypto` / `Buffer`

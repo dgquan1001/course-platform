@@ -136,7 +136,7 @@ async function readCover(formData: FormData): Promise<Parsed<Cover>> {
 
 // Tải ảnh bìa lên bucket công khai (chịu RLS: chỉ admin), trả về đường dẫn công khai
 async function uploadCover(cover: NonNullable<Cover>) {
-  const storage = createClient().storage.from(COVER_BUCKET)
+  const storage = (await createClient()).storage.from(COVER_BUCKET)
   const path = `${crypto.randomUUID()}.${cover.ext}`
   const { error } = await storage.upload(path, cover.file, { contentType: cover.contentType })
   if (error) return { url: null, error: { message: `Không tải được ảnh bìa: ${error.message}` } }
@@ -146,7 +146,7 @@ async function uploadCover(cover: NonNullable<Cover>) {
 // Xóa file ảnh bìa cũ (không làm hỏng thao tác chính nếu lỗi)
 async function removeCover(url: string | null | undefined) {
   const path = url?.split(`/${COVER_BUCKET}/`)[1]
-  if (path) await createClient().storage.from(COVER_BUCKET).remove([decodeURIComponent(path)])
+  if (path) await (await createClient()).storage.from(COVER_BUCKET).remove([decodeURIComponent(path)])
 }
 
 type LessonInput = { title: string; description: string | null; video_url: string | null; sort_order: number }
@@ -197,9 +197,9 @@ export async function setRegistrationStatus(
     (note.length > MAX_NOTE ? `Lý do tối đa ${MAX_NOTE} ký tự.` : null)
   return run(
     statusMessages[status],
-    () => {
+    async () => {
       // Thời điểm, người xử lý và lịch sử do trigger registrations_stamp_review ghi
-      let query = createClient()
+      let query = (await createClient())
         .from('registrations')
         .update({ status, review_note: note || null })
         .eq('id', registrationId)
@@ -240,8 +240,8 @@ export async function setLeadStatus(leadId: string, expected: string, formData: 
     (note.length > MAX_NOTE ? `Ghi chú tối đa ${MAX_NOTE} ký tự.` : null)
   return run(
     isLeadStatus(status) ? leadMessages[status] : '',
-    () =>
-      createClient()
+    async () =>
+      (await createClient())
         .from('leads')
         .update({ status, staff_note: note || null })
         .eq('id', leadId)
@@ -275,8 +275,8 @@ export async function setConsultationStatus(consultationId: string, expected: st
     (note.length > MAX_STAFF_NOTE ? `Ghi chú tối đa ${MAX_STAFF_NOTE} ký tự.` : null)
   return run(
     isConsultationStatus(status) ? consultationMessages[status] : '',
-    () =>
-      createClient()
+    async () =>
+      (await createClient())
         .from('consultations')
         .update({ status, staff_note: note || null })
         .eq('id', consultationId)
@@ -306,7 +306,7 @@ export async function createConsultQuestion(formData: FormData) {
   return run(
     'Đã thêm câu hỏi.',
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { data: last } = await supabase.from('consult_questions').select('sort_order').order('sort_order', { ascending: false }).limit(1)
       return supabase
         .from('consult_questions')
@@ -321,7 +321,7 @@ export async function updateConsultQuestion(questionId: string, formData: FormDa
   const { value, error } = readQuestion(formData)
   return run(
     'Đã lưu câu hỏi.',
-    () => createClient().from('consult_questions').update(value!).eq('id', questionId).select('id'),
+    async () => (await createClient()).from('consult_questions').update(value!).eq('id', questionId).select('id'),
     checkId(questionId, 'câu hỏi') ?? error
   )
 }
@@ -329,7 +329,7 @@ export async function updateConsultQuestion(questionId: string, formData: FormDa
 export async function deleteConsultQuestion(questionId: string) {
   return run(
     'Đã xóa câu hỏi.',
-    () => createClient().from('consult_questions').delete().eq('id', questionId).select('id'),
+    async () => (await createClient()).from('consult_questions').delete().eq('id', questionId).select('id'),
     checkId(questionId, 'câu hỏi')
   )
 }
@@ -339,7 +339,7 @@ export async function moveConsultQuestion(questionId: string, direction: 'up' | 
   return run(
     'Đã đổi thứ tự câu hỏi.',
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { data } = await supabase.from('consult_questions').select('id, sort_order').order('sort_order').order('created_at')
       const questions = data ?? []
       const index = questions.findIndex((x) => x.id === questionId)
@@ -378,7 +378,7 @@ export async function setUserRole(userId: string, formData: FormData) {
     (userId === me?.id ? 'Bạn không thể tự thay đổi quyền của chính mình.' : null)
   return run(
     isRole(role) ? roleMessages[role] : '',
-    () => createClient().from('profiles').update({ role }).eq('id', userId).select('id'),
+    async () => (await createClient()).from('profiles').update({ role }).eq('id', userId).select('id'),
     invalid
   )
 }
@@ -398,7 +398,7 @@ export async function createCourse(formData: FormData) {
         if (uploaded.error) return { data: null, error: uploaded.error }
         cover_image = uploaded.url
       }
-      const supabase = createClient()
+      const supabase = await createClient()
       const result = await supabase.from('courses').insert({ ...value!, price: value!.price ?? 0, cover_image }).select('id')
       if (result.error) {
         await removeCover(cover_image)
@@ -429,7 +429,7 @@ export async function updateCourse(courseId: string, formData: FormData) {
   return run(
     'Đã lưu thông tin khóa học.',
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { data: current } = await supabase.from('courses').select('kind, cover_image').eq('id', courseId).maybeSingle()
       if (!current) return { data: [], error: null }
       // Đổi loại khóa khi đã có đơn đăng ký sẽ làm sai lịch sử thanh toán / quyền học
@@ -462,7 +462,7 @@ export async function setCourseStatus(courseId: string, status: 'draft' | 'publi
   const invalid = checkId(courseId, 'khóa học') ?? (['draft', 'published'].includes(status) ? null : 'Trạng thái khóa học không hợp lệ.')
   return run(
     status === 'published' ? 'Khóa học đã hiển thị trên website.' : 'Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được).',
-    () => createClient().from('courses').update({ status }).eq('id', courseId).select('id'),
+    async () => (await createClient()).from('courses').update({ status }).eq('id', courseId).select('id'),
     invalid
   )
 }
@@ -472,7 +472,7 @@ export async function deleteCourse(courseId: string) {
   return run(
     'Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại.',
     async () => {
-      const result = await createClient().from('courses').delete().eq('id', courseId).select('id, cover_image')
+      const result = await (await createClient()).from('courses').delete().eq('id', courseId).select('id, cover_image')
       if (!result.error) await removeCover(result.data?.[0]?.cover_image)
       return result
     },
@@ -499,8 +499,8 @@ export async function createPlan(courseId: string, formData: FormData) {
   const { value, error } = readPlan(formData, months)
   return run(
     `Đã thêm gói ${months} tháng.`,
-    () =>
-      createClient()
+    async () =>
+      (await createClient())
         .from('course_plans')
         .insert({ ...value!, active: true, months, course_id: courseId })
         .select('id'),
@@ -513,7 +513,7 @@ export async function updatePlan(planId: string, months: number, formData: FormD
   const { value, error } = readPlan(formData, months)
   return run(
     `Đã lưu gói ${months} tháng.`,
-    () => createClient().from('course_plans').update(value!).eq('id', planId).select('id'),
+    async () => (await createClient()).from('course_plans').update(value!).eq('id', planId).select('id'),
     checkId(planId, 'gói') ?? error
   )
 }
@@ -522,7 +522,7 @@ export async function updatePlan(planId: string, months: number, formData: FormD
 export async function deletePlan(planId: string) {
   return run(
     'Đã xóa gói.',
-    () => createClient().from('course_plans').delete().eq('id', planId).select('id'),
+    async () => (await createClient()).from('course_plans').delete().eq('id', planId).select('id'),
     checkId(planId, 'gói')
   )
 }
@@ -533,7 +533,7 @@ const MAX_SKELETON_SESSIONS = 200
 const MAX_LESSONS_PER_SESSION = 20
 const MAX_SESSIONS = 500
 
-type SupabaseServer = ReturnType<typeof createClient>
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>
 
 // Các buổi của khóa theo thứ tự hiển thị
 async function sessionsOf(supabase: SupabaseServer, courseId: string) {
@@ -591,7 +591,7 @@ export async function generateSkeleton(courseId: string, formData: FormData) {
   const { value, error } = readSkeleton(formData)
   return run(
     `Đã tạo ${value?.sessions} buổi × ${value?.lessons} bài.`,
-    () => insertSkeleton(createClient(), courseId, value!.sessions, value!.lessons),
+    async () => insertSkeleton(await createClient(), courseId, value!.sessions, value!.lessons),
     checkId(courseId, 'khóa học') ?? error ?? (value ? null : 'Vui lòng nhập số buổi và số bài mỗi buổi.')
   )
 }
@@ -605,7 +605,7 @@ export async function createSession(courseId: string, formData: FormData) {
   return run(
     `Đã thêm "${value?.title}".`,
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const existing = await sessionsOf(supabase, courseId)
       const sortOrder = Math.max(existing.at(-1)?.sort_order ?? 0, existing.length) + 1
       return supabase.from('course_sessions').insert({ ...value!, course_id: courseId, sort_order: sortOrder }).select('id')
@@ -618,7 +618,7 @@ export async function updateSession(sessionId: string, formData: FormData) {
   const { value, error } = readSession(formData)
   return run(
     'Đã lưu buổi.',
-    () => createClient().from('course_sessions').update(value!).eq('id', sessionId).select('id'),
+    async () => (await createClient()).from('course_sessions').update(value!).eq('id', sessionId).select('id'),
     checkId(sessionId, 'buổi') ?? error
   )
 }
@@ -627,7 +627,7 @@ export async function updateSession(sessionId: string, formData: FormData) {
 export async function deleteSession(sessionId: string) {
   return run(
     'Đã xóa buổi và các bài của buổi.',
-    () => createClient().from('course_sessions').delete().eq('id', sessionId).select('id'),
+    async () => (await createClient()).from('course_sessions').delete().eq('id', sessionId).select('id'),
     checkId(sessionId, 'buổi')
   )
 }
@@ -637,7 +637,7 @@ export async function moveSession(courseId: string, sessionId: string, direction
   return run(
     'Đã đổi thứ tự buổi.',
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const sessions = await sessionsOf(supabase, courseId)
       const index = sessions.findIndex((x) => x.id === sessionId)
       const target = direction === 'up' ? index - 1 : index + 1
@@ -659,7 +659,7 @@ export async function duplicateSession(courseId: string, sessionId: string) {
   return run(
     'Đã sao chép buổi.',
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const sessions = await sessionsOf(supabase, courseId)
       const source = sessions.find((x) => x.id === sessionId)
       if (!source) return { data: [], error: null }
@@ -709,7 +709,7 @@ export async function createLesson(courseId: string, formData: FormData) {
   return run(
     `Đã thêm bài học "${value?.title}".`,
     async () => {
-      const supabase = createClient()
+      const supabase = await createClient()
       const session = await resolveSession(supabase, courseId, sessionId)
       if (session.error || !session.id) return { data: null, error: session.error ?? { message: 'Không tạo được buổi.' } }
       return supabase.from('lessons').insert({ ...value!, course_id: courseId, session_id: session.id }).select('id')
@@ -723,8 +723,8 @@ export async function updateLesson(lessonId: string, formData: FormData) {
   const sessionId = text(formData, 'session_id')
   return run(
     'Đã lưu bài học.',
-    () =>
-      createClient()
+    async () =>
+      (await createClient())
         .from('lessons')
         .update(sessionId ? { ...value!, session_id: sessionId } : value!)
         .eq('id', lessonId)
@@ -736,7 +736,7 @@ export async function updateLesson(lessonId: string, formData: FormData) {
 export async function deleteLesson(lessonId: string) {
   return run(
     'Đã xóa bài học.',
-    () => createClient().from('lessons').delete().eq('id', lessonId).select('id'),
+    async () => (await createClient()).from('lessons').delete().eq('id', lessonId).select('id'),
     checkId(lessonId, 'bài học')
   )
 }

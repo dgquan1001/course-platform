@@ -4,7 +4,7 @@
 Website bán và dạy khóa học nắn chỉnh, trị liệu cột sống – cơ xương khớp của
 Bác sĩ Đỗ Mạnh Cường. Video bài học được nhúng từ YouTube hoặc TikTok.
 
-Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tailwind CSS.
+Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Storage) + Tailwind CSS; chạy trên Cloudflare Workers (OpenNext) từ Đợt 17.
 
 > **Phiên bản 0.2 (27/09/2026 – ✅ code hoàn tất, E2E 96/96)**: nền tảng chương trình tập luyện, phục hồi chức năng
 > cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng; khóa miễn phí công khai; khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo;
@@ -15,6 +15,7 @@ Công nghệ: Next.js 14 (App Router) + Supabase (Auth, Postgres, Storage) + Tai
 > **Đợt 16 (02/10/2026)**: thử nghiệm trên gói Free (Supabase Free + Vercel Hobby, vùng Singapore), tự giữ Supabase hoạt động và sao lưu
 > hằng tuần bằng GitHub Actions (đã chạy thật 02/10); lộ trình chuyển gói theo ngưỡng – runbook §12.
 > **Chạy thử (Đợt 14)**: theo dõi ở roadmap §3.1, hướng dẫn từng bước ở `web design structure/09-operations/deployment-runbook.md` §10.
+> **Đợt 17 (04/10/2026) – P0 → P2 xong (code)**: Next 15.5 / React 19, chạy được trên Cloudflare Workers (OpenNext), E2E Node 99/99, Workers 100/100; chờ chủ dự án tạo tài khoản Cloudflare để deploy (runbook §4).
 > **Kế hoạch 04/10/2026**: chuyển phần web sang **Cloudflare Workers Paid** (~5 USD/tháng, hợp lệ thương mại), giữ Supabase Free – ADR-017,
 > Đợt 17 ([`web design structure/09-operations/cloudflare-migration.md`](web%20design%20structure/09-operations/cloudflare-migration.md));
 > Đợt 18: thêm / sửa / xóa ở danh sách bệnh nhân và khóa học (roadmap §3.5). Mục "Deploy (Vercel)" bên dưới còn dùng tới khi xong Đợt 17.
@@ -173,8 +174,9 @@ Middleware chỉ kiểm tra đăng nhập bằng cookie (không gọi mạng); q
 
 Bộ test chạy trên trình duyệt Chrome thật và Supabase thật, tự tạo dữ liệu test
 rồi **xóa sạch khi kết thúc** (không đụng tới dữ liệu thật). Script tự khởi động server
-ở cổng 3123 với `MAIL_OUTBOX_DIR` (email được ghi ra file thay vì gửi thật) để đọc được
-mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
+ở cổng 3123 kèm hộp thư giả (`MAIL_OUTBOX_URL` – email không gửi thật) để đọc được
+mã quên mật khẩu. Hai chế độ: Node (`npm run test:e2e`) và **Cloudflare Workers**
+(`npm run test:e2e:workers`, giống production – chuẩn nghiệm thu từ Đợt 17). Mỗi bước được gắn nhãn theo vai trò:
 
 | Vai trò | Nội dung kiểm tra |
 | --- | --- |
@@ -185,10 +187,13 @@ mã quên mật khẩu. Mỗi bước được gắn nhãn theo vai trò:
 | `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang chỉ admin, duyệt đơn, xử lý khách quan tâm premium, xem trước mọi buổi (không tick); tạo bệnh nhân Zalo + cấp gói, hồ sơ bệnh nhân (gia hạn, sửa, cấp lại mật khẩu), lọc bệnh nhân, xử lý phiếu tham vấn, Tổng quan không có doanh thu; không tự nâng quyền / sửa khóa học / sửa tài khoản admin / tạo đơn sai quy tắc qua API |
 | `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (miễn phí / chương trình / premium, ảnh bìa, mở/ẩn), khóa theo loại, gói tháng, khung N buổi × M bài, sao chép / xóa / đổi thứ tự buổi, bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; danh sách bệnh nhân; mẫu phiếu tham vấn; Tổng quan khớp database + doanh thu; xóa khóa / tài khoản vẫn giữ lead, phiếu, đơn |
 
-Lần chạy gần nhất: 29/09/2026, sau Đợt 15 – **98/98 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
+Lần chạy gần nhất: 04/10/2026, sau Đợt 17 P0 → P2 – **Node 99/99**, **Cloudflare Workers 100/100 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
 
     npm run build
-    npm run test:e2e
+    npm run test:e2e                     # Node (next start)
+
+    npx opennextjs-cloudflare build
+    npm run test:e2e:workers             # Cloudflare Workers (workerd) – giống production
 
 Nếu đang chạy `npm run dev` (dev server ghi đè thư mục `.next`), build và test vào thư mục riêng:
 
@@ -201,7 +206,7 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
 
     $env:BROWSER_CHANNEL="msedge"; npm run test:e2e
 
-⚠️ Không đặt `MAIL_OUTBOX_DIR` trên môi trường thật (email sẽ không được gửi đi).
+⚠️ Không đặt `MAIL_OUTBOX_URL` trên môi trường thật (email sẽ không được gửi đi).
 
 ## Tùy chỉnh
 
@@ -210,7 +215,16 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
 - **Nút, ô nhập, thẻ dùng chung**: `app/globals.css`
 - **Ảnh**: `public/images/`
 
-## Deploy (Vercel)
+## Deploy (Cloudflare Workers – Đợt 17)
+
+Từ Đợt 17 (ADR-017) website chạy trên **Cloudflare Workers** gói Paid qua `@opennextjs/cloudflare`; Supabase giữ nguyên.
+Các bước chi tiết (tài khoản, R2 / D1, Workers Builds, biến môi trường / Secret, nghiệm thu, đường lùi):
+`web design structure/09-operations/cloudflare-migration.md` §4 P3 → P5.
+
+    npm run preview      # build + chạy thử bản Workers trên máy (cần .dev.vars – xem runbook)
+    npm run deploy       # build + deploy (khi đã đăng nhập wrangler; bình thường dùng Workers Builds tự deploy khi push main)
+
+## Deploy (Vercel – đường lùi, gỡ sau Đợt 17)
 
 1. Đẩy code lên GitHub (file `.env.local` đã được bỏ qua, không bị đẩy lên)
 2. Vào https://vercel.com, **Import** repo, thêm các biến môi trường ở bước 3 (gồm cả SMTP), **Deploy**
@@ -247,7 +261,7 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
         users/                  Đường dẫn cũ → patients
         actions.ts              Server action quản trị dùng chung (trả kết quả để hiện toast)
         layout.tsx, AdminNav.tsx      Khung quản trị: sidebar trái / tab ngang trên điện thoại; NavCount.tsx: số việc cần xử lý
-        loading.tsx, error.tsx
+        error.tsx               Trang lỗi khu quản trị (không dùng loading.tsx – lỗi đổi tab ở Next 15.5, RK-53)
     components/
       SiteHeader.tsx, SiteFooter.tsx
       Toaster.tsx               Thông báo nổi
@@ -268,7 +282,7 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
       courses.ts, progress.ts, consultation.ts, format.ts   Nghiệp vụ khóa – gói – buổi, tiến độ, phiếu tham vấn, định dạng
       accounts.ts               Tìm tài khoản theo email/SĐT, kiểm tra trùng
       phone.ts                  Chuẩn hóa SĐT, email nội bộ cho tài khoản không email
-      mailer.ts                 Gửi email (SMTP) + mẫu email mã đặt lại mật khẩu
+      mailer.ts                 Gửi email (SMTP: nodemailer trên Node, smtp-workers.ts trên Cloudflare) + mẫu email mã đặt lại mật khẩu
       action-result.ts          Kiểu kết quả server action (để hiện toast)
       flash.ts                  Gửi thông báo sang trang tiếp theo sau khi redirect
       video.ts                  Chuyển link YouTube/TikTok sang link nhúng
@@ -276,10 +290,11 @@ máy không có Chrome thì dùng `msedge`). Ví dụ trên Windows PowerShell:
     middleware.ts               /courses, /account, /admin cần đăng nhập (đọc cookie, không gọi mạng); quyền kiểm tra ở trang
     public/images/              Ảnh bác sĩ, ảnh giới thiệu trung tâm
     supabase/schema.sql         Toàn bộ bảng, RLS, trigger, storage bucket
+    wrangler.jsonc, open-next.config.ts   Cấu hình Cloudflare Workers + bộ nhớ đệm trang tĩnh (R2 / D1 / Durable Object)
     scripts/
       create-admin.mjs          Tạo / nâng quyền tài khoản admin
       backup-storage.mjs        Tải toàn bộ ảnh Storage về máy (sao lưu)
-      e2e.mjs                   Kiểm thử end-to-end
+      e2e.mjs                   Kiểm thử end-to-end (Node hoặc Cloudflare Workers với --workers)
       env.mjs                   Đọc .env.local cho các script
 
 ## Tài liệu thiết kế

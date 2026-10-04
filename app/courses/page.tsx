@@ -25,7 +25,7 @@ type CourseRow = {
 type OwnedCourse = CourseRow & { accessUntil: string | null; progress?: CourseProgress; nextLabel?: string | null; preview?: boolean }
 
 // "Buổi X – Bài Y" của bài tiếp theo (theo đề cương course_outline)
-async function withProgress(supabase: ReturnType<typeof createClient>, course: OwnedCourse): Promise<OwnedCourse> {
+async function withProgress(supabase: Awaited<ReturnType<typeof createClient>>, course: OwnedCourse): Promise<OwnedCourse> {
   const [progress, { data: outline }] = await Promise.all([
     getCourseProgress(course.id),
     supabase.rpc('course_outline', { target_course: course.id }),
@@ -103,12 +103,9 @@ function CourseTile({ course, expired }: { course: OwnedCourse; expired?: boolea
   )
 }
 
-export default async function CoursesPage({
-  searchParams,
-}: {
-  searchParams: { registered?: string }
-}) {
-  const supabase = createClient()
+export default async function CoursesPage(props: { searchParams: Promise<{ registered?: string }> }) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const user = await requireUserPage('/courses')
 
   let unlocked: OwnedCourse[] = []

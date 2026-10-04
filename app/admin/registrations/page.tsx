@@ -116,14 +116,11 @@ function RejectForm({ id, status, label }: { id: string; status: Status; label: 
   )
 }
 
-export default async function AdminRegistrationsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string }
-}) {
+export default async function AdminRegistrationsPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams
   await requireStaffPage()
   const filter = filters.some((f) => f.key === searchParams.status) ? searchParams.status! : 'pending'
-  const supabase = createClient()
+  const supabase = await createClient()
 
   let query = supabase
     .from('registrations')

@@ -43,7 +43,7 @@ async function requestCode(prev: ForgotState, formData: FormData): Promise<Forgo
 
   if (!identifier) return fail('Vui lòng nhập email hoặc số điện thoại.')
   // Giới hạn theo IP (tính cả khi không tìm thấy tài khoản: chống dò danh sách tài khoản)
-  if (!(await withinLimit(`forgot:${clientIp()}`, LIMITS.forgotPassword))) {
+  if (!(await withinLimit(`forgot:${await clientIp()}`, LIMITS.forgotPassword))) {
     return fail(`Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau 1 giờ hoặc gọi ${siteConfig.hotline}.`)
   }
   const account = await findAccount(identifier)
@@ -144,7 +144,7 @@ async function verifyCode(prev: ForgotState, formData: FormData): Promise<Forgot
   if (error) return fail(`Không đặt lại được mật khẩu: ${error.message}`)
 
   // Đăng nhập luôn bằng mật khẩu mới
-  await createClient().auth.signInWithPassword({ email: account.authEmail, password })
-  setFlash('Đặt lại mật khẩu thành công!')
+  await (await createClient()).auth.signInWithPassword({ email: account.authEmail, password })
+  await setFlash('Đặt lại mật khẩu thành công!')
   redirect('/courses')
 }

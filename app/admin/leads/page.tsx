@@ -38,10 +38,11 @@ const formatDateTime = (value: string) =>
 
 // Khách bấm "Liên hệ Zalo nhận ưu đãi" ở khóa premium và để lại SĐT: nhân viên gọi / nhắn Zalo rồi cập nhật trạng thái.
 // Lượt bấm "Mở Zalo ngay" (ẩn danh, không có SĐT) chỉ được đếm.
-export default async function AdminLeadsPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function AdminLeadsPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams
   await requireStaffPage()
   const status = tabs.some((t) => t.key === searchParams.status) ? searchParams.status! : 'new'
-  const supabase = createClient()
+  const supabase = await createClient()
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
 
   const countOf = (s: string) =>

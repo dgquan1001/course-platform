@@ -72,7 +72,7 @@ async function readGrant(formData: FormData, required: boolean): Promise<Grant |
   const paymentNote = text(formData, 'paymentNote') || null
   if (paymentNote && paymentNote.length > MAX_PAYMENT_NOTE) return `Ghi chú thanh toán tối đa ${MAX_PAYMENT_NOTE} ký tự.`
 
-  const { data: plan } = await createClient()
+  const { data: plan } = await (await createClient())
     .from('course_plans')
     .select('id, course_id, courses!inner(kind)')
     .eq('id', planId)
@@ -101,7 +101,7 @@ async function insertGrant(staff: Staff, patient: { id: string; fullName: string
     const { error } = await admin.storage.from('payment-proofs').upload(proofPath, grant.proof.file, { contentType: grant.proof.contentType })
     if (error) return { error: `Không tải được ảnh chuyển khoản: ${error.message}`, proofPath: null }
   }
-  const { error } = await createClient().from('registrations').insert({
+  const { error } = await (await createClient()).from('registrations').insert({
     user_id: patient.id,
     course_id: grant.courseId,
     plan_id: grant.planId,
@@ -135,13 +135,13 @@ async function logAccountEvent(staff: Staff, userId: string, userName: string, a
 
 // Ghi chú nội bộ (bệnh nhân không đọc được); người sửa, thời điểm do trigger ghi
 async function saveNote(userId: string, note: string) {
-  return createClient().from('patient_notes').upsert({ user_id: userId, note })
+  return (await createClient()).from('patient_notes').upsert({ user_id: userId, note })
 }
 
 // Tài khoản bệnh nhân (role = user) – nhân viên không thao tác trên tài khoản nhân viên / admin
 async function findPatient(userId: string) {
   if (!UUID.test(userId)) return null
-  const { data } = await createClient().from('profiles').select('id, role, full_name, phone, email').eq('id', userId).maybeSingle()
+  const { data } = await (await createClient()).from('profiles').select('id, role, full_name, phone, email').eq('id', userId).maybeSingle()
   return data?.role === 'user' ? data : null
 }
 

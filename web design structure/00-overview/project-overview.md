@@ -30,7 +30,7 @@ không quen email). Yêu cầu cốt lõi:
 | G1 | Khách đăng ký & gửi chứng từ thanh toán trong một lần | ≤ 3 bước, ≤ 3 phút trên điện thoại |
 | G2 | Admin duyệt đơn nhanh | Duyệt 1 đơn ≤ 2 thao tác (xem ảnh → bấm Duyệt) |
 | G3 | Bảo vệ nội dung trả phí | 0 bài học lộ ra cho tài khoản chưa được duyệt (kiểm soát bằng RLS) |
-| G4 | Vận hành chi phí thấp | Chạy được trên gói miễn phí Vercel + Supabase |
+| G4 | Vận hành chi phí thấp | Supabase Free + Cloudflare Workers Paid (~5 USD/tháng, hợp lệ thương mại – ADR-017) |
 | G5 | Tự phục vụ tài khoản | Học viên tự đổi thông tin, mật khẩu, lấy lại mật khẩu qua email |
 
 ## 4. Phạm vi
@@ -80,14 +80,14 @@ Xem [10-review/roadmap.md](../10-review/roadmap.md) cho các hạng mục mở r
 | Email | Nodemailer qua SMTP (Gmail + App Password) | ^10 | |
 | Xử lý ảnh | sharp (tối ưu ảnh Next/Image) | ^0.35 | |
 | Kiểm thử E2E | playwright-core (Chrome/Edge có sẵn trên máy) | ^1.63 | `scripts/e2e.mjs` |
-| Hosting đề xuất | Vercel | — | |
+| Hosting | Cloudflare Workers (OpenNext) – từ Đợt 17, ADR-017 (trước đó Vercel) | — | |
 | Dịch vụ ngoài | VietQR (ảnh QR), YouTube, TikTok (nhúng video), Zalo (link tư vấn) | — | |
 
 ## 7. Tóm tắt kiến trúc
 
 ```mermaid
 flowchart LR
-  U[Trình duyệt<br/>Khách / Học viên / Admin] -->|HTTPS| N[Next.js trên Vercel<br/>Pages + Server Actions + Middleware]
+  U[Trình duyệt<br/>Khách / Học viên / Admin] -->|HTTPS| N[Next.js 15 trên Cloudflare Workers<br/>Pages + Server Actions + Middleware]
   N -->|anon key + cookie phiên<br/>chịu RLS| S[(Supabase<br/>Auth · Postgres · Storage)]
   N -->|service role key<br/>bỏ qua RLS, chỉ ở server| S
   U -->|anon key, đọc phiên/profile| S

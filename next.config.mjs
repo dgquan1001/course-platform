@@ -36,6 +36,9 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
   images: {
+    // Không tối ưu ảnh ở server (RK-47): trên Cloudflare Workers cần dịch vụ Cloudflare Images tính phí theo lượt.
+    // Ảnh bìa đã được nén ≤ 1600px trên trình duyệt khi tải lên, ảnh trong public/ đã nén sẵn.
+    unoptimized: true,
     // Ảnh bìa khóa học lưu ở bucket công khai course-covers của Supabase Storage
     remotePatterns: [
       { protocol: 'https', hostname: supabaseHost, pathname: '/storage/v1/object/public/**' },

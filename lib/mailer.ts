@@ -1,18 +1,20 @@
-import { mkdirSync, writeFileSync } from 'fs'
-import { join } from 'path'
-import { randomUUID } from 'crypto'
-import nodemailer from 'nodemailer'
 import { siteConfig } from '@/lib/site-config'
+import { sendSmtpOnWorkers } from '@/lib/smtp-workers'
 
 type Mail = { to: string; subject: string; text: string; html: string }
 
+// Đang chạy trên Cloudflare Workers (workerd) hay Node (next dev / next start)
+const onWorkers = () => globalThis.navigator?.userAgent === 'Cloudflare-Workers'
+
 // Gửi email qua SMTP (VD: Gmail + mật khẩu ứng dụng).
-// Khi kiểm thử: đặt MAIL_OUTBOX_DIR để ghi thư ra file JSON thay vì gửi thật.
+// - Trên Cloudflare Workers: lib/smtp-workers.ts (SMTP qua socket TCP của Cloudflare) – `nodemailer` không chạy trên Workers (Đợt 17 P0).
+// - Trên Node: `nodemailer`.
+// Khi kiểm thử: đặt MAIL_OUTBOX_URL để gửi thư (JSON) tới hộp thư giả do scripts/e2e.mjs mở, thay vì gửi thật.
 export async function sendMail(mail: Mail) {
-  const outbox = process.env.MAIL_OUTBOX_DIR
+  const outbox = process.env.MAIL_OUTBOX_URL
   if (outbox) {
-    mkdirSync(outbox, { recursive: true })
-    writeFileSync(join(outbox, `${Date.now()}-${randomUUID()}.json`), JSON.stringify(mail))
+    const res = await fetch(outbox, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mail) })
+    if (!res.ok) throw new Error(`Hộp thư kiểm thử trả lỗi ${res.status}`)
     return
   }
 
@@ -21,16 +23,21 @@ export async function sendMail(mail: Mail) {
     throw new Error('Hệ thống chưa cấu hình gửi email. Vui lòng liên hệ hotline để được hỗ trợ.')
   }
   const port = Number(SMTP_PORT || 465)
+  const from = MAIL_FROM || `${siteConfig.name} <${SMTP_USER}>`
+
+  if (onWorkers()) {
+    await sendSmtpOnWorkers({ host: SMTP_HOST, port, user: SMTP_USER, pass: SMTP_PASS }, { from, ...mail })
+    return
+  }
+
+  const nodemailer = (await import('nodemailer')).default
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port,
     secure: port === 465,
     auth: { user: SMTP_USER, pass: SMTP_PASS },
   })
-  await transporter.sendMail({
-    from: MAIL_FROM || `${siteConfig.name} <${SMTP_USER}>`,
-    ...mail,
-  })
+  await transporter.sendMail({ from, ...mail })
 }
 
 export function resetCodeEmail(code: string, minutes: number): Omit<Mail, 'to'> {

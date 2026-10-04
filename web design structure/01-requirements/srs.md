@@ -291,7 +291,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | NFR-08 | Toàn vẹn | Không để lại dữ liệu rác khi đăng ký lỗi | Rollback thủ công (xóa ảnh, xóa user) |
 | NFR-09 | Bảo trì | Schema chạy lại an toàn (idempotent) | `if not exists`, `drop policy if exists`, `on conflict do nothing` |
 | NFR-10 | Kiểm thử | Luồng chính có E2E tự động, tự dọn dữ liệu | `npm run test:e2e` |
-| NFR-11 | Chi phí | Chạy trên gói miễn phí | Video YouTube/TikTok, QR VietQR miễn phí, Supabase/Vercel free tier |
+| NFR-11 | Chi phí | Chi phí hạ tầng giai đoạn đầu ~5 USD/tháng | Video YouTube/TikTok, QR VietQR miễn phí, Supabase Free, Cloudflare Workers Paid (ADR-017) |
 | NFR-12 | Bản địa hóa | Tiếng Việt, VNĐ, giờ Việt Nam | `toLocaleString('vi-VN')`, `timeZone: 'Asia/Ho_Chi_Minh'` |
 | NFR-13 | Quan sát | Lỗi hiển thị thân thiện cho người dùng | Thông báo tiếng Việt, error boundary admin. *Chưa có logging tập trung* (xem review) |
 | NFR-14 | Pháp lý (v0.2) | Dữ liệu sức khỏe (phiếu tham vấn, tiến độ tập) được xử lý có đồng ý, chỉ bệnh nhân đó / staff / admin đọc được | Trang chính sách bảo mật, `consent_at`, RLS (NĐ 13/2023) |
@@ -305,6 +305,6 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | Supabase Auth | `@supabase/ssr` (cookie), `auth.admin.*` (service role) | Email + password |
 | Supabase Postgres | PostgREST qua supabase-js, RPC `has_course_access` | |
 | Supabase Storage | Bucket `payment-proofs` (private, 5MB, chỉ ảnh) | |
-| SMTP | Nodemailer, cổng 465 (SSL) hoặc 587 | `MAIL_OUTBOX_DIR` ghi file khi test |
+| SMTP | Nodemailer (Node) / `lib/smtp-workers.ts` (Cloudflare Workers, Đợt 17), cổng 465 (SSL) hoặc 587 (STARTTLS) | `MAIL_OUTBOX_URL` gửi tới hộp thư giả khi test |
 | VietQR | `https://img.vietqr.io/image/<BIN>-<STK>-compact2.png?amount=&addInfo=&accountName=` | Ảnh tĩnh, không API key |
 | YouTube / TikTok | iframe embed | |

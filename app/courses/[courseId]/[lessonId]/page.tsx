@@ -13,13 +13,9 @@ import { completeLessonAction, uncompleteLessonAction } from '../../actions'
 
 // Trình học (ADR-013, SCR-19): video + hướng dẫn bên trái, cột "Nội dung khóa học" theo buổi bên phải (điện thoại: phía dưới).
 // Bài của buổi bị khóa không đọc được link video (RLS can_view_lesson) → hiện lý do khóa.
-export default async function LessonPage({
-  params,
-  searchParams,
-}: {
-  params: { courseId: string; lessonId: string }
-  searchParams: { finished?: string }
-}) {
+export default async function LessonPage(props: { params: Promise<{ courseId: string; lessonId: string }>; searchParams: Promise<{ finished?: string }> }) {
+  const params = await props.params
+  const searchParams = await props.searchParams
   const learning = await loadLearning(params.courseId)
   const lessonPath = `/courses/${params.courseId}/${params.lessonId}`
 
@@ -27,7 +23,7 @@ export default async function LessonPage({
   if (!learning) {
     const {
       data: { user },
-    } = await createClient().auth.getUser()
+    } = await (await createClient()).auth.getUser()
     if (!user) redirect(`/login?next=${encodeURIComponent(lessonPath)}`)
   } else {
     if (!learning.user && learning.course.kind !== 'free') redirect(`/login?next=${encodeURIComponent(lessonPath)}`)
@@ -53,7 +49,7 @@ export default async function LessonPage({
   const session = sessions.find((s) => s.lessons.some((l) => l.id === params.lessonId))!
   const sessionIndex = sessions.indexOf(session)
   const positionInSession = session.lessons.findIndex((l) => l.id === params.lessonId)
-  const { data: lesson } = await createClient()
+  const { data: lesson } = await (await createClient())
     .from('lessons')
     .select('title, description, video_url')
     .eq('id', params.lessonId)

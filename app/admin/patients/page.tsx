@@ -114,16 +114,13 @@ function Tabs({ team, isAdmin, teamCount }: { team: boolean; isAdmin: boolean; t
   )
 }
 
-export default async function AdminPatientsPage({
-  searchParams,
-}: {
-  searchParams: { q?: string; role?: string; source?: string; status?: string; new?: string }
-}) {
+export default async function AdminPatientsPage(props: { searchParams: Promise<{ q?: string; role?: string; source?: string; status?: string; new?: string }> }) {
+  const searchParams = await props.searchParams
   const me = await requireStaffPage()
   const q = (searchParams.q ?? '').trim().slice(0, 100)
   // Tab "Nhân viên & Admin" chỉ admin xem (rà soát ai đang có quyền vào trang quản trị)
   const team = searchParams.role === 'team' && me.isAdmin
-  const supabase = createClient()
+  const supabase = await createClient()
   const { count: teamCount } = me.isAdmin
     ? await supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['staff', 'admin'])
     : { count: 0 }
@@ -269,7 +266,7 @@ export default async function AdminPatientsPage({
 
 // Tab "Nhân viên & Admin" (chỉ admin): ai đang có quyền vào trang quản trị, ai cấp quyền
 async function TeamList({ q, me, teamCount, search }: { q: string; me: { id: string; isAdmin: boolean }; teamCount: number; search: React.ReactNode }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   let query = supabase
     .from('profiles')
     .select('id, email, full_name, phone, role, created_at')

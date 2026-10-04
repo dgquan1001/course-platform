@@ -24,11 +24,14 @@ npm run dev
 
 ### Next.js
 - Mặc định là **Server Component**. Chỉ thêm `'use client'` khi cần state, effect, event handler, API trình duyệt.
-- Đọc dữ liệu trong Server Component bằng `createClient()` từ `@/lib/supabase/server`.
+- Đọc dữ liệu trong Server Component bằng `await createClient()` từ `@/lib/supabase/server` (Next 15: hàm async vì `cookies()` async).
+- Next 15: `params` / `searchParams` của page là **Promise** (`const params = await props.params`); `cookies()`, `headers()`, `setFlash()`, `clientIp()` phải `await`.
+- **Không dùng `loading.tsx`** (Next 15.5 hủy điều hướng khi trang chỉ đổi `?tham-số` / redirect sau server action và dữ liệu lớn – RK-53); trạng thái chờ đã có thanh tiến trình `NavigationProgress`.
+- Trang động công khai muốn lưu đệm (ISR) phải có `generateStaticParams()` (trả `[]` nếu tạo khi có người truy cập) – xem `app/khoa-hoc/[courseId]/page.tsx`.
 - Ghi dữ liệu bằng Server Action trong `actions.ts` với `'use server'` ở đầu file.
 - Form không redirect: `ActionForm` + `SubmitButton`, action trả `ActionResult`.
 - Form có redirect: action gọi `setFlash()` rồi `redirect()`.
-- Form nhiều bước/giữ trạng thái: `useFormState` với kiểu State riêng.
+- Form nhiều bước/giữ trạng thái: `useActionState` (`react`) với kiểu State riêng; `useFormStatus` vẫn từ `react-dom`.
 - Sau khi ghi dữ liệu ảnh hưởng trang công khai: `revalidatePath('/', 'layout')`.
 - **Không** gọi `cookies()`/`headers()` trong `app/layout.tsx` và `app/page.tsx` (giữ ISR – ADR-008).
 - **Trang cần quyền**: gọi đầu trang `requireUserPage(path)` (bệnh nhân), `requireStaffPage()` (mọi trang `/admin/**`) hoặc `requireAdminPage()`
@@ -36,6 +39,13 @@ npm run dev
 - Lấy người dùng hiện tại luôn qua `getCurrentUser()` (đã cache theo request) – không tự gọi `supabase.auth.getUser()` nhiều lần.
 - Client component cần profile (header, hộp nhắc): dùng `useProfile()` trong `lib/use-profile.ts`, không tự truy vấn `profiles`.
 - Form tạo mới đặt trong trang có bộ lọc qua URL: đặt `key` theo bộ lọc để form tạo lại khi chuyển tab (giá trị mặc định đúng).
+
+### Chạy trên Cloudflare Workers (Đợt 17 – ADR-017)
+- Production chạy trong **workerd**, không phải Node đầy đủ: không dùng `fs`, `child_process`, thư viện cần TCP thô (VD `nodemailer` – đã thay bằng
+  `lib/smtp-workers.ts`) hay binary native (`sharp`). Thêm thư viện mới → chạy `npx opennextjs-cloudflare build` + `npm run test:e2e:workers`.
+- IP người dùng chỉ lấy qua `clientIp()` (`cf-connecting-ip`) – **không** đọc `x-forwarded-for` trực tiếp (RK-43).
+- Biến môi trường: `NEXT_PUBLIC_*` nhúng lúc build; khóa bí mật đặt Secret trên Cloudflare, chạy thử trên máy dùng `.dev.vars` (không commit).
+- Không cần `getCloudflareContext()` trừ khi dùng trực tiếp R2 / D1 / KV.
 
 ### Supabase
 - Chọn đúng client (xem system-architecture.md §3). Service role chỉ khi **bắt buộc**.
@@ -131,9 +141,10 @@ jobs:
 
 | Nâng cấp | Việc cần làm |
 | --- | --- |
-| Next.js 15 | `cookies()` thành async (sửa `lib/supabase/server.ts`, `lib/flash.ts`); `useFormState` → `useActionState`; `params`/`searchParams` thành Promise; `experimental.serverActions` → `serverActions` |
-| @supabase/ssr ≥ 0.6 | Chuyển cookie adapter sang `getAll`/`setAll` (middleware, server client) |
+| Next.js 15 | ✅ Đợt 17 (15.5): `cookies()` / `headers()` / `params` / `searchParams` async, `createClient()` server async, `useActionState`, `generateStaticParams` cho trang ISR động |
+| @supabase/ssr ≥ 0.6 | ✅ Đợt 17 (0.12): cookie adapter `getAll`/`setAll` (middleware, server client) |
+| React 19 | ✅ Đợt 17, đi cùng Next 15 |
+| Next.js 16 | Chờ `@opennextjs/cloudflare` hỗ trợ đầy đủ middleware `proxy` (Node) trước khi nâng |
 | Tailwind 4 | Cấu hình chuyển sang CSS (`@theme`); kiểm tra `@apply` trong `globals.css` |
-| React 19 | Đi cùng Next 15 |
 
-Sau mỗi lần nâng cấp: `npm run build` + `npm run test:e2e` đầy đủ.
+Sau mỗi lần nâng cấp: `npx opennextjs-cloudflare build` + `npm run test:e2e:workers` (chuẩn), `npm run build` + `npm run test:e2e` (Node) đầy đủ.

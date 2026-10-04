@@ -201,7 +201,7 @@ Khóa học đã mở
 | --- | --- |
 | Chưa có khóa, không có đơn chờ | "Bạn chưa có khóa học nào." + [Đăng ký khóa học] |
 | Chưa có khóa, có đơn chờ | "Khóa học sẽ xuất hiện ở đây sau khi được xác nhận." |
-| Loading | `app/courses/loading.tsx` |
+| Loading | Thanh tiến trình trên đầu trang (`NavigationProgress`). Không dùng `app/courses/loading.tsx` từ Đợt 17: Next 15.5 hủy điều hướng sau "Hoàn thành & bài tiếp theo" (RK-53) |
 
 ## SCR-08 – Chi tiết khóa học
 
@@ -276,7 +276,7 @@ Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân v
 | Tài khoản đã xóa | Dòng nhỏ "(tài khoản đã xóa)" dưới họ tên; không có nút Duyệt |
 | Khóa đã xóa | Tên khóa đã lưu + dòng nhỏ "(khóa học đã xóa)", học phí theo snapshot; ẩn nút **Duyệt** |
 | Lỗi truy vấn | `app/admin/error.tsx` |
-| Loading | `app/admin/loading.tsx` |
+| Loading | Thanh tiến trình trên đầu trang (`NavigationProgress`). Không dùng `app/admin/loading.tsx` từ Đợt 17: Next 15.5 hủy điều hướng đổi tab `?status=` khi trang lớn (RK-53) |
 
 ## SCR-11 – Admin: Học viên
 

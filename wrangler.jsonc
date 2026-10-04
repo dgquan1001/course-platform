@@ -1,0 +1,35 @@
+// Cấu hình Cloudflare Workers (ADR-017, Đợt 17). Hướng dẫn: web design structure/09-operations/cloudflare-migration.md
+// Biến môi trường / khóa bí mật KHÔNG ghi ở đây: đặt trong Cloudflare › Workers › hv-web › Settings › Variables and Secrets
+// (NEXT_PUBLIC_* cũng phải có ở Build variables vì được nhúng lúc build).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hv-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Đặt Worker gần Supabase (Singapore) khi trang gọi database nhiều lần
+  "placement": { "mode": "smart" },
+  "observability": { "enabled": true },
+  "services": [
+    // Worker tự gọi chính nó khi làm mới trang ISR – tên phải trùng "name"
+    { "binding": "WORKER_SELF_REFERENCE", "service": "hv-web" }
+  ],
+  // Bộ nhớ đệm trang tĩnh (ISR): R2 lưu trang, D1 ghi thời điểm revalidatePath, Durable Object xếp hàng làm mới theo thời gian
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "hv-web-cache" }],
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "hv-web-tag-cache",
+      // Chủ dự án: `npx wrangler d1 create hv-web-tag-cache` rồi dán database_id vào đây (Đợt 17 P3.3)
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }]
+}

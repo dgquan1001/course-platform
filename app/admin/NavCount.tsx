@@ -13,7 +13,7 @@ export type NavCountKind = keyof typeof counters
 
 export default async function NavCount({ kind }: { kind: NavCountKind }) {
   const { table, status, hint } = counters[kind]
-  let query = createClient().from(table).select('id', { count: 'exact', head: true }).eq('status', status)
+  let query = (await createClient()).from(table).select('id', { count: 'exact', head: true }).eq('status', status)
   // Khách chỉ bấm "Mở Zalo" (chưa để lại SĐT) không tính là việc cần gọi – giống dashboard_stats()
   if (kind === 'leads') query = query.not('phone', 'is', null)
   const { count } = await query

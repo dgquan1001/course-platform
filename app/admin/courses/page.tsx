@@ -36,10 +36,11 @@ const GROUPS: { kind: CourseKind; title: string; hint: string }[] = [
   { kind: 'premium', title: 'Khóa premium', hint: 'Chỉ có thông tin và nút liên hệ Zalo, không có bài học' },
 ]
 
-export default async function AdminCoursesPage({ searchParams }: { searchParams: { kind?: string } }) {
+export default async function AdminCoursesPage(props: { searchParams: Promise<{ kind?: string }> }) {
+  const searchParams = await props.searchParams
   await requireAdminPage()
   const filter = GROUPS.some((g) => g.kind === searchParams.kind) ? (searchParams.kind as CourseKind) : null
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: courses, error }, { data: regs }] = await Promise.all([
     supabase
@@ -102,7 +103,8 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href={`/khoa-hoc/${c.id}`} className="btn-outline btn-sm">
+                  {/* Không prefetch: khóa đang ẩn thì trang giới thiệu là 404 (Next 15 prefetch cả trang ISR → lỗi 404 trong console) */}
+                  <Link href={`/khoa-hoc/${c.id}`} prefetch={false} className="btn-outline btn-sm">
                     Xem trang giới thiệu
                   </Link>
                   {c.kind !== 'premium' && (

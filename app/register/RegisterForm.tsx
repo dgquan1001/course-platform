@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useActionState, useEffect, useRef, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Script from 'next/script'
@@ -87,7 +87,7 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
   const searchParams = useSearchParams()
   const requestedCourse = searchParams.get('course')
   const requestedPlan = searchParams.get('plan')
-  const [state, formAction] = useFormState<RegisterState, FormData>(registerAction, { error: null })
+  const [state, formAction] = useActionState<RegisterState, FormData>(registerAction, { error: null })
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '')
   const [planId, setPlanId] = useState(courses[0]?.plans[0]?.id ?? '')
   // Hạn học hiện tại của tài khoản đang đăng nhập theo từng chương trình (để báo gói mới được cộng dồn)

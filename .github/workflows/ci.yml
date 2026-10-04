@@ -1,5 +1,5 @@
 # Kiểm tra mỗi lần push lên main và mỗi pull request:
-#  1. check: typecheck + lint + build (không cần Supabase thật)
+#  1. check: typecheck + lint + build Cloudflare Workers (không cần Supabase thật)
 #  2. e2e:   chạy E2E trên project Supabase KIỂM THỬ (staging). Chỉ chạy khi đã cấu hình:
 #     Settings › Secrets and variables › Actions
 #       - Variables: E2E_ENABLED = true
@@ -28,7 +28,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run build
+      # Build Cloudflare Workers (OpenNext, ADR-017) – gồm cả `next build`; bắt sớm lỗi chỉ có trên workerd
+      - run: npx opennextjs-cloudflare build
 
   e2e:
     needs: check
@@ -49,8 +50,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - run: npm run test:e2e
+      # E2E trên bản Cloudflare Workers (workerd) – môi trường giống production (RK-50)
+      - run: npx opennextjs-cloudflare build
+      - run: npm run test:e2e:workers
       - name: Lưu ảnh chụp màn hình khi lỗi
         if: failure()
         uses: actions/upload-artifact@v4

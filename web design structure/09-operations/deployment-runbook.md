@@ -72,7 +72,7 @@ Kế hoạch đầy đủ, rà soát ảnh hưởng, checklist nghiệm thu CF-0
    `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `… SMTP_PASS`, `… TURNSTILE_SECRET_KEY` (nếu bật Turnstile).
    Biến thường (Workers › hv-web › Settings › Variables): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM`.
 5. **Workers Builds** (Workers › hv-web › Settings › Builds › Connect GitHub): repo này, nhánh production `main`,
-   Build command `npx opennextjs-cloudflare build`, Deploy command `npx opennextjs-cloudflare deploy`; Build variables:
+   Build command `npx opennextjs-cloudflare build`, Deploy command `npx opennextjs-cloudflare deploy`. **Từ 06/10/2026 không cần nhập Build variables**: 3 biến công khai nằm trong file `.env.production` (commit trong repo), Node 22 theo `.node-version`. (Trước đây hướng dẫn nhập ở Build variables – dễ nhầm với Variables and Secrets lúc chạy; nếu vẫn nhập thì giá trị ở đó được ưu tiên.) Các biến công khai:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (tạm `https://hv-web.<tài-khoản>.workers.dev`),
    `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (nếu bật), `NODE_VERSION=22`. **Không** đặt `MAIL_OUTBOX_URL`, `E2E_SUPABASE_REF`.
 6. Deploy lần đầu: push `main` (Workers Builds tự chạy) hoặc trên máy `npm run deploy` (lấy biến build từ `.env.local`).
@@ -183,7 +183,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 | Triệu chứng | Nguyên nhân thường gặp | Xử lý |
 | --- | --- | --- |
 | "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa đặt Secret trên Cloudflare | `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (không cần build lại) |
-| Workers Builds đỏ: `supabaseUrl is required` khi dựng `/register` (hoặc từ 06/10: "Thiếu biến môi trường lúc build") | Chưa đặt `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở **Build variables** (đặt ở Variables của Worker là biến lúc chạy, không có tác dụng khi build) | Workers › hv-web › Settings › **Build** › Build variables and secrets: thêm 2 biến + `NEXT_PUBLIC_SITE_URL`, `NODE_VERSION=22` → Retry build (gặp 06/10/2026) |
+| Workers Builds đỏ: `supabaseUrl is required` khi dựng `/register` (hoặc từ 06/10: "Thiếu biến môi trường lúc build") | Chưa đặt `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở **Build variables** (đặt ở Variables của Worker là biến lúc chạy, không có tác dụng khi build) | Kiểm file `.env.production` có trong repo (từ commit 06/10/2026); hoặc thêm ở Workers › hv-web › Settings › **Build** › Build variables and secrets (không phải Variables and Secrets phía trên) → Retry build (gặp 06/10/2026: chủ dự án nhập vào Variables and Secrets lúc chạy) |
 | Trang lỗi CSP chặn Supabase / trang trắng sau deploy | Thiếu `NEXT_PUBLIC_*` ở **Build variables** (nhúng lúc build) | Thêm ở Workers Builds › Build variables, build lại |
 | Quên mật khẩu báo lỗi gửi thư trên Cloudflare | SMTP sai hoặc Gmail chặn | Xem Workers Logs (`SMTP: 535…` = sai App Password); thư gửi qua `lib/smtp-workers.ts` (cổng 465 hoặc 587) |
 | `npm run deploy` / `wrangler deploy` treo ở "Creating D1 table if necessary..." (Windows) | Như dòng dưới – `wrangler deploy` tự chuyển sang `opennextjs-cloudflare deploy` | Dùng `npm run deploy:win` |

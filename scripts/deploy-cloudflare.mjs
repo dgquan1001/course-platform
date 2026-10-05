@@ -5,19 +5,46 @@
 //   3. tạo bảng D1 `revalidations` nếu chưa có (gọi wrangler trực tiếp, không qua shell)
 //   4. `wrangler deploy` với OPEN_NEXT_DEPLOY=true để wrangler không chuyển lại sang lệnh deploy của OpenNext
 // Linux / Workers Builds: dùng `npm run deploy` bình thường.
-// Chạy: npm run deploy:win   (cần `npx wrangler login` trước)
+//
+// Quy trình chuẩn là deploy qua Workers Builds từ nhánh `main` (runbook §4). Lệnh này chỉ dùng KHẨN CẤP và có rào chặn để code
+// trên website luôn có trên GitHub: từ chối khi còn thay đổi chưa commit, khi commit chưa push, hoặc khi không đứng ở `main`
+// (nhánh khác cần thêm `--cho-phep-nhanh`). Mã commit được ghi vào "Message" của bản deploy trên Cloudflare để tra lại.
+// Chạy: npm run deploy:win                       (cần `npx wrangler login` trước)
+//       npm run deploy:win -- --cho-phep-nhanh   (deploy nhánh khác `main` – đã commit + push)
 import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const node = (args, extraEnv = {}) =>
   spawnSync(process.execPath, args, { cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env, ...extraEnv } })
+const git = (...args) => spawnSync('git', args, { cwd: ROOT, encoding: 'utf8' })
 const OPENNEXT = 'node_modules/@opennextjs/cloudflare/dist/cli/index.js'
 const WRANGLER = 'node_modules/wrangler/bin/wrangler.js'
 
 function step(title) {
   console.log(`\n=== ${title}`)
 }
+
+function refuse(reason) {
+  console.error(`\n✘ Không deploy: ${reason}`)
+  process.exit(1)
+}
+
+step('0/4 Kiểm tra git')
+const branch = git('rev-parse', '--abbrev-ref', 'HEAD').stdout.trim()
+const commit = git('rev-parse', '--short', 'HEAD').stdout.trim()
+if (!commit) refuse('không đọc được git (chạy trong thư mục dự án).')
+if (git('status', '--porcelain').stdout.trim()) refuse('còn thay đổi chưa commit (`git status`). Commit và push trước.')
+if (branch !== 'main' && !process.argv.includes('--cho-phep-nhanh')) {
+  refuse(`đang ở nhánh "${branch}", không phải "main". Deploy nhánh khác: npm run deploy:win -- --cho-phep-nhanh`)
+}
+git('fetch', '--quiet', 'origin', branch)
+const upstream = git('rev-parse', '--short', `origin/${branch}`).stdout.trim()
+if (!upstream) refuse(`nhánh "${branch}" chưa có trên GitHub. Chạy: git push -u origin ${branch}`)
+if (git('rev-list', '--count', `origin/${branch}..HEAD`).stdout.trim() !== '0') {
+  refuse(`có commit chưa push lên GitHub. Chạy: git push`)
+}
+console.log(`Deploy commit ${commit} (nhánh ${branch}) – đã có trên GitHub`)
 
 step('1/4 Build OpenNext')
 if (node([OPENNEXT, 'build']).status !== 0) process.exit(1)
@@ -48,4 +75,4 @@ const d1 = node([WRANGLER, 'd1', 'execute', 'NEXT_TAG_CACHE_D1', '--remote', '--
 if (d1.status !== 0) process.exit(1)
 
 step('4/4 Deploy Worker')
-process.exit(node([WRANGLER, 'deploy'], { OPEN_NEXT_DEPLOY: 'true' }).status ?? 1)
+process.exit(node([WRANGLER, 'deploy', '--message', `git ${commit} (${branch}) – npm run deploy:win`], { OPEN_NEXT_DEPLOY: 'true' }).status ?? 1)

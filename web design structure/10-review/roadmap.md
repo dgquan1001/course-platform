@@ -66,6 +66,8 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 
 ### Bước 3 – Gộp nhánh & tự động deploy (Đợt 17 P3.4 / P5)
 
+- [x] 3.0 (dev, 06/10/2026) – `npm run deploy:win` có rào chặn (phải commit + push, đúng nhánh, ghi mã commit vào bản deploy); push nhánh làm việc lên GitHub làm bản sao lưu
+
 - [ ] 3.1 (dev, cần chủ dự án đồng ý) – tạo Pull Request nhánh `hv-change-dgquan1001-20260929-1` → `main`; CI phải xanh (typecheck, lint, build OpenNext).
 - [ ] 3.2 (chủ dự án) – merge PR. *Lưu ý*: workflow sao lưu / keepalive chạy theo `main` – kiểm Actions vẫn ✅ sau merge.
 - [ ] 3.3 (chủ dự án, dev hướng dẫn) – Workers › hv-web › Settings › Builds › Connect GitHub (repo, nhánh `main`, Build `npx opennextjs-cloudflare build`,

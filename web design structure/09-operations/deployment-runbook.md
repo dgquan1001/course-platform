@@ -183,6 +183,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 | Triệu chứng | Nguyên nhân thường gặp | Xử lý |
 | --- | --- | --- |
 | "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa đặt Secret trên Cloudflare | `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (không cần build lại) |
+| Workers Builds đỏ: `supabaseUrl is required` khi dựng `/register` (hoặc từ 06/10: "Thiếu biến môi trường lúc build") | Chưa đặt `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở **Build variables** (đặt ở Variables của Worker là biến lúc chạy, không có tác dụng khi build) | Workers › hv-web › Settings › **Build** › Build variables and secrets: thêm 2 biến + `NEXT_PUBLIC_SITE_URL`, `NODE_VERSION=22` → Retry build (gặp 06/10/2026) |
 | Trang lỗi CSP chặn Supabase / trang trắng sau deploy | Thiếu `NEXT_PUBLIC_*` ở **Build variables** (nhúng lúc build) | Thêm ở Workers Builds › Build variables, build lại |
 | Quên mật khẩu báo lỗi gửi thư trên Cloudflare | SMTP sai hoặc Gmail chặn | Xem Workers Logs (`SMTP: 535…` = sai App Password); thư gửi qua `lib/smtp-workers.ts` (cổng 465 hoặc 587) |
 | `npm run deploy` / `wrangler deploy` treo ở "Creating D1 table if necessary..." (Windows) | Như dòng dưới – `wrangler deploy` tự chuyển sang `opennextjs-cloudflare deploy` | Dùng `npm run deploy:win` |

@@ -8,11 +8,8 @@ import { loginAction } from './actions'
 
 export const metadata: Metadata = { title: 'Đăng nhập' }
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string; next?: string }
-}) {
+export default async function LoginPage(props: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const searchParams = await props.searchParams
   return (
     <main className="grid min-h-[calc(100vh-4rem)] place-items-center bg-gradient-to-b from-ocean-50 via-white to-gold-50/60 px-4 py-12">
       <div className="card w-full max-w-md animate-fade-up p-6 shadow-md shadow-ocean-900/5 sm:p-8">

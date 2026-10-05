@@ -43,7 +43,7 @@ async function requestCode(prev: ForgotState, formData: FormData): Promise<Forgo
 
   if (!identifier) return fail('Vui lòng nhập email hoặc số điện thoại.')
   // Giới hạn theo IP (tính cả khi không tìm thấy tài khoản: chống dò danh sách tài khoản)
-  if (!(await withinLimit(`forgot:${clientIp()}`, LIMITS.forgotPassword))) {
+  if (!(await withinLimit(`forgot:${await clientIp()}`, LIMITS.forgotPassword))) {
     return fail(`Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau 1 giờ hoặc gọi ${siteConfig.hotline}.`)
   }
   const account = await findAccount(identifier)
@@ -82,13 +82,19 @@ async function requestCode(prev: ForgotState, formData: FormData): Promise<Forgo
     })
     .select('id')
     .single()
-  if (error) return fail(`Không tạo được mã: ${error.message}`)
+  if (error) {
+    console.error('[forgot-password] tạo mã', error.message)
+    return fail('Không tạo được mã, vui lòng thử lại sau ít phút.')
+  }
 
   try {
     await sendMail({ to: account.email, ...resetCodeEmail(code, CODE_TTL_MINUTES) })
   } catch (e) {
     await admin.from('password_resets').delete().eq('id', row.id)
-    return fail(e instanceof Error ? e.message : 'Không gửi được email, vui lòng thử lại.')
+    // Không trả nguyên lỗi SMTP cho khách (lộ thông tin máy chủ thư); chi tiết xem ở log server
+    console.error('[forgot-password] gửi email', e instanceof Error ? e.message : e)
+    const notConfigured = e instanceof Error && e.message.startsWith('Hệ thống chưa cấu hình gửi email')
+    return fail(notConfigured ? e.message : `Không gửi được email, vui lòng thử lại hoặc gọi ${siteConfig.hotline}.`)
   }
 
   const maskedEmail = maskEmail(account.email)
@@ -141,10 +147,13 @@ async function verifyCode(prev: ForgotState, formData: FormData): Promise<Forgot
 
   await admin.from('password_resets').update({ used_at: new Date().toISOString() }).eq('id', row.id)
   const { error } = await admin.auth.admin.updateUserById(account.userId, { password })
-  if (error) return fail(`Không đặt lại được mật khẩu: ${error.message}`)
+  if (error) {
+    console.error('[forgot-password] đặt mật khẩu', error.message)
+    return fail('Không đặt lại được mật khẩu, vui lòng thử lại.')
+  }
 
   // Đăng nhập luôn bằng mật khẩu mới
-  await createClient().auth.signInWithPassword({ email: account.authEmail, password })
-  setFlash('Đặt lại mật khẩu thành công!')
+  await (await createClient()).auth.signInWithPassword({ email: account.authEmail, password })
+  await setFlash('Đặt lại mật khẩu thành công!')
   redirect('/courses')
 }

@@ -9,9 +9,10 @@ import ConsultationForm from './ConsultationForm'
 export const metadata: Metadata = { title: 'Phiếu tham vấn bác sĩ' }
 
 // Phiếu tham vấn (SCR-20): bệnh nhân đã đăng nhập gửi bất cứ lúc nào (?course= chọn sẵn chương trình, ?origin= nguồn nhắc)
-export default async function ConsultationPage({ searchParams }: { searchParams: { course?: string; origin?: string } }) {
+export default async function ConsultationPage(props: { searchParams: Promise<{ course?: string; origin?: string }> }) {
+  const searchParams = await props.searchParams
   const user = await requireUserPage('/courses/consultation')
-  const supabase = createClient()
+  const supabase = await createClient()
   const [{ data: questions }, { data: regs }] = await Promise.all([
     supabase.from('consult_questions').select('id, label, kind, sort_order, active').eq('active', true).order('sort_order').order('created_at'),
     supabase.from('registrations').select('course_id, courses(id, title)').eq('user_id', user.id).eq('status', 'approved'),

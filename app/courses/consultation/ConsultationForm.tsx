@@ -1,6 +1,6 @@
 'use client'
 
-import { useFormState } from 'react-dom'
+import { useActionState } from 'react'
 import SubmitButton from '@/components/SubmitButton'
 import type { ConsultQuestion } from '@/lib/consultation'
 import { submitConsultationAction } from '../actions'
@@ -17,7 +17,7 @@ export default function ConsultationForm({
   courseId: string
   origin: string
 }) {
-  const [state, action] = useFormState(submitConsultationAction, { error: null })
+  const [state, action] = useActionState(submitConsultationAction, { error: null })
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="origin" value={origin} />

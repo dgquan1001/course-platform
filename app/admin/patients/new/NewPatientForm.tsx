@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
-import { useFormState } from 'react-dom'
 import SubmitButton from '@/components/SubmitButton'
 import OneTimeSecret from '@/components/OneTimeSecret'
 import { createPatientAction } from '../actions'
@@ -15,7 +14,7 @@ export default function NewPatientForm({ plans }: { plans: PlanOption[] }) {
 }
 
 function PatientForm({ plans, onAnother }: { plans: PlanOption[]; onAnother: () => void }) {
-  const [state, action] = useFormState(createPatientAction, null)
+  const [state, action] = useActionState(createPatientAction, null)
 
   if (state?.ok) {
     return (

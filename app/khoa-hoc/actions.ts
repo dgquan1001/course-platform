@@ -25,7 +25,7 @@ export async function createLeadAction(courseId: string, formData: FormData): Pr
     if (fullName.length > MAX_NAME) return { ok: false, error: `Họ tên tối đa ${MAX_NAME} ký tự.` }
     if (!phone) return { ok: false, error: 'Số điện thoại không hợp lệ (VD: 0912345678).' }
   }
-  if (!(await withinLimit(`lead:${clientIp()}`, LIMITS.lead))) {
+  if (!(await withinLimit(`lead:${await clientIp()}`, LIMITS.lead))) {
     return { ok: false, error: `Bạn đã gửi quá nhiều lần. Vui lòng nhắn Zalo hoặc gọi ${siteConfig.hotline}.` }
   }
 
@@ -41,7 +41,7 @@ export async function createLeadAction(courseId: string, formData: FormData): Pr
 
   const {
     data: { user },
-  } = await createClient().auth.getUser()
+  } = await (await createClient()).auth.getUser()
 
   const { error } = await admin.from('leads').insert({
     course_id: course.id,
@@ -50,7 +50,10 @@ export async function createLeadAction(courseId: string, formData: FormData): Pr
     full_name: anonymous ? null : fullName,
     phone: anonymous ? null : phone,
   })
-  if (error) return { ok: false, error: `Không gửi được thông tin: ${error.message}` }
+  if (error) {
+    console.error('[lead]', error.message)
+    return { ok: false, error: 'Không gửi được thông tin, vui lòng thử lại hoặc bấm "Mở Zalo ngay".' }
+  }
 
   revalidatePath('/admin/leads')
   return {

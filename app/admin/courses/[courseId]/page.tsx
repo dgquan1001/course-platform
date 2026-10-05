@@ -81,9 +81,10 @@ function LessonItem({ lesson, index, courseId, sessions }: { lesson: Lesson; ind
 }
 
 // Nội dung khóa: buổi → bài tập (ADR-013). Tạo khung "N buổi × M bài", thêm / sửa / xóa / đổi thứ tự / sao chép buổi.
-export default async function AdminCourseContentPage({ params }: { params: { courseId: string } }) {
+export default async function AdminCourseContentPage(props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params
   await requireAdminPage()
-  const supabase = createClient()
+  const supabase = await createClient()
   const [{ data: course }, { data: sessionRows }, { data: lessonRows }, { data: plans }] = await Promise.all([
     supabase.from('courses').select('id, title, status, kind').eq('id', params.courseId).maybeSingle(),
     supabase

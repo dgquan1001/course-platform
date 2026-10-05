@@ -15,9 +15,16 @@ import PlanPicker from '../PlanPicker'
 // Trang tĩnh, làm mới tối đa mỗi 5 phút (admin sửa khóa học sẽ làm mới ngay)
 export const revalidate = 300
 
-type Props = { params: { courseId: string } }
+// Next 15: không có generateStaticParams thì trang động bị render mỗi request. Trả danh sách rỗng → trang được tạo ở lần
+// truy cập đầu rồi lưu đệm (ISR, ADR-008); admin sửa khóa thì revalidatePath('/', 'layout') làm mới ngay.
+export function generateStaticParams() {
+  return []
+}
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+type Props = { params: Promise<{ courseId: string }> }
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params
   const course = await getPublicCourse(params.courseId)
   if (!course) return { title: 'Không tìm thấy khóa học' }
   return {
@@ -29,7 +36,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // Trang giới thiệu khóa học (công khai, bố cục tham khảo Udemy): thông tin, "Bạn sẽ đạt được",
 // đề cương (không có link video), bác sĩ hướng dẫn và khung hành động bên phải.
-export default async function CourseLandingPage({ params }: Props) {
+export default async function CourseLandingPage(props: Props) {
+  const params = await props.params
   const course = await getPublicCourse(params.courseId)
   if (!course) notFound()
   const outline = course.kind === 'premium' ? [] : await getCourseOutline(course.id)

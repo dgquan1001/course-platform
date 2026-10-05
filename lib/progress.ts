@@ -6,7 +6,7 @@ export type CourseProgress = { done: number; total: number; next_lesson_id: stri
 
 // Tiến độ của người đang đăng nhập trong một khóa (hàm course_progress trong database)
 export async function getCourseProgress(courseId: string): Promise<CourseProgress> {
-  const { data } = await createClient().rpc('course_progress', { target_course: courseId })
+  const { data } = await (await createClient()).rpc('course_progress', { target_course: courseId })
   const row = (data as CourseProgress[] | null)?.[0]
   return row ?? { done: 0, total: 0, next_lesson_id: null, purchased: null, last_activity: null }
 }
@@ -27,7 +27,7 @@ export type Learning = {
 // Dữ liệu học tập của một khóa cho trang khóa / trình học: đề cương theo buổi (không có link video),
 // bài đã tick, số buổi đã mua, trạng thái khóa / mở từng buổi (giống can_view_lesson trong database).
 export async function loadLearning(courseId: string): Promise<Learning | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const [{ data: course }, user] = await Promise.all([
     supabase.from('courses').select('id, title, description, kind').eq('id', courseId).maybeSingle(),
     getCurrentUser(),

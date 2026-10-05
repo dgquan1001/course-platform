@@ -23,7 +23,7 @@ function KindSelect({ id, value }: { id: string; value?: string }) {
 // Mẫu phiếu tham vấn chung (SCR-28, chỉ admin): thêm / sửa / bật tắt / sắp xếp / xóa câu hỏi.
 export default async function ConsultationSettingsPage() {
   await requireAdminPage()
-  const { data, error } = await createClient()
+  const { data, error } = await (await createClient())
     .from('consult_questions')
     .select('id, label, kind, sort_order, active')
     .order('sort_order')

@@ -3,7 +3,7 @@ import type { PlanOption } from './GrantFields'
 
 // Gói đang bán của mọi chương trình trả phí (kể cả chương trình đang ẩn: nhân viên vẫn cấp / gia hạn được qua Zalo)
 export async function getPlanOptions(): Promise<PlanOption[]> {
-  const { data } = await createClient()
+  const { data } = await (await createClient())
     .from('course_plans')
     .select('id, months, sessions, price, courses!inner(title, kind, status, sort_order)')
     .eq('active', true)

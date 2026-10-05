@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
 // Client dùng service role key: BỎ QUA RLS. Chỉ dùng trong server action / route handler,

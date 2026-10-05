@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { MIN_PASSWORD_LENGTH, passwordHint } from '@/lib/password'
 import PasswordInput from '@/components/PasswordInput'
 import { SpinnerIcon } from '@/components/icons'
@@ -39,7 +40,7 @@ function IntentButton({
 }
 
 export default function ForgotPasswordForm() {
-  const [state, formAction] = useFormState(forgotPasswordAction, initialState)
+  const [state, formAction] = useActionState(forgotPasswordAction, initialState)
 
   return (
     <form action={formAction} className="mt-6 space-y-4">

@@ -128,6 +128,10 @@
 | T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | ✅ Đợt 8: chỉ admin (RLS storage, E2E khách / nhân viên bị chặn); kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
 | T31 *(v0.2)* | Cookie phiên giả / hết hạn vượt qua middleware (middleware chỉ đọc cookie – ADR-016) | Spoofing | ✅ Mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (xác thực `getUser()`); RLS là lớp cuối | Thấp – không lộ dữ liệu, chỉ bị chuyển trang ở bước render |
 | T32 *(v0.2)* | Nhân viên tự gọi API tạo đơn sai quy tắc (đơn web, đơn chờ, gói chương trình khác, số tiền âm) | Tampering | ✅ Đợt 11: policy `registrations_staff_insert` + trigger `registrations_stamp_insert` (E2E kiểm tra qua API) | Thấp |
+| T33 *(Đợt 17)* | Giả IP bằng header `X-Forwarded-For` để né giới hạn tần suất khi chạy sau Cloudflare (Cloudflare giữ giá trị người dùng gửi, chỉ nối IP thật vào cuối) – RK-43 | Spoofing / DoS | ✅ Đợt 17: `clientIp()` ưu tiên `cf-connecting-ip` (Cloudflare luôn ghi đè), chỉ dùng `x-forwarded-for` khi chạy ngoài Cloudflare; TC-102 đổi `X-Forwarded-For` mỗi lần vẫn bị khóa | Thấp |
+| T35 *(rà soát 04/10)* | Tạo tài khoản rác qua API Supabase `/auth/v1/signup` bằng khóa `anon` công khai (bỏ qua form, giới hạn tần suất, Turnstile) – SEC-01 | Spoofing / DoS | ⬜ Tắt "Allow new users to sign up" (A-24); website chỉ tạo tài khoản bằng service role | Trung bình → Thấp sau khi tắt |
+| T36 *(rà soát 04/10)* | Lộ thông tin máy chủ thư / database qua thông báo lỗi trả cho khách – SEC-02 | Information disclosure | ✅ Thông báo chung cho khách, chi tiết ở log server; module server có `import 'server-only'` (SEC-03) | Thấp |
+| T34 *(Đợt 17)* | Lộ khóa `service_role` khi cấu hình Cloudflare (ghi vào `wrangler.jsonc` hoặc biến công khai) | Information disclosure | Khóa bí mật chỉ đặt dạng **Secret** trong Cloudflare; `wrangler.jsonc` không chứa biến; `.dev.vars` trong `.gitignore`, E2E tự xóa khi kết thúc; checklist CF-12, CF-13 | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
 
@@ -137,7 +141,7 @@
 | Dữ liệu sức khỏe (nhạy cảm) | ✅ Đợt 10, 12: tiến độ tập, phiếu tham vấn – chỉ bệnh nhân đó + nhân viên / admin; chính sách nêu mục đích | Chủ trung tâm duyệt nội dung chính sách (A-7); quy trình xóa theo yêu cầu (xóa tài khoản → phiếu giữ họ tên / SĐT: cần xóa tay nếu bệnh nhân yêu cầu xóa hẳn) |
 | Tối thiểu hóa | Chỉ thu tên, SĐT, email (tùy chọn), ảnh CK | Đạt |
 | Quyền truy cập/sửa | Học viên tự sửa ở `/account` | Đạt |
-| Quyền xóa | Chưa có chức năng | Quy trình xóa theo yêu cầu (xóa user + ảnh) |
+| Quyền xóa | Chưa có chức năng | **Đợt 18 (đã chốt 04/10/2026)**: admin xóa bệnh nhân (không còn gói còn hạn / đơn chờ), xóa luôn phiếu tham vấn; đơn + ảnh chuyển khoản giữ làm chứng từ; nhân viên chỉ khóa tài khoản |
 | Hạn lưu trữ ảnh CK | Không giới hạn | Đề xuất xóa ảnh sau N tháng kể từ khi duyệt |
 | Bảo mật lưu trữ | Bucket private, RLS, HTTPS | Đạt |
 

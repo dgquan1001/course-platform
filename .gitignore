@@ -8,3 +8,10 @@ test-results
 .idea/claudeCodeEditorTabs.xml
 .next-e2e
 backups
+
+# Cloudflare Workers (Đợt 17)
+.open-next
+.wrangler
+.dev.vars*
+
+.next-dev

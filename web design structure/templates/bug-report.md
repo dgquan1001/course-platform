@@ -22,7 +22,7 @@ Thông báo lỗi chính xác, ảnh chụp màn hình / video.
 
 ## Thông tin kỹ thuật
 - Console log trình duyệt:
-- Vercel log / Supabase log:
+- Cloudflare Workers Logs / Supabase log:
 - Dữ liệu liên quan (id đơn, id khóa…):
 
 ## Phân tích & hướng sửa (dev điền)

@@ -33,7 +33,7 @@ export async function registerAction(
   const proof = formData.get('paymentProof')
   const consent = formData.get('consent') === 'yes'
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user: sessionUser },
   } = await supabase.auth.getUser()
@@ -55,7 +55,7 @@ export async function registerAction(
   const ext = IMAGE_EXT[contentType]
 
   // Chống bot (nếu đã cấu hình Turnstile) và giới hạn số lần gửi đơn theo IP
-  const ip = clientIp()
+  const ip = await clientIp()
   if (!(await verifyTurnstile(String(formData.get('cf-turnstile-response') ?? ''), ip))) {
     return { error: 'Vui lòng xác nhận bạn không phải robot rồi bấm Đăng ký lại.' }
   }
@@ -179,6 +179,6 @@ export async function registerAction(
   }
 
   revalidatePath('/admin/registrations')
-  setFlash('Đã gửi đăng ký thành công!')
+  await setFlash('Đã gửi đăng ký thành công!')
   redirect('/courses?registered=1')
 }

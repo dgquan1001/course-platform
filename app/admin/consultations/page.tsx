@@ -28,10 +28,11 @@ type Consultation = {
 }
 
 // Phiếu tham vấn bệnh nhân gửi (SCR-25): nhân viên xem câu trả lời, gọi / nhắn Zalo hẹn bác sĩ, cập nhật trạng thái
-export default async function AdminConsultationsPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function AdminConsultationsPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams
   await requireStaffPage()
   const status = CONSULT_STATUSES.some((s) => s.value === searchParams.status) ? searchParams.status! : 'new'
-  const supabase = createClient()
+  const supabase = await createClient()
   const countOf = (s: string) => supabase.from('consultations').select('id', { count: 'exact', head: true }).eq('status', s)
 
   const [{ data, error }, ...counts] = await Promise.all([

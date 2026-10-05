@@ -8,7 +8,8 @@ import SessionOutline from '@/components/SessionOutline'
 import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, ShieldIcon } from '@/components/icons'
 
 // Trang khóa của bệnh nhân (SCR-08/18): tiến độ, nút "Tiếp tục Buổi X – Bài Y", nội dung theo buổi (🔒 buổi chưa mở).
-export default async function CourseDetailPage({ params }: { params: { courseId: string } }) {
+export default async function CourseDetailPage(props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params
   const learning = await loadLearning(params.courseId)
   const path = `/courses/${params.courseId}`
 
@@ -16,7 +17,7 @@ export default async function CourseDetailPage({ params }: { params: { courseId:
   if (!learning) {
     const {
       data: { user },
-    } = await createClient().auth.getUser()
+    } = await (await createClient()).auth.getUser()
     if (!user) redirect(`/login?next=${encodeURIComponent(path)}`)
     notFound()
   }
@@ -28,7 +29,7 @@ export default async function CourseDetailPage({ params }: { params: { courseId:
   // Đã từng được duyệt nhưng gói hết hạn: vẫn xem đề cương + bài đã tick, có nút gia hạn
   let expiredAt: string | null = null
   if (!hasAccess && user) {
-    const { data: approved } = await createClient()
+    const { data: approved } = await (await createClient())
       .from('registrations')
       .select('access_until')
       .eq('user_id', user.id)

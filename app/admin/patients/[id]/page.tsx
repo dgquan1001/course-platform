@@ -39,10 +39,11 @@ const accountActions: Record<string, string> = {
 
 // Hồ sơ bệnh nhân (SCR-24): thông tin, gói & hạn học, tiến độ, lịch sử đơn, phiếu tham vấn, nhật ký tài khoản.
 // Nhân viên / admin cấp gói, sửa thông tin, cấp lại mật khẩu.
-export default async function PatientPage({ params }: { params: { id: string } }) {
+export default async function PatientPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
   await requireStaffPage()
   if (!UUID.test(params.id)) notFound()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: patient } = await supabase
     .from('profiles')

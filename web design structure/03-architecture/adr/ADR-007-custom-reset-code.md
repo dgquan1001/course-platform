@@ -10,7 +10,7 @@ Ngoài ra tài khoản SĐT có auth email nội bộ không nhận thư.
 ## Quyết định
 - Bảng `password_resets` (chỉ service role), mã 6 số từ `crypto.randomInt`, lưu `sha256(userId:code)`.
 - TTL 10 phút, tối đa 5 lần sai, gửi lại sau 60 giây, mã mới vô hiệu mã cũ, so sánh `timingSafeEqual`.
-- Gửi thư qua SMTP của trung tâm (Nodemailer, Gmail App Password). Test: `MAIL_OUTBOX_DIR` ghi thư ra file.
+- Gửi thư qua SMTP của trung tâm (Gmail App Password): `nodemailer` trên Node, `lib/smtp-workers.ts` trên Cloudflare Workers (Đợt 17 – ADR-017). Test: `MAIL_OUTBOX_URL` gửi thư tới hộp thư giả của E2E (trước Đợt 17: `MAIL_OUTBOX_DIR` ghi file).
 - Gửi tới **email thật** trong `profiles.email`; không có → hướng dẫn gọi hotline.
 
 ## Hệ quả

@@ -47,11 +47,11 @@ flowchart LR
     RC[React Client Components<br/>SiteHeader, RegisterForm,<br/>Toaster, ActionForm…]
   end
 
-  subgraph Vercel[Vercel – Next.js 14]
+  subgraph Vercel["Cloudflare Workers – Next.js 15 qua OpenNext (ADR-017)"]
     MW[Middleware<br/>chặn /courses /account /admin]
     SC[Server Components<br/>pages app/**/page.tsx]
     SA[Server Actions<br/>app/**/actions.ts]
-    ISR[(Cache ISR<br/>/ và /register)]
+    ISR[(Cache ISR – R2 + D1 + Durable Object<br/>/, /register, /khoa-hoc/:id)]
   end
 
   subgraph Supabase
@@ -65,7 +65,6 @@ flowchart LR
   RC -- form POST --> SA
   RC -- anon key: getSession,<br/>select profiles của mình --> AUTH & PG
   MW -- anon + cookie --> AUTH
-  MW -- select role --> PG
   SC -- anon + cookie (RLS) --> PG
   SC -- signed URL --> STO
   SC --- ISR
@@ -200,7 +199,7 @@ Chi tiết: [07-security/security-design.md](../07-security/security-design.md).
 ```mermaid
 flowchart LR
   dev[Máy dev<br/>npm run dev :3000] -->|git push| gh[GitHub]
-  gh -->|auto deploy| vc[Vercel<br/>Production + Preview]
+  gh -->|auto deploy| vc[Cloudflare Workers Builds<br/>Production + link xem trước]
   vc -->|HTTPS| sp[Supabase project<br/>vùng Singapore khuyến nghị]
   vc -->|SMTP 465| gm[Gmail]
   op[Admin kỹ thuật] -->|SQL Editor: schema.sql| sp

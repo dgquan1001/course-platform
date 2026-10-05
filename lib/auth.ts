@@ -24,7 +24,7 @@ export const isStaffRole = (role: string | null | undefined) => role === 'staff'
 // Middleware chỉ đọc phiên từ cookie (không gọi mạng); ở đây xác thực phiên với Supabase Auth (getUser) –
 // `cache` gộp mọi lần gọi trong cùng một request (layout + trang + loadLearning…) thành 1 lần xác thực + 1 truy vấn profile.
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

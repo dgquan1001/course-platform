@@ -1,3 +1,4 @@
+import 'server-only'
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -19,11 +20,12 @@ export const LIMITS = {
 
 type Limit = (typeof LIMITS)[keyof typeof LIMITS]
 
-// IP của người dùng. Trên Vercel, x-forwarded-for / x-real-ip do Vercel đặt (người dùng không giả mạo được);
-// nếu tự host sau proxy khác, cần đảm bảo proxy ghi đè các header này.
-export function clientIp() {
-  const h = headers()
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown'
+// IP của người dùng (RK-43). Trên Cloudflare, cf-connecting-ip do Cloudflare đặt – người dùng không giả mạo được.
+// KHÔNG lấy phần tử đầu x-forwarded-for khi chạy sau Cloudflare: Cloudflare giữ nguyên giá trị người dùng gửi, chỉ nối IP thật vào cuối.
+// x-real-ip / x-forwarded-for chỉ dùng khi chạy ngoài Cloudflare (next dev / next start – Node tự đặt từ kết nối).
+export async function clientIp() {
+  const h = await headers()
+  return h.get('cf-connecting-ip') || h.get('x-real-ip') || h.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 }
 
 // Ghi nhận 1 lần và trả về true nếu vẫn trong giới hạn. `increment = false`: chỉ kiểm tra, không ghi.

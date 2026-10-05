@@ -644,7 +644,7 @@ Dữ liệu hiện tại là dữ liệu test (27/09/2026). Script chuyển đ�
 2. Khóa có bài học mà chưa có buổi → tạo "Buổi 1", gán mọi bài học vào buổi đó.
 3. Khóa `program` chưa có gói và `price > 0` → tạo gói 1 tháng, `price` cũ, 12 buổi, `active = true`.
 4. Đơn cũ: `source = 'web'`, `payment_method = 'bank_transfer'`, `plan_months`/`access_until` = `null` (không thời hạn, mở mọi buổi).
-5. Trước go-live: xóa dữ liệu test theo checklist ở deployment-runbook §10 (bước 5).
+5. Trước chạy thử: xóa dữ liệu test theo deployment-runbook §10, giai đoạn 2 (script `supabase/cleanup-test-data.sql` – sao lưu trước, chạy phần xem trước rồi mới xóa).
 
 ### 10.8. Câu hỏi mẫu phiếu tham vấn (seed, admin sửa được)
 

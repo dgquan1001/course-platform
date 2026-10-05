@@ -4,10 +4,10 @@
 
 | Cấp độ | Hiện trạng | Công cụ | Mục tiêu đề xuất |
 | --- | --- | --- | --- |
-| Static | ✅ | TypeScript, ESLint (`next lint`) | Chạy trong CI trên mọi PR |
+| Static | ✅ | TypeScript, ESLint (`next lint`), build OpenNext (Cloudflare) | Chạy trong CI trên mọi PR |
 | Unit | ❌ Chưa có | Đề xuất Vitest | Hàm thuần: `normalizePhone`, `getVideoEmbed`, `formatPrice`, `vietQrUrl`, `safeNext`, `maskEmail` |
 | Integration (DB/RLS) | 🟡 Nằm trong E2E | supabase-js với anon/service role | Tách riêng bộ test RLS chạy trên Supabase local |
-| End-to-end | ✅ | `scripts/e2e.mjs` – playwright-core + Chrome/Edge thật + Supabase thật | Giữ nguyên, bổ sung theo tính năng mới |
+| End-to-end | ✅ | `scripts/e2e.mjs` – playwright-core + Chrome/Edge thật + Supabase thật; chạy trên Node hoặc Cloudflare workerd (`--workers`) | Giữ nguyên, bổ sung theo tính năng mới |
 | Manual / UAT | 🟡 | Checklist mục 5 | Trước mỗi lần release |
 
 ## 2. Môi trường E2E
@@ -19,7 +19,12 @@
       $env:NEXT_DIST_DIR=".next-e2e"; npm run build; npm run test:e2e      # PowerShell
       NEXT_DIST_DIR=.next-e2e npm run build && NEXT_DIST_DIR=.next-e2e npm run test:e2e   # bash
 
-- Script tự khởi động `next start` cổng 3123 với `MAIL_OUTBOX_DIR` (email ghi ra file JSON để đọc mã).
+- Script tự khởi động server cổng 3123 kèm hộp thư giả HTTP (`MAIL_OUTBOX_URL` – thư JSON ghi vào `test-results/mail-outbox` để đọc mã).
+  Hai chế độ (Đợt 17):
+  - `npm run test:e2e` – **Node** (`next start`, cần `npm run build`).
+  - `npm run test:e2e:workers` – **Cloudflare Workers / workerd** (`opennextjs-cloudflare preview`, cần `npx opennextjs-cloudflare build`):
+    giống production, **là chuẩn nghiệm thu** (RK-50). Script tạo `.dev.vars` tạm từ `.env.local` và xóa khi kết thúc; IP giả lập qua
+    header `cf-connecting-ip` (Node: `x-forwarded-for`). Bước TC-102 chỉ chạy ở chế độ này.
 - Dữ liệu test: tài khoản `e2e-*@example.com`, SĐT `09<8 số>`/`08<8 số>`, khóa `[E2E] … <timestamp>`; **tự xóa khi kết thúc**
   (kể cả khi lỗi; mọi khóa mang timestamp của lần chạy đều bị xóa).
 - Kết quả: log từng bước ✔/✘, ảnh chụp màn hình trong `test-results/` (khi lỗi: `loi-<n>.png` của mọi trang đang mở),
@@ -30,8 +35,23 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: 29/09/2026 · sau Đợt 15 (cải tiến giao diện) · **98/98 bước PASS** (xem §3.1). Sau Đợt 11 → 13: 96/96; sau Đợt 10: 83/83; sau Đợt 9: 78/78; sau Đợt 8: 73/73; sau Đợt 7: 67/67. Lần trước: 26/09/2026 · sau Đợt 4–5 · Chrome · Supabase theo `.env.local` (chạy với `E2E_SUPABASE_REF` đặt tạm theo yêu cầu, chưa có staging) ·
-**63/63 bước PASS** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) · dữ liệu test đã dọn sạch
+**Lần chạy gần nhất**: **05/10/2026** · sau rà soát performance & security (project-review §7.10) · **Node 99/99 PASS** · **Cloudflare Workers 100/100 PASS**
+(17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
+
+**Các lần chạy theo thời gian (cũ → mới)**:
+
+| Ngày | Sau đợt | Kết quả |
+| --- | --- | --- |
+| 26/09/2026 | Đợt 1 (review vòng 1) | 46/46 |
+| 26/09/2026 | Đợt 2 → 3 | 53/53 → 57/57 |
+| 26/09/2026 | Đợt 4 → 5 | **63/63** (TC-01 → TC-64; TC-49 nằm trong bước TC-26) – chi tiết dọn dữ liệu ở đoạn dưới |
+| 27/09/2026 | Đợt 7 / 8 / 9 / 10 | 67/67 / 73/73 / 78/78 / 83/83 |
+| 27/09/2026 | Đợt 11 → 13 | 96/96 |
+| 29/09/2026 | Đợt 15 | 98/98 |
+| 04/10/2026 | Đợt 17 P0 → P2 (Next 15, Cloudflare) | Node 99/99 · Workers 100/100 (12 lỗi RK-54 ghi riêng) |
+| 05/10/2026 | Rà soát performance & security | Node 99/99 · Workers 100/100 (17 lỗi RK-54 ghi riêng) |
+
+Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
 Ghi chú Đợt 4–5: 3 lần chạy đầu đỏ ở TC-46 do lỗi "A network error occurred." phát sinh **trong iframe YouTube** (bên thứ ba) trên trang bài học điện thoại –
 đã xác minh: vẫn xảy ra khi build không có header bảo mật, và Playwright báo lỗi iframe khác domain là lỗi của trang (stack rỗng).
@@ -163,6 +183,8 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-99 | 15 | Khách | ✅ PASS – Trang đăng nhập: gõ mật khẩu, bấm "Hiện mật khẩu" → ô thành `text`, giữ nội dung, không gửi form; bấm "Ẩn mật khẩu" → `password`; trang đăng ký có nút mắt. Các bước cũ điền `#password`, `#currentPassword`… chạy nguyên | FR-191, UI-01 |
 | TC-100 | 15 | Admin | ✅ PASS – Máy tính 1366px: menu quản trị đúng 7 mục theo thứ tự mới, xếp dọc, nằm bên trái nội dung; số cạnh "Đơn đăng ký" = số đơn `pending` trong database (không có đơn chờ thì không hiện). iPhone 13: cùng thứ tự, hàng ngang, cuộn ngang được. Nhân viên: 5 mục (TC-97) | FR-192, UI-02 |
 | TC-101 | 15 | Bệnh nhân | ✅ PASS – Vòng tiến độ `aria-valuenow` 0 → 50 → 100 kèm chữ "0/4 bài", "2/4 bài", "4/4 bài" ở trang khóa, trình học, thẻ "Khóa học của tôi" (thay kiểm tra chữ "x/y bài · %" của TC-81, TC-83); ảnh chụp `course-tile-progress.png`, `desktop-lesson-progress.png` | FR-193, UI-03 |
+| TC-102 | 17 | Khách | ✅ PASS (workers) *(chỉ chế độ workers)* Đăng nhập sai 5 lần, mỗi lần đổi `X-Forwarded-For` / `x-real-ip` giả (cùng `cf-connecting-ip`) → lần 6 vẫn "Bạn đã nhập sai quá nhiều lần" | RK-43, T33 |
+| TC-103 | 17 | Admin / Khách | ✅ PASS (Node + workers) – Trang chủ và `/khoa-hoc/<id>` đã lưu đệm (ISR); admin sửa tên khóa → cả 2 trang hiện tên mới ngay (≤ 5 giây), đổi lại tên cũ cũng cập nhật | RK-45, ADR-008 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -194,6 +216,10 @@ của test bắt nhầm ô giá trong bảng Gói; TC-88 do từ khóa tìm (SĐ
 TC-101 nằm trong các bước Đợt 10 đã sửa ("[Bệnh nhân] Buổi mở lần lượt…", "Checklist buổi 1…", "Bỏ tick…"); bước "[Nhân viên] Vào trang quản trị…" đọc nhãn menu
 qua `[data-nav-label]` (bỏ số đếm). Kết quả: **98/98 PASS** ngay lần chạy đầu, dữ liệu test dọn sạch; chạy thêm 2 lần để chụp ảnh vòng tiến độ (98/98).
 
+Đợt 17 P0 → P2 (04/10/2026, không đổi schema; Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm): script có 2 chế độ (Node / `--workers`), hộp thư giả HTTP (`MAIL_OUTBOX_URL`), IP giả lập theo chế độ, in URL tài nguyên lỗi, `E2E_VERBOSE=1` in log Playwright khi lỗi. TC-103 ↔ "[Admin] Sửa tên khóa → trang chủ và trang giới thiệu khóa (đang lưu đệm) hiện tên mới ngay"; TC-102 ↔ "[Khách] Đổi X-Forwarded-For giả…" (chỉ chế độ workers). Không sửa bước cũ nào.
+Kết quả Node: lần 1 – 35/36 (bước "Đơn đăng ký hiển thị dạng bảng…"); lần 2 – 77/78 ("Checklist buổi 1…"): **lỗi thật RK-53** do Next 15 – router hủy điều hướng khi có `loading.tsx` (đổi tab `?status=`, redirect sau "Hoàn thành & bài tiếp theo"), đã bỏ `app/admin/loading.tsx`, `app/courses/loading.tsx`; lần 3, 4 – 98/99: 24 lỗi console 404 do Next 15 prefetch trang `/khoa-hoc/<id>` của khóa đang ẩn từ danh sách khóa admin → `prefetch={false}`; **lần 5 – 99/99 PASS**, dữ liệu test dọn sạch.
+Kết quả Workers (`npm run test:e2e:workers`): lần 1 – server không khởi động (`opennextjs-cloudflare preview` treo ở bước tạo bảng D1 trên Windows → script tự tạo bảng + `wrangler dev`); lần 2 – 6/7 (header `cf-connecting-ip` gửi kèm tới Supabase bị chặn CORS → chỉ gắn cho yêu cầu tới website); lần 3 → 6 – 99/100: mọi bước chức năng PASS (kể cả TC-102, TC-103), bước "không có lỗi JavaScript" đỏ vì 8 – 13 lỗi React #418 lác đác ở `/admin/**` (RK-54 – đã điều tra, chưa rõ nguyên nhân gốc, chức năng không ảnh hưởng); **lần 7 – 100/100 PASS** sau khi chế độ workers ghi #418 ở trang quản trị là vấn đề đã biết (in số lượng, không làm đỏ test), dữ liệu test dọn sạch. Cùng ngày: **Node 99/99 PASS** trên đúng mã nguồn đó; `next dev` mở được trang công khai, trang cần đăng nhập chuyển `/login`, log không lỗi.
+
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),
 TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/admin/patients`, chọn vai trò), TC-42/TC-43 (quyền theo hạn học).
@@ -212,8 +238,10 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 | G-08 | Video TikTok / Shorts hiển thị khung dọc | Thấp | 🟡 Lưu link TikTok có trong TC-09, chưa kiểm tra khung hiển thị |
 | G-09 | Ảnh HEIC từ iPhone | Thấp | ⬜ Test thủ công trên thiết bị thật |
 | G-10 | Unit test các hàm thuần trong `lib/` (`normalizePhone`, `isSupportedVideoUrl`…) | Trung bình | ⬜ |
-| G-11 | Các risk case (xem project-review.md §7) | Theo mức rủi ro | 🟡 RK-01 → 09, 11 → 14 có TC; RK-22, 27, 28, 29, 34 có TC; còn RK-02, 10, 15 (chưa làm) |
+| G-11 | Các risk case (xem project-review.md §7) | Theo mức rủi ro | 🟡 RK-01 → 09, 11 → 14 có TC; RK-22, 27, 28, 29, 34 có TC; RK-43 (TC-102), RK-45 (TC-103), RK-53 (bước đổi tab / chuyển bài cũ) có TC; còn RK-02, 10, 15 (chưa làm) |
 | G-13 | Turnstile bật trên production (widget hiện, token hợp lệ / hết hạn) | Trung bình | ⬜ Thủ công sau khi có khóa (roadmap A-4) |
+| G-14 | Gửi email thật qua `lib/smtp-workers.ts` trên Cloudflare (E2E dùng hộp thư giả) | Cao | ⬜ Thủ công CF-05 sau khi có App Password Gmail (A-12) – P0 đã thử tới bước AUTH với Gmail và gửi trọn thư tới máy chủ SMTP giả |
+| G-15 | Bộ nhớ đệm R2 / D1 / Durable Object **thật** trên Cloudflare (E2E chạy bản giả lập local của wrangler) | Trung bình | ⬜ CF-09 sau deploy |
 | G-12 | Chặn gỡ **admin cuối cùng** (không test được trên database dùng chung vì luôn có admin thật; cần staging – RK-10) | Trung bình | ⬜ Đã kiểm tra bằng đọc code trigger |
 
 ## 5. Checklist kiểm thử thủ công trước release
@@ -228,13 +256,14 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 - [ ] Admin xem ảnh chuyển khoản, duyệt, học viên thấy khóa mở ngay.
 - [ ] Bàn phím: Tab qua menu, form; focus nhìn thấy.
 - [ ] Lighthouse mobile trang chủ: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 90.
+- [ ] Trên Cloudflare (từ Đợt 17): checklist nghiệm thu CF-01 → CF-41 ở [cloudflare-migration.md §5](../09-operations/cloudflare-migration.md#5-checklist-nghiệm-thu-inspection).
 
 ## 6. Tiêu chí hoàn thành (Definition of Done)
 
 Một tính năng được coi là xong khi:
 1. Tất cả AC trong user story đạt.
 2. `npm run lint` và `npm run build` không lỗi.
-3. `npm run test:e2e` pass; tính năng mới có bước E2E (hoặc lý do bỏ qua được ghi lại).
+3. `npm run test:e2e:workers` (chuẩn, giống production) và `npm run test:e2e` (Node) pass; tính năng mới có bước E2E (hoặc lý do bỏ qua được ghi lại).
 4. RLS cho dữ liệu mới được kiểm tra với anon/học viên/admin.
 5. Tài liệu liên quan đã cập nhật (SRS, user story, DB, API, screen spec).
 6. Kiểm thử thủ công trên điện thoại thật cho thay đổi UI.

@@ -42,11 +42,11 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 
 ### Bước 1 – Hoàn tất cấu hình Cloudflare / Supabase (Đợt 17 P3 còn lại) – ưu tiên cao
 
-- [ ] **1.1 Supabase URL** (chủ dự án, 2 phút) – Supabase › Authentication › URL Configuration: **Site URL** = `https://hv-web.bsdomanhcuong.workers.dev`;
+- [x] **1.1 Supabase URL** (chủ dự án, 2 phút) – ✅ 06/10/2026 – Supabase › Authentication › URL Configuration: **Site URL** = `https://hv-web.bsdomanhcuong.workers.dev`;
   **Redirect URLs** thêm `https://hv-web.bsdomanhcuong.workers.dev/**`. *Xong khi*: lưu thành công. (A-21, RK-49)
-- [ ] **1.2 Tắt đăng ký công khai** (chủ dự án, 1 phút) – Supabase › Authentication › Sign In / Providers › tắt **Allow new users to sign up**.
+- [x] **1.2 Tắt đăng ký công khai** (chủ dự án, 1 phút) – ✅ 06/10/2026, dev kiểm `disable_signup: true` – Supabase › Authentication › Sign In / Providers › tắt **Allow new users to sign up**.
   *Xong khi*: dev kiểm `/auth/v1/settings` thấy `disable_signup: true` và E2E đăng ký trên website vẫn PASS. (A-24, SEC-01)
-- [ ] **1.3 Email gửi mã quên mật khẩu** (chủ dự án) – tạo App Password Gmail (myaccount.google.com/apppasswords) → trong thư mục dự án chạy
+- [ ] **1.3 Email gửi mã quên mật khẩu** (chủ dự án) – ⏸ để sau (chưa chốt Gmail trung tâm); trong lúc chờ, quên mật khẩu báo "chưa cấu hình gửi email" + hotline – tạo App Password Gmail (myaccount.google.com/apppasswords) → trong thư mục dự án chạy
   `npx wrangler secret put SMTP_PASS` và dán (không gửi vào chat) → báo dev **địa chỉ Gmail**. (A-12)
 - [ ] **1.4 SMTP_USER / MAIL_FROM** (dev) – `wrangler secret put SMTP_USER`, `MAIL_FROM` (`Trung tâm HV <gmail>`); thêm vào `.env.local`;
   thử quên mật khẩu bằng email thật trên website. *Xong khi*: nhận mã 6 số trong ≤ 1 phút, không vào Spam (CF-05, G-14).
@@ -62,6 +62,7 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 - [ ] 2.5 Sửa tên một khóa → trang chủ (tab ẩn danh) đổi ngay (CF-09)
 - [ ] 2.6 Mở trang quản trị nhiều lần, DevTools › Console không có lỗi React #418 (CF-41, RK-54) – còn lỗi thì ghi URL gửi dev
 - [ ] 2.7 Workers › hv-web › Deployments: thử **Rollback** về bản trước rồi về lại bản mới (CF-29); Logs thấy lỗi thử (CF-30)
+- [x] 2.1 → 2.7 chủ dự án kiểm thử trên website thật – ✅ 06/10/2026 (trừ quên mật khẩu bằng email thật: chờ 1.3)
 - [ ] 2.8 Ghi kết quả vào cloudflare-migration §6; mục 🔴 nào chưa đạt → dev sửa trước bước 3
 
 ### Bước 3 – Gộp nhánh & tự động deploy (Đợt 17 P3.4 / P5)
@@ -167,7 +168,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-16 | Mỗi tháng ghi Usage (Supabase, Vercel) vào runbook §12.2 | RK-35, 37 | 6.5 | ⬜ hằng tháng |
 | A-13 | Supabase **Pro** – chỉ khi chạm hạn mức Free (§3.3); không cần Vercel Pro nữa (ADR-017) | RK-37 | Khi đạt ngưỡng | ⏸ |
 | A-23 | Chốt các câu hỏi Đợt 18 (Q-5 → Q-8, §3.5) | RK-51, RK-52 | Trước khi code Đợt 18 | ✅ 04/10/2026 |
-| A-24 | **Tắt đăng ký công khai** của Supabase (Authentication › Sign In / Providers › Allow new users to sign up = tắt) | SEC-01 | §0.1 bước 1.2 | ⬜ **ưu tiên cao** |
+| A-24 | **Tắt đăng ký công khai** của Supabase (Authentication › Sign In / Providers › Allow new users to sign up = tắt) | SEC-01 | §0.1 bước 1.2 | ✅ 06/10/2026 |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 

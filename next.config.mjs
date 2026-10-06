@@ -1,4 +1,16 @@
 const isDev = process.env.NODE_ENV !== 'production'
+
+// Build production thiếu biến công khai → dừng sớm với hướng dẫn rõ ràng (thay vì lỗi "supabaseUrl is required" khi dựng trang).
+// Trên Cloudflare Workers Builds: đặt ở Settings › Build › Build variables and secrets (runbook §4 bước 5).
+if (!isDev) {
+  const missing = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'].filter((name) => !process.env[name])
+  if (missing.length) {
+    throw new Error(
+      `Thiếu biến môi trường lúc build: ${missing.join(', ')}. Máy dev: thêm vào .env.local. ` +
+        'Cloudflare Workers Builds: Workers › hv-web › Settings › Build › Build variables and secrets.'
+    )
+  }
+}
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co'
 const supabaseWs = supabaseUrl.replace(/^http/, 'ws')
 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : '*.supabase.co'

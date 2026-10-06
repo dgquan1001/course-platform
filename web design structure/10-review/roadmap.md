@@ -69,9 +69,9 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 
 - [x] 3.0 (dev, 06/10/2026) – `npm run deploy:win` có rào chặn (phải commit + push, đúng nhánh, ghi mã commit vào bản deploy); push nhánh làm việc lên GitHub làm bản sao lưu
 
-- [ ] 3.1 (dev, cần chủ dự án đồng ý) – tạo Pull Request nhánh `hv-change-dgquan1001-20260929-1` → `main`; CI phải xanh (typecheck, lint, build OpenNext).
-- [ ] 3.2 (chủ dự án) – merge PR. *Lưu ý*: workflow sao lưu / keepalive chạy theo `main` – kiểm Actions vẫn ✅ sau merge.
-- [ ] 3.3 (chủ dự án, dev hướng dẫn) – Workers › hv-web › Settings › Builds › Connect GitHub (repo, nhánh `main`, Build `npx opennextjs-cloudflare build`,
+- [x] 3.1 – ✅ 06/10/2026 chủ dự án mở Pull Request nhánh `hv-change-dgquan1001-20260929-1` → `main`; CI phải xanh (typecheck, lint, build OpenNext).
+- [x] 3.2 (chủ dự án) – ✅ 06/10/2026 merge vào `main` (`a87311c`), CI `check` xanh. *Lưu ý*: workflow sao lưu / keepalive chạy theo `main` – kiểm Actions vẫn ✅ sau merge.
+- [ ] 3.3 (chủ dự án, dev hướng dẫn) – 🟡 06/10: đã nối nhưng lần merge `a87311c` **không được build** (commit không có check "Workers Builds" – nối sau khi merge hoặc chưa lưu / chưa cấp quyền repo cho app GitHub). Workers Builds đã nối (build nhánh `1f19308` chạy) nhưng **đỏ vì thiếu Build variables** (`supabaseUrl is required`) → chủ dự án đã nhập nhưng vào Variables and Secrets (lúc chạy) chứ không phải Build variables → dev đưa 3 biến công khai vào `.env.production` (commit) + `.node-version` = 22, không còn phụ thuộc nhập tay; `next.config.mjs` báo rõ biến thiếu. Build `a8efa59` **đạt** (Node 22, 22/22 trang, OpenNext build complete), chỉ đỏ ở bước `wrangler preview` của nhánh phụ → tắt Non-production branch builds; deploy thật chờ PR vào `main`. Kích hoạt lại bằng một PR mới vào `main`; kiểm: commit có check Workers Builds, Deployments có nguồn GitHub. Workers › hv-web › Settings › Builds › Connect GitHub (repo, nhánh `main`, Build `npx opennextjs-cloudflare build`,
   Deploy `npx opennextjs-cloudflare deploy`, Build variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`,
   `NODE_VERSION=22`) – runbook §4 bước 5. *Xong khi*: push `main` → build xanh, website đổi theo.
 - [ ] 3.4 Theo dõi 14 ngày (Logs không lỗi 5xx bất thường) → **P6**: xóa project Vercel, xóa `vercel.json`, đóng RK-35 (dev + chủ dự án).

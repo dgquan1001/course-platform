@@ -6,15 +6,16 @@ Bác sĩ Đỗ Mạnh Cường. Video bài học được nhúng từ YouTube ho
 
 Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Storage) + Tailwind CSS; chạy trên Cloudflare Workers (OpenNext) từ Đợt 17.
 
-## Hiện trạng (05/10/2026)
+## Hiện trạng (06/10/2026)
 
-- **Website**: https://hv-web.bsdomanhcuong.workers.dev – Cloudflare Workers Paid + Supabase Free (ADR-017). Deploy từ máy: `npm run deploy:win`.
+- **Website**: https://hv-web.bsdomanhcuong.workers.dev – Cloudflare Workers Paid + Supabase Free (ADR-017).
+- **Deploy**: Pull Request vào `main` → merge → Cloudflare Workers Builds tự build + deploy (2 – 4 phút). Khẩn cấp từ máy: `npm run deploy:win` (phải commit + push trước).
 - **Chức năng**: phiên bản 0.2 đầy đủ – chương trình tập phục hồi chức năng cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng,
   khóa miễn phí công khai, khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo, lộ trình **buổi → bài tập** mở lần lượt + checklist + % tiến độ,
   phiếu tham vấn bác sĩ, vai trò **bệnh nhân / nhân viên / admin**, nhân viên tạo tài khoản cho khách Zalo, dashboard quản trị.
 - **Kiểm thử**: E2E Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
-- **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) (cấu hình Supabase / SMTP → nghiệm thu
-  trên Cloudflare → gộp `main` + tự động deploy → Đợt 18 thêm / sửa / xóa → Đợt 14 chạy thử MVP).
+- **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) – tiếp theo là **Đợt 18** (thêm / sửa / xóa
+  bệnh nhân & khóa học); song song theo dõi Cloudflare tới 20/10 rồi gỡ Vercel; email quên mật khẩu khi chốt Gmail trung tâm; sau đó Đợt 14 chạy thử MVP.
 - Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
 
 ### Dòng thời gian (cũ → mới)
@@ -28,6 +29,7 @@ Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Stor
 | 04/10/2026 | Chốt chuyển web sang Cloudflare Workers (ADR-017); Đợt 17 P0 → P2: Next 15 / React 19, OpenNext, IP `cf-connecting-ip`, SMTP cho Workers | E2E Node 99/99, Workers 100/100 |
 | 04/10/2026 | Đợt 17 P3: deploy lên Cloudflare (`hv-web.bsdomanhcuong.workers.dev`) | Smoke test ✅ |
 | 05/10/2026 | Rà soát performance & security (project-review §7.10), roadmap §0.1 to-do từng bước | E2E Node 99/99, Workers 100/100 |
+| 06/10/2026 | Tắt đăng ký công khai Supabase, nghiệm thu trên website thật; **deploy tự động từ `main` qua Workers Builds** (PR #8) | Workers Builds ✅ |
 
 Chi tiết từng lần cập nhật tài liệu: [`web design structure/README.md`](web%20design%20structure/README.md) › "Lịch sử tài liệu".
 
@@ -232,7 +234,8 @@ Các bước chi tiết (tài khoản, R2 / D1, Workers Builds, biến môi trư
 `web design structure/09-operations/cloudflare-migration.md` §4 P3 → P5.
 
     npm run preview      # build + chạy thử bản Workers trên máy (cần .dev.vars – xem runbook)
-    npm run deploy       # build + deploy (khi đã đăng nhập wrangler; bình thường dùng Workers Builds tự deploy khi push main)
+    npm run deploy:win   # CHỈ khẩn cấp: build + deploy từ máy Windows (phải commit + push trước)
+                         # Bình thường: merge Pull Request vào main → Workers Builds tự deploy
 
 ## Deploy (Vercel – đường lùi, gỡ sau Đợt 17)
 

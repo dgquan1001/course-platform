@@ -10,8 +10,8 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-**Cập nhật lần cuối: 05/10/2026** – rà soát performance & security (project-review §7.10), thêm **§0.1 to-do từng bước**. Website đang chạy:
-https://hv-web.bsdomanhcuong.workers.dev.
+**Cập nhật lần cuối: 06/10/2026** – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
+(PR #8, commit `73295e1`, check "Workers Builds: hv-web" ✅). Website: https://hv-web.bsdomanhcuong.workers.dev. Việc tiếp theo: **§0.1**.
 
 Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 26/09/2026 – v0.1 + Đợt 1 → 5 (sửa review, nhiều admin, vận hành an toàn, chống lạm dụng) · E2E 63/63
@@ -20,24 +20,28 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 02/10/2026 – Đợt 16 hạ tầng gói Free (keepalive + sao lưu tuần chạy thật, A-14 ✅); Đợt 14 viết lại thành kế hoạch chạy thử 7 giai đoạn (§3.1)
 - 04/10/2026 (sáng) – chủ dự án chốt **Cloudflare Workers Paid + Supabase Free** (ADR-017) → kế hoạch Đợt 17 (§3.4) và Đợt 18 (§3.5); Đợt 14 tạm dừng ở bước 1.2
 - 04/10/2026 (tối) – Đợt 17 P0 → P2 xong: Next 15 / React 19, OpenNext, RK-43, RK-53 · E2E Node 99/99, Workers 100/100
-- 04/10/2026 (khuya) – Đợt 17 P3: deploy lên Cloudflare (`npm run deploy:win`)
+- 04/10/2026 (khuya) – Đợt 17 P3: deploy lần đầu lên Cloudflare từ máy (`npm run deploy:win`)
 - 05/10/2026 – rà soát performance & security: sửa SEC-02, SEC-03, PERF-02; A-24, A-25 · E2E Node 99/99, Workers 100/100
+- 06/10/2026 – chủ dự án: Supabase URL, tắt đăng ký công khai (SEC-01 ✅), nghiệm thu bước 2; `deploy:win` có rào chặn; PR #7 → `main`;
+  Workers Builds: sửa lỗi build (biến công khai vào `.env.production`, `.node-version`), PR #8 → **deploy tự động từ `main` thành công** (Đợt 17 P3 ✅, P5 bắt đầu theo dõi)
 
 ## 0. Tóm tắt hiện trạng
 
 | Hạng mục | Trạng thái |
 | --- | --- |
 | Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard |
-| Kiểm thử | E2E **Node 99/99**, **Cloudflare Workers 100/100** (04/10/2026, Đợt 17; RK-54 ghi nhận riêng) – chạy trên project Supabase hiện tại (dữ liệu test). Lần chạy sau rà soát: xem test-plan §3 |
+| Kiểm thử | E2E **Node 99/99**, **Cloudflare Workers 100/100** (05/10/2026, RK-54 ghi nhận riêng) – chạy trên project Supabase hiện tại (dữ liệu test); chủ dự án nghiệm thu trên website thật 06/10 ✅ (trừ email thật – chờ 1.3) |
 | Hiệu năng | Middleware nhẹ (ADR-016); trang công khai ISR trả từ cache (`enableCacheInterception`); Worker 1,6 MiB nén, khởi động 16 ms; mạng VN → PoP Hồng Kông ~0,27 giây kết nối (PERF-01) – project-review §7.10 |
-| Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. Deploy từ máy: `npm run deploy:win`. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
-| Việc tiếp theo | Xem **§0.1** – bước 1 (Supabase URL + tắt đăng ký công khai + SMTP) → bước 2 (nghiệm thu CF-01 → CF-41) → bước 3 (gộp `main`, Workers Builds) → bước 4 (Đợt 18) → bước 5 (Đợt 14 chạy thử) |
-| Rủi ro còn mở cần chú ý | **SEC-01 🟠** (Supabase cho đăng ký công khai qua API – A-24), RK-54 (hydration trang quản trị trên workerd – CF-41), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
+| Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. **Deploy: merge vào `main` → Workers Builds tự deploy** (từ 06/10); `npm run deploy:win` chỉ khẩn cấp. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
+| Việc tiếp theo | Xem **§0.1** – ✅ bước 1 (trừ email), 2, 3.0 → 3.3 · ⏭ **bước 4 – Đợt 18** (thêm / sửa / xóa) · song song: theo dõi 14 ngày (3.4, tới 20/10), email khi chốt Gmail (1.3 → 1.4) · sau đó bước 5 (Đợt 14 chạy thử) |
+| Rủi ro còn mở cần chú ý | RK-54 (hydration trang quản trị trên workerd – CF-41), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
 
 ## 0.1. Việc cần làm tiếp theo – từng bước (to-do)
 
 > Làm theo thứ tự. Mỗi bước: **ai làm** · **cách làm** · **xong khi**. Tick `[x]` + ngày khi xong. Bước của dev: báo "tiếp tục bước X" là dev làm.
-> Lệnh hay dùng: deploy từ máy `npm run deploy:win` · kiểm thử `npm run test:e2e:workers` (chuẩn) / `npm run test:e2e` (Node)
+> **Khi quay lại, bắt đầu từ đây**: (1) `git checkout hv-change-dgquan1001-20260929-1 && git pull origin main` (nhánh làm việc luôn đồng bộ `main` trước khi code);
+> (2) đọc bước đầu tiên còn ⬜ bên dưới – hiện là **bước 4 (Đợt 18)**; (3) xong một phần → commit → push nhánh → Pull Request vào `main` → merge = tự deploy.
+> Lệnh hay dùng: kiểm thử `npm run test:e2e:workers` (chuẩn) / `npm run test:e2e` (Node) · deploy khẩn cấp từ máy `npm run deploy:win` (phải commit + push trước)
 > (cần `E2E_SUPABASE_REF` – runbook §1.1) · xem log Cloudflare: Workers › hv-web › Observability › Logs.
 
 ### Bước 1 – Hoàn tất cấu hình Cloudflare / Supabase (Đợt 17 P3 còn lại) – ưu tiên cao
@@ -55,15 +59,15 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 ### Bước 2 – Nghiệm thu trên Cloudflare thật (Đợt 17 P4, dev + chủ dự án, ~1 giờ)
 
 Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-migration.md#5-checklist-nghiệm-thu-inspection) (CF-01 → CF-41). Tối thiểu:
-- [ ] 2.1 Khách (iPhone + Android): trang chủ, khóa miễn phí xem video, khóa premium "Mở Zalo ngay" (CF-02, CF-27)
-- [ ] 2.2 Đăng ký chương trình bằng điện thoại: QR đúng tiền, ảnh chuyển khoản tải lên được (CF-03)
-- [ ] 2.3 Đăng nhập email / SĐT, đăng xuất, quên mật khẩu email thật (CF-04, CF-05)
-- [ ] 2.4 Nhân viên / admin: duyệt đơn, tạo bệnh nhân Zalo, cấp gói, phiếu tham vấn, Tổng quan; đổi tab Đơn đăng ký (RK-53) (CF-07, CF-08)
-- [ ] 2.5 Sửa tên một khóa → trang chủ (tab ẩn danh) đổi ngay (CF-09)
-- [ ] 2.6 Mở trang quản trị nhiều lần, DevTools › Console không có lỗi React #418 (CF-41, RK-54) – còn lỗi thì ghi URL gửi dev
-- [ ] 2.7 Workers › hv-web › Deployments: thử **Rollback** về bản trước rồi về lại bản mới (CF-29); Logs thấy lỗi thử (CF-30)
-- [x] 2.1 → 2.7 chủ dự án kiểm thử trên website thật – ✅ 06/10/2026 (trừ quên mật khẩu bằng email thật: chờ 1.3)
-- [ ] 2.8 Ghi kết quả vào cloudflare-migration §6; mục 🔴 nào chưa đạt → dev sửa trước bước 3
+- [x] 2.1 Khách (iPhone + Android): trang chủ, khóa miễn phí xem video, khóa premium "Mở Zalo ngay" (CF-02, CF-27)
+- [x] 2.2 Đăng ký chương trình bằng điện thoại: QR đúng tiền, ảnh chuyển khoản tải lên được (CF-03)
+- [x] 2.3 Đăng nhập email / SĐT, đăng xuất (CF-04) · ⬜ quên mật khẩu email thật (CF-05 – chờ 1.3)
+- [x] 2.4 Nhân viên / admin: duyệt đơn, tạo bệnh nhân Zalo, cấp gói, phiếu tham vấn, Tổng quan; đổi tab Đơn đăng ký (RK-53) (CF-07, CF-08)
+- [x] 2.5 Sửa tên một khóa → trang chủ (tab ẩn danh) đổi ngay (CF-09)
+- [x] 2.6 Mở trang quản trị nhiều lần, DevTools › Console không có lỗi React #418 (CF-41, RK-54) – còn lỗi thì ghi URL gửi dev · chủ dự án báo ổn 06/10; RK-54 vẫn theo dõi trong P5 (mở Console khi dùng trang quản trị, thấy #418 thì gửi URL)
+- [x] 2.7 Workers › hv-web › Deployments: thử **Rollback** về bản trước rồi về lại bản mới (CF-29); Logs thấy lỗi thử (CF-30)
+- [x] 2.1 → 2.7: chủ dự án nghiệm thu trên website thật ✅ 06/10/2026 (trừ CF-05 email thật)
+- [x] 2.8 Ghi kết quả vào cloudflare-migration §6 – ✅ 06/10/2026
 
 ### Bước 3 – Gộp nhánh & tự động deploy (Đợt 17 P3.4 / P5)
 
@@ -71,10 +75,11 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 
 - [x] 3.1 – ✅ 06/10/2026 chủ dự án mở Pull Request nhánh `hv-change-dgquan1001-20260929-1` → `main`; CI phải xanh (typecheck, lint, build OpenNext).
 - [x] 3.2 (chủ dự án) – ✅ 06/10/2026 merge vào `main` (`a87311c`), CI `check` xanh. *Lưu ý*: workflow sao lưu / keepalive chạy theo `main` – kiểm Actions vẫn ✅ sau merge.
-- [ ] 3.3 (chủ dự án, dev hướng dẫn) – 🟡 06/10: đã nối nhưng lần merge `a87311c` **không được build** (commit không có check "Workers Builds" – nối sau khi merge hoặc chưa lưu / chưa cấp quyền repo cho app GitHub). Workers Builds đã nối (build nhánh `1f19308` chạy) nhưng **đỏ vì thiếu Build variables** (`supabaseUrl is required`) → chủ dự án đã nhập nhưng vào Variables and Secrets (lúc chạy) chứ không phải Build variables → dev đưa 3 biến công khai vào `.env.production` (commit) + `.node-version` = 22, không còn phụ thuộc nhập tay; `next.config.mjs` báo rõ biến thiếu. Build `a8efa59` **đạt** (Node 22, 22/22 trang, OpenNext build complete), chỉ đỏ ở bước `wrangler preview` của nhánh phụ → tắt Non-production branch builds; deploy thật chờ PR vào `main`. Kích hoạt lại bằng một PR mới vào `main`; kiểm: commit có check Workers Builds, Deployments có nguồn GitHub. Workers › hv-web › Settings › Builds › Connect GitHub (repo, nhánh `main`, Build `npx opennextjs-cloudflare build`,
-  Deploy `npx opennextjs-cloudflare deploy`, Build variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`,
-  `NODE_VERSION=22`) – runbook §4 bước 5. *Xong khi*: push `main` → build xanh, website đổi theo.
-- [ ] 3.4 Theo dõi 14 ngày (Logs không lỗi 5xx bất thường) → **P6**: xóa project Vercel, xóa `vercel.json`, đóng RK-35 (dev + chủ dự án).
+- [x] 3.3 Workers Builds – ✅ 06/10/2026: nối GitHub (nhánh production `main`, Build `npx opennextjs-cloudflare build`, Deploy `npx opennextjs-cloudflare deploy`);
+  PR #8 merge (`73295e1`) → check "Workers Builds: hv-web" ✅ → deploy production từ GitHub. Bài học (runbook §8): lần merge trước khi nối không được build;
+  biến build nhập nhầm vào Variables and Secrets (lúc chạy) → đưa biến công khai vào `.env.production` + `.node-version`; build nhánh phụ đỏ ở `wrangler preview` → tắt Non-production branch builds.
+- [ ] 3.4 Theo dõi 14 ngày **06/10 → 20/10/2026** (Workers › hv-web › Observability: không lỗi 5xx bất thường; Metrics: CPU, request) → **P6**: xóa project Vercel + gỡ app Vercel khỏi repo GitHub (hiện vẫn tạo check "Vercel Preview Comments"), xóa `vercel.json`, đóng RK-35 (dev + chủ dự án).
+- [ ] 3.5 (chủ dự án, nếu chưa làm) Settings › Build › Branch control: **tắt Non-production branch builds** (tránh check đỏ trên nhánh làm việc).
 
 ### Bước 4 – Đợt 18: thêm / sửa / xóa bệnh nhân & khóa học (dev, ~2 – 3 ngày) – thiết kế đã chốt ở §3.5
 
@@ -83,7 +88,7 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 - [ ] 4.3 QL-03 khóa / mở khóa tài khoản (nhân viên + admin; chặn đăng nhập + đăng xuất phiên đang mở)
 - [ ] 4.4 QL-04 xóa bệnh nhân (chỉ admin, gõ lại SĐT, không còn gói còn hạn / đơn chờ; xóa cả phiếu tham vấn; giữ đơn + ảnh chuyển khoản)
 - [ ] 4.5 QL-06, QL-07, QL-08 danh sách khóa học: hàng nút Sửa / Ẩn / Xóa, nút "+ Thêm khóa học", chặn xóa khóa còn học viên, xóa ảnh bìa
-- [ ] 4.6 E2E TC-104 → TC-110 + chạy lại toàn bộ (Node + workers) → deploy (`npm run deploy:win` hoặc push `main`) → cập nhật tài liệu (SRS, user stories, database, API, UI, security, test-plan, roadmap, project-review)
+- [ ] 4.6 E2E TC-104 → TC-110 + chạy lại toàn bộ (Node + workers) → Pull Request vào `main` → merge (tự deploy) → cập nhật tài liệu (SRS, user stories, database, API, UI, security, test-plan, roadmap, project-review)
 
 ### Bước 5 – Tiếp Đợt 14: chạy thử MVP (§3.1, cách làm ở runbook §10)
 
@@ -124,7 +129,7 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | 14 | **Chạy thử MVP (pilot)** – 7 giai đoạn (§3.1) | A-1, A-4 → A-11, A-15, A-17, V-12 | ⏸ Tạm dừng ở bước 1.2 – chờ Đợt 17 (bước 1.3 → hạ tầng Cloudflare) | — | Nghiệm thu runbook §10 giai đoạn 5 | — |
 | 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
 | 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ | 02/10/2026 (`9e1e7b0`, sửa Node 22 `aea7eb1`) | 2 workflow chạy thật trên GitHub ✅ (A-14) | — (không đổi giao diện) |
-| 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, RK-53, A-18 → A-22 | 🟡 P0 → P2 ✅ · P3 đã deploy `hv-web.bsdomanhcuong.workers.dev` (04/10) · P4 nghiệm thu | — | TC-102, TC-103; checklist CF-01 → CF-41 (P4) | Node 99/99 · Workers 100/100 |
+| 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, RK-53, A-18 → A-22 | 🟡 P0 → P4 ✅ (06/10: deploy tự động từ `main`, nghiệm thu) · P5 theo dõi tới 20/10 · P6 gỡ Vercel | — | TC-102, TC-103; checklist CF-01 → CF-41 (P4) | Node 99/99 · Workers 100/100 |
 | 18 | **Thêm / sửa / xóa bệnh nhân & khóa học** – §3.5 | QL-01 → QL-08, RK-51, RK-52 | 📝 Kế hoạch (04/10) – đã chốt Q-5 → Q-8, làm sau Đợt 17 P2 | — | TC-104 → TC-110 | — |
 
 ### 1.2. Tổng hợp theo nguồn
@@ -151,7 +156,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-15 | Xác nhận project Supabase ở vùng **Singapore** (ghi vào tài liệu; Smart Placement của Cloudflare tự đặt Worker gần Supabase) | RK-38 | 1.2 / Đợt 17 P3.7 | ⬜ |
 | A-18 | Tài khoản Cloudflare (email trung tâm, **bật 2FA**), đăng ký **Workers Paid** (5 USD/tháng), cảnh báo thanh toán | ADR-017 | Đợt 17 P3.1 | ✅ 04/10 (tạm đăng nhập GitHub; mời email trung tâm làm Super Administrator khi chốt) |
 | A-19 | **Tên miền**: chủ dự án chốt 04/10 – **chạy thử trên `*.workers.dev`**, chọn / mua tên miền ở đợt sau (đổi nameserver về Cloudflare, bật tự gia hạn) | RK-49 | Sau Đợt 17 | ⏸ |
-| A-20 | 🟡 R2, D1, Secret, deploy đã xong 04/10 (dev); còn Workers Builds kết nối GitHub (sau khi gộp nhánh vào `main`) + nhập biến môi trường / Secret theo [cloudflare-migration §4 P3.4](../09-operations/cloudflare-migration.md#p3--hạ-tầng-cloudflare-chủ-dự-án-dev-hướng-dẫn-qua-màn-hình); tạo R2, D1 | RK-48 | Đợt 17 P3.3 → P3.5 | ⬜ |
+| A-20 | ✅ 06/10/2026: R2, D1, Secret, deploy (04/10); Workers Builds nối GitHub, deploy tự động từ `main` (biến công khai trong `.env.production`) – theo [cloudflare-migration §4 P3.4](../09-operations/cloudflare-migration.md#p3--hạ-tầng-cloudflare-chủ-dự-án-dev-hướng-dẫn-qua-màn-hình); tạo R2, D1 | RK-48 | Đợt 17 P3.3 → P3.5 | ⬜ |
 | A-21 | Supabase Auth Site URL / Redirect URLs, Turnstile hostname theo domain mới; (nếu cần) tài khoản Resend + xác minh domain; Email Routing `lienhe@` | RK-49 | Đợt 17 P3.6, P5 | ⬜ |
 | A-22 | Nghiệm thu checklist CF-01 → CF-41 cùng dev, quyết định cutover; sau 14 ngày ổn định xóa project Vercel | — | Đợt 17 P4 → P6 | ⬜ |
 | A-12 | ~~Vercel production~~ → thay bằng A-18 → A-21. Phần còn lại: **App Password Gmail** cho `SMTP_USER` / `SMTP_PASS` (hiện `.env.local` để trống), thử quên mật khẩu | — | 1.6 | ⬜ |
@@ -352,7 +357,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] Lỗi nhỏ do Next 15: link "Xem trang giới thiệu" của khóa đang ẩn prefetch ra 404 → `prefetch={false}`; `/khoa-hoc/[id]` thêm `generateStaticParams` để giữ ISR
 - [x] E2E: **Node 99/99**, **Workers 100/100** (04/10); `next dev` chạy bình thường · 🟡 RK-54: lỗi hydration #418 lác đác ở `/admin/**` trên workerd (React tự dựng lại, chức năng đúng) – kiểm lại trên Cloudflare thật (CF-41)
 - [x] Tài liệu: ADR-001 / 007 / 017, system-architecture, source-structure, SRS, security T33 / T34, screen-specs, test-plan, runbook §1 / §2 / §4 / §6 / §8 / §9 / §10 / §11 / §12 (viết lại cho Cloudflare), development-guide, cloudflare-migration, templates, README
-- [x] P3 hạ tầng: tài khoản, Workers Paid, R2, D1, Secret, **deploy https://hv-web.bsdomanhcuong.workers.dev** (04/10), `npm run deploy:win` cho Windows · [ ] SMTP_USER / SMTP_PASS · [ ] Supabase Site URL · [ ] Workers Builds · [ ] P4 nghiệm thu CF-01 → CF-41 (A-22) · [ ] P5 cutover + 14 ngày (A-21) · [ ] P6 gỡ Vercel, tài liệu
+- [x] P3 hạ tầng: tài khoản, Workers Paid, R2, D1, Secret, **deploy https://hv-web.bsdomanhcuong.workers.dev** (04/10), `npm run deploy:win` có rào chặn · [x] Supabase Site URL + tắt đăng ký công khai (06/10) · [x] **Workers Builds – deploy tự động từ `main`** (06/10, PR #8) · [ ] SMTP_USER / SMTP_PASS (chờ Gmail trung tâm) · [x] P4 nghiệm thu trên website thật (chủ dự án, 06/10) – còn CF-05 (email thật) · [ ] P5 theo dõi 14 ngày (06/10 → 20/10) · [ ] P6 gỡ Vercel, tài liệu
 - Để lại / đề xuất: chuyển ảnh chuyển khoản sang R2 khi Storage Supabase > 600 MB (RK-37); thông báo R-01 dùng Cron / Queues của Cloudflare; gửi thư thật qua `lib/smtp-workers.ts` cần `SMTP_USER` / `SMTP_PASS` (A-12) – kiểm ở CF-05; Next 16 chờ OpenNext hỗ trợ middleware Node
 
 #### Đợt 14 – Chạy thử MVP (pilot) ⏸ (bắt đầu 02/10/2026 – tạm dừng 04/10 chờ Đợt 17)

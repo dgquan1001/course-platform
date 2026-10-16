@@ -32,8 +32,17 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 ### US-01.01 – Xem trang giới thiệu ✅ (3 SP)
 **Là** khách, **tôi muốn** xem thông tin trung tâm, bác sĩ và lợi ích khóa học, **để** quyết định có nên học không.
 - FR: FR-001, FR-009 · Màn hình: SCR-01
-- **AC1** Given tôi mở `/` When trang tải xong Then tôi thấy hero, phần bác sĩ, vấn đề thường gặp, lợi ích, khóa học, box đăng ký, FAQ, CTA và footer liên hệ.
+- **AC1** Given tôi mở `/` When trang tải xong Then tôi thấy hero + số liệu, dải chuyên môn, vấn đề → giải pháp, hồ sơ bác sĩ, khóa học, box đăng ký, FAQ + thẻ tư vấn và footer liên hệ (bố cục Đợt 19).
 - **AC2** Given tôi dùng điện thoại When cuộn trang Then thanh "Gọi ngay / Đăng ký học" luôn cố định dưới màn hình.
+
+### US-01.05 – Trang chủ sinh động, tạo tin tưởng để bắt đầu ✅ (5 SP · Đợt 19)
+**Là** khách đến từ quảng cáo / mạng xã hội, **tôi muốn** trang chủ hiện đại, có chuyển động và cho thấy rõ bác sĩ là ai, **để** tin tưởng và bấm đăng ký hoặc tập thử.
+- FR: FR-194 → FR-197 · Màn hình: SCR-01 · TC-111, TC-112
+- **AC1** Given tôi mở `/` Then hero hiện so le, số liệu "10+ · 13.000+ · 3 · 1:1" đếm tăng rồi dừng đúng số, dải chuyên môn chạy ngang (dừng khi rê chuột).
+- **AC2** Given tôi cuộn xuống Then từng khối hiện dần khi vào màn hình; thẻ khóa học, lợi ích, chuyên môn nhấc lên khi rê chuột.
+- **AC3** Given tôi xem mục Bác sĩ Then thấy học vấn & chứng chỉ (có Schroth SSOL), 4 lĩnh vực chuyên môn, quá trình công tác, ảnh hoạt động chuyên môn; chân trang có 3 cơ sở.
+- **AC4** Given máy bật "giảm chuyển động" (hoặc tắt JS) Then mọi nội dung hiện ngay, không có hiệu ứng chạy.
+- **AC5** Given bố cục mới Then không còn nội dung trùng: banner lặp tiểu sử, ô số liệu lặp, khối CTA cuối lặp hero; mọi chức năng cũ (lọc chương trình, nút Đăng ký chọn sẵn khóa, box 3 bước, FAQ) giữ nguyên.
 
 ### US-01.02 – Xem danh sách khóa học và giá ✅ (2 SP)
 **Là** khách, **tôi muốn** xem các khóa đang mở kèm giá, **để** chọn khóa phù hợp.

@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9; rà soát performance & security – §7.10)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9; rà soát performance & security – §7.10) · 17/10/2026 (thiết kế lại trang chủ, Đợt 19 – §7.11)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
   mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
 
@@ -10,7 +10,7 @@
 | Hạng mục | Hiện trạng |
 | --- | --- |
 | Chức năng | v0.2 hoàn tất (Đợt 7 → 13): 3 vai trò, 3 loại khóa, gói tháng + hạn học cộng dồn, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard + doanh thu |
-| Kiểm thử | 04/10 sau Đợt 17 P0 → P2: E2E **Node 99/99**, **Cloudflare Workers 100/100** (RK-54 ghi nhận riêng); 29/09 sau Đợt 15: 98/98; lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
+| Kiểm thử | 17/10 sau Đợt 19 (trang chủ mới): E2E **Node 101/101**, **Workers 102/102** (§7.11); 04/10 sau Đợt 17 P0 → P2: E2E **Node 99/99**, **Cloudflare Workers 100/100** (RK-54 ghi nhận riêng); 29/09 sau Đợt 15: 98/98; lỗi thật do E2E phát hiện và đã sửa trong v0.2: RK-22, RK-27, RK-28, và form khóa học theo tab (Đợt 11 → 13) |
 | Bảo mật | RLS trên mọi bảng mới; dữ liệu sức khỏe chỉ nhân viên / admin + chính bệnh nhân (qua hàm); trigger chặn sửa tay gói / học phí / hạn / câu trả lời; nhân viên không tạo được đơn sai quy tắc qua API (RK-34) |
 | Hiệu năng | ADR-016: middleware không gọi mạng khi token còn hạn, xác thực 1 lần / request, profile phía trình duyệt dùng chung; danh sách bệnh nhân / dashboard 1 lần gọi hàm SQL (theo dõi RK-30 khi > vài nghìn bệnh nhân) |
 | Hạ tầng (02/10 → 04/10) | Supabase Free, keepalive + sao lưu tuần đang chạy (Đợt 16, A-14 ✅). **04/10: chốt chuyển web sang Cloudflare Workers Paid** (ADR-017, Đợt 17) thay Vercel; rà soát ảnh hưởng phát hiện **RK-43 🔴** (IP giả qua `X-Forwarded-For`) – §7.9 |
@@ -436,6 +436,25 @@ cấu hình Supabase Auth (đọc `/auth/v1/settings`), website thật `https://
 | Đơn cũ thiếu snapshot sau khi chạy schema | 🔬 0 đơn có `course_title` null |
 | Xóa tài khoản admin làm lỗi khóa ngoại `reviewed_by` (trigger chặn sửa người xử lý) | 📖 Trigger cho phép `reviewed_by` về null nên `on delete set null` chạy được; `reviewed_by_name` vẫn giữ |
 | Unique index chặn đơn trùng không tạo được do dữ liệu cũ | 🔬 Trước khi chạy schema: 0 cặp trùng; TC-48 xác nhận index hoạt động |
+
+### 7.11. Đợt 19 – Thiết kế lại trang chủ (17/10/2026)
+
+Yêu cầu chủ dự án 17/10: trang chủ có chuyển động (tham khảo irc.coach/dich-vu-dieu-tri), câu chữ thu hút, ảnh + hồ sơ bác sĩ
+(tham khảo bsdomanhcuong.com/bac-si.html#chuyen-mon), giữ mọi chức năng cũ, bỏ phần trùng. Không đổi schema / API / quyền.
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| Chuyển động | Tự viết, **không thêm thư viện** (trang tham khảo dùng Elementor/WordPress): `RevealObserver` (IntersectionObserver), `CountUp`, keyframes Tailwind `float` / `blob` / `marquee` / `fade-up-slow`, `.card-lift`. Chỉ animate `opacity` / `transform`. JS trang chủ +~1 kB (First Load 196 kB) |
+| Nội dung bác sĩ | `lib/site-config.ts`: `doctor.summary / education / expertise / career`, `branches` (3 cơ sở); 6 ảnh hoạt động tải từ website bác sĩ, nén ≤ 800px (23 – 63 KB) vào `public/images/bac-si/` – CSP `img-src 'self'` không cần nới |
+| Bỏ trùng | Banner `trung-tam-hv.jpg` (chữ trong ảnh = 4 dòng tiểu sử), hàng ✓ hero, 3 ô "10+ / YHCT / 1:1", khối CTA cuối trang; gộp Vấn đề + Lợi ích. `credentials[]` thay bằng `summary` (trang `/khoa-hoc/[id]` dùng) |
+| Giữ chức năng | Neo `#bac-si`, `#mien-phi`, `#khoa-hoc`, `#premium`, `#dang-ky`, `#lien-he`; lọc chương trình, "Đăng ký" chọn sẵn khóa, box 3 bước, FAQ, thanh CTA điện thoại – các bước E2E cũ chạy nguyên, không sửa |
+| Khả năng tiếp cận | `prefers-reduced-motion` → hiện ngay, không đếm, dải chữ đứng yên; tắt JS vẫn thấy nội dung (chỉ ẩn khi `html.reveal-ready`); bản lặp dải chữ `aria-hidden`; số liệu dạng `dl` |
+| Kiểm thử | **Node 101/101, Workers 102/102**. TC-111 (nội dung, ảnh tải được, bỏ trùng), TC-112 (hiện dần khi cuộn, giảm chuyển động). Lần chạy đầu đỏ ở TC-111 do **chính test**: Playwright `scrollIntoViewIfNeeded` chờ phần tử "đứng yên" mà ảnh chứng nhận bồng bềnh liên tục → cuộn bằng `el.scrollIntoView()`; lần 2 đỏ do test bắt nhầm `og:image` (banner vẫn là ảnh chia sẻ) trong `<head>` → chỉ kiểm `<main>`; lần 3 – 100/101: **lỗi thật nhỏ** – Chrome xin `/favicon.ico` (chỉ có `app/icon.svg`) nhận 404 trong console → thêm `public/favicon.ico` (16/32/48px, sinh từ `icon.svg`) |
+
+| Mã | Mức | Rủi ro | Xử lý |
+| --- | --- | --- | --- |
+| RK-55 | 🟡 | Ảnh lấy từ website bác sĩ có **học viên / người tham dự** (workshop, hội nghị); số liệu "13.000+ người theo dõi", "3 cơ sở", lịch sử công tác viết cứng trong code – có thể cũ đi hoặc chưa được người trong ảnh đồng ý | Chủ dự án xác nhận quyền dùng ảnh + số liệu (A-26); thay ảnh / số trong `lib/site-config.ts`, `public/images/bac-si/` khi cần (đổi xong deploy là cập nhật) |
+| RK-56 | 🟢 | Phần tử có hiệu ứng chạy liên tục (`animate-float`, `marquee`) không bao giờ "đứng yên" → Playwright `click` / `scrollIntoViewIfNeeded` lên chúng sẽ treo | Ghi chú trong design-system §5; E2E cuộn bằng DOM; không đặt nút bấm bên trong phần tử bồng bềnh |
 
 ## 8. Kế hoạch xử lý đề xuất
 

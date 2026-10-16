@@ -45,7 +45,7 @@ Nguồn token: `tailwind.config.ts` · class dùng chung: `app/globals.css`.
 | Trung tính / Đang ẩn | `slate-100` + `slate-600` |
 
 > Khi đổi màu thương hiệu, cập nhật đồng thời: `tailwind.config.ts`, `viewport.themeColor` (`app/layout.tsx`),
-> mã màu inline trong email (`lib/mailer.ts`), `app/icon.svg`.
+> mã màu inline trong email (`lib/mailer.ts`), `app/icon.svg` (+ sinh lại `public/favicon.ico` từ file này).
 
 ## 2. Typography
 
@@ -57,9 +57,10 @@ Nguồn token: `tailwind.config.ts` · class dùng chung: `app/globals.css`.
 
 | Cấp | Class |
 | --- | --- |
-| H1 hero | `text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight` |
+| H1 hero | `text-3xl sm:text-4xl lg:text-[3.25rem] font-bold leading-tight` (Đợt 19) |
 | H1 trang | `text-2xl sm:text-3xl font-bold` |
-| H2 section | `text-2xl sm:text-3xl font-bold` |
+| H2 section | `.section-title` = `text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight` (trang chủ, Đợt 19); trang khác `text-2xl sm:text-3xl font-bold` |
+| Từ khóa nổi bật | `.text-gradient` – chữ chuyển ocean-600 → gold-600 (VD "toàn diện" ở hero), chỉ dùng cho 1–3 từ trong tiêu đề |
 | H3 thẻ | `text-lg font-bold` / `font-semibold` |
 | Eyebrow | `.eyebrow` – chữ hoa nhỏ, nền gold-100, bo tròn |
 | Chú thích | `text-xs text-slate-500` |
@@ -70,7 +71,7 @@ Nguồn token: `tailwind.config.ts` · class dùng chung: `app/globals.css`.
 | --- | --- |
 | `.container-page` | `max-w-6xl`, padding `px-4 sm:px-6 lg:px-8` |
 | Khu admin | `max-w-[1600px]` (bảng rộng) |
-| Section | `py-16 sm:py-20` |
+| Section | `py-16 sm:py-20`; trang chủ `py-16 sm:py-24` (Đợt 19) |
 | Header | cao `h-16`, `sticky top-0`, nền trắng 90% + blur |
 | Neo cuộn | `scroll-mt-16` (bù header) |
 | Breakpoint | Tailwind mặc định: `sm 640` · `md 768` · `lg 1024` · `xl 1280` |
@@ -135,11 +136,22 @@ Không thêm thư viện icon; icon mới thêm vào cùng file theo cùng kiể
 
 | Hiệu ứng | Chi tiết |
 | --- | --- |
-| `animate-fade-up` | 0.4s ease-out, dịch 8px – dùng cho hero, thẻ login, toast |
+| `animate-fade-up` | 0.4s ease-out, dịch 8px – dùng cho thẻ login, toast |
+| `animate-fade-up-slow` (Đợt 19) | 0.8s, đường cong `cubic-bezier(.2,.7,.2,1)` – hero trang chủ, các dòng hiện so le bằng `[animation-delay:100ms…400ms]` |
+| Hiện dần khi cuộn – `data-reveal` (Đợt 19) | `components/RevealObserver.tsx` (IntersectionObserver) thêm class `is-visible` khi phần tử vào màn hình; CSS ở `app/globals.css`: mờ → rõ + dịch 28px trong 0.7s. Biến thể `data-reveal="left"` / `"right"` (trượt ngang 36px), `"zoom"` (scale .94). So le: `style={revealDelay(i)}` (`lib/reveal.ts`, mặc định 90ms/phần tử). **Chỉ ẩn khi JS đã chạy** (`html.reveal-ready`) và phần tử đang trong màn hình lúc tải được hiện ngay → tắt JS / máy tìm kiếm vẫn thấy nội dung. Không đặt `data-reveal` trong danh sách do client render lại (VD bộ lọc `ProgramGrid`) và không đặt chung phần tử với `.card-lift` (đè `transition`) – bọc thêm một lớp |
+| `CountUp` (Đợt 19) | Số đếm tăng 1.6s (ease-out) khi hiện ≥ 60%; server render sẵn giá trị cuối, định dạng `13.000` tự viết (không `toLocaleString`, tránh lệch hydration) |
+| `animate-float` (Đợt 19) | Bồng bềnh lên xuống 10px, 6s – thẻ nổi quanh ảnh bác sĩ (lệch pha bằng `[animation-delay:-3s]`) |
+| `animate-blob` (Đợt 19) | Vệt màu `blur-3xl` di chuyển chậm 18s làm nền hero, Premium, khối tư vấn (`aria-hidden`, `pointer-events-none`) |
+| `animate-marquee` (Đợt 19) | Dải chuyên môn chạy ngang 40s, lặp danh sách 2 lần (bản lặp `aria-hidden`), rê chuột thì dừng |
+| `.card-lift` (Đợt 19) | Thẻ nhấc lên 4px + bóng `shadow-lg shadow-ocean-900/10` khi rê chuột (thẻ khóa học, lợi ích, chuyên môn); ảnh bìa / ảnh hoạt động phóng to nhẹ (`group-hover:scale-105/110`, 0.7s) |
 | Nút nhấn | `active:scale-[0.97]` 150ms |
 | Thanh tiến trình | `NavigationProgress` trên đầu trang khi chuyển route |
 | Cuộn mượt | `scroll-behavior: smooth` |
-| Giảm chuyển động | `prefers-reduced-motion: reduce` → tắt animation/transition, cuộn tức thì |
+| Giảm chuyển động | `prefers-reduced-motion: reduce` → tắt animation/transition, cuộn tức thì; `RevealObserver` hiện ngay mọi phần tử, `CountUp` không đếm (TC-112) |
+
+Nguyên tắc: chuyển động chỉ dùng `opacity` / `transform` (không gây dàn trang lại), không thêm thư viện animation (AOS, GSAP…),
+không tự chạy âm thanh/video; trang chủ là nơi duy nhất dùng hiệu ứng cuộn – trang học và quản trị giữ tĩnh để tập trung.
+Không đặt nút / link bên trong phần tử chạy liên tục (`animate-float`, `animate-marquee`): khó bấm và Playwright không bao giờ thấy "đứng yên" (RK-56).
 
 ## 6. Khả năng tiếp cận (checklist bắt buộc cho UI mới)
 

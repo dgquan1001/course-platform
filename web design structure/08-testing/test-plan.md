@@ -35,8 +35,8 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: **05/10/2026** · sau rà soát performance & security (project-review §7.10) · **Node 99/99 PASS** · **Cloudflare Workers 100/100 PASS**
-(17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
+**Lần chạy gần nhất**: **17/10/2026** · sau Đợt 19 thiết kế lại trang chủ (project-review §7.11) · Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
+· trước đó 05/10/2026: Node 99/99, Workers 100/100 (17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
 
 **Các lần chạy theo thời gian (cũ → mới)**:
 
@@ -50,6 +50,7 @@
 | 29/09/2026 | Đợt 15 | 98/98 |
 | 04/10/2026 | Đợt 17 P0 → P2 (Next 15, Cloudflare) | Node 99/99 · Workers 100/100 (12 lỗi RK-54 ghi riêng) |
 | 05/10/2026 | Rà soát performance & security | Node 99/99 · Workers 100/100 (17 lỗi RK-54 ghi riêng) |
+| 17/10/2026 | Đợt 19 (trang chủ mới) | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
 
 Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
@@ -185,6 +186,8 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-101 | 15 | Bệnh nhân | ✅ PASS – Vòng tiến độ `aria-valuenow` 0 → 50 → 100 kèm chữ "0/4 bài", "2/4 bài", "4/4 bài" ở trang khóa, trình học, thẻ "Khóa học của tôi" (thay kiểm tra chữ "x/y bài · %" của TC-81, TC-83); ảnh chụp `course-tile-progress.png`, `desktop-lesson-progress.png` | FR-193, UI-03 |
 | TC-102 | 17 | Khách | ✅ PASS (workers) *(chỉ chế độ workers)* Đăng nhập sai 5 lần, mỗi lần đổi `X-Forwarded-For` / `x-real-ip` giả (cùng `cf-connecting-ip`) → lần 6 vẫn "Bạn đã nhập sai quá nhiều lần" | RK-43, T33 |
 | TC-103 | 17 | Admin / Khách | ✅ PASS (Node + workers) – Trang chủ và `/khoa-hoc/<id>` đã lưu đệm (ISR); admin sửa tên khóa → cả 2 trang hiện tên mới ngay (≤ 5 giây), đổi lại tên cũ cũng cập nhật | RK-45, ADR-008 |
+| TC-111 | 19 | Khách | ✅ PASS – Trang chủ mới (máy tính): số liệu dừng đúng "10+ · 13.000+ · 3 · 1:1"; dải chuyên môn lặp 2 lần, bản lặp `aria-hidden`; `#bac-si` có "Học vấn & chứng chỉ" (Schroth SSOL), `#chuyen-mon` đủ 4 lĩnh vực, "Quá trình công tác" 3 mốc, 6 ảnh tải được (`naturalWidth > 0`, không bị CSP chặn); chân trang 3 cơ sở; trong `<main>` không còn banner `trung-tam-hv.jpg` và khối "Sẵn sàng chăm sóc cột sống"; tên bác sĩ chỉ là tiêu đề H2 một lần; ảnh `desktop-home-bac-si.png` | FR-195 → FR-197, UI-05 → UI-07 |
+| TC-112 | 19 | Khách | ✅ PASS – `html.reveal-ready` sau khi tải; khối FAQ cuối trang chưa `is-visible` → cuộn tới thì `is-visible` + `opacity: 1`; hero hiện ngay. Ngữ cảnh `reducedMotion: 'reduce'`: mọi `[data-reveal]` hiện ngay, không gắn `reveal-ready`, dải chuyên môn `animation-name: none` | FR-194, UI-04, NFR-04 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -220,6 +223,9 @@ qua `[data-nav-label]` (bỏ số đếm). Kết quả: **98/98 PASS** ngay lầ
 Kết quả Node: lần 1 – 35/36 (bước "Đơn đăng ký hiển thị dạng bảng…"); lần 2 – 77/78 ("Checklist buổi 1…"): **lỗi thật RK-53** do Next 15 – router hủy điều hướng khi có `loading.tsx` (đổi tab `?status=`, redirect sau "Hoàn thành & bài tiếp theo"), đã bỏ `app/admin/loading.tsx`, `app/courses/loading.tsx`; lần 3, 4 – 98/99: 24 lỗi console 404 do Next 15 prefetch trang `/khoa-hoc/<id>` của khóa đang ẩn từ danh sách khóa admin → `prefetch={false}`; **lần 5 – 99/99 PASS**, dữ liệu test dọn sạch.
 Kết quả Workers (`npm run test:e2e:workers`): lần 1 – server không khởi động (`opennextjs-cloudflare preview` treo ở bước tạo bảng D1 trên Windows → script tự tạo bảng + `wrangler dev`); lần 2 – 6/7 (header `cf-connecting-ip` gửi kèm tới Supabase bị chặn CORS → chỉ gắn cho yêu cầu tới website); lần 3 → 6 – 99/100: mọi bước chức năng PASS (kể cả TC-102, TC-103), bước "không có lỗi JavaScript" đỏ vì 8 – 13 lỗi React #418 lác đác ở `/admin/**` (RK-54 – đã điều tra, chưa rõ nguyên nhân gốc, chức năng không ảnh hưởng); **lần 7 – 100/100 PASS** sau khi chế độ workers ghi #418 ở trang quản trị là vấn đề đã biết (in số lượng, không làm đỏ test), dữ liệu test dọn sạch. Cùng ngày: **Node 99/99 PASS** trên đúng mã nguồn đó; `next dev` mở được trang công khai, trang cần đăng nhập chuyển `/login`, log không lỗi.
 
+Đợt 19 (17/10/2026, không đổi schema): TC-111 ↔ "[Khách] Trang chủ mới: số liệu đếm tăng, dải chuyên môn, hồ sơ bác sĩ…", TC-112 ↔ "[Khách] Hiệu ứng hiện dần khi cuộn; bật giảm chuyển động…" (đặt ngay sau bước trang chủ của phase 4). **Không sửa bước cũ nào** – TC-11 (tiêu đề H1 "Trị liệu cột sống", H2 tên bác sĩ, FAQ, box 3 bước), TC-69 (3 nhóm, lọc), TC-12 ("Đăng ký" chọn sẵn khóa), TC-103 (ISR) chạy nguyên trên bố cục mới.
+Mã TC-104 → TC-110 giữ cho Đợt 18 (roadmap §3.5). Lần chạy: Node lần 1 – 16/17 (TC-111: `scrollIntoViewIfNeeded` chờ ảnh bồng bềnh "đứng yên" – lỗi của test, RK-56), lần 2 – 16/17 (test bắt nhầm `og:image` trong `<head>`), lần 3 – 100/101 (**lỗi thật nhỏ**: Chrome xin `/favicon.ico` → 404 trong console; thêm `public/favicon.ico`), **lần 4 – 101/101 PASS**; **Workers 102/102 PASS** ngay lần đầu (14 lỗi #418 ở `/admin/**` ghi riêng – RK-54, như trước). Dữ liệu test dọn sạch.
+
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),
 TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/admin/patients`, chọn vai trò), TC-42/TC-43 (quyền theo hạn học).
@@ -248,7 +254,7 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 
 **Thiết bị**: iPhone Safari, Android Chrome, máy tính Chrome/Edge; màn hình 360px, 768px, 1280px+.
 
-- [ ] Trang chủ hiển thị đúng, ảnh không vỡ, font tiếng Việt đúng dấu.
+- [ ] Trang chủ hiển thị đúng, ảnh không vỡ, font tiếng Việt đúng dấu; hiệu ứng cuộn mượt trên điện thoại tầm trung (Đợt 19), bật "Giảm chuyển động" (iOS: Trợ năng › Chuyển động) thì nội dung hiện ngay.
 - [ ] QR quét được bằng app ngân hàng thật, số tiền & nội dung đúng.
 - [ ] Đăng ký trên điện thoại thật với ảnh chụp màn hình thật (kể cả HEIC trên iPhone).
 - [ ] Nhận email mã quên mật khẩu thật (kiểm tra cả hộp Spam), tiêu đề/nội dung đúng thương hiệu.

@@ -24,7 +24,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
-| FR-001 | Trang chủ `/` hiển thị: hero, giới thiệu bác sĩ, vấn đề thường gặp, lợi ích, danh sách khóa học, box đăng ký, FAQ, CTA, footer liên hệ | M | ✅ |
+| FR-001 | Trang chủ `/` hiển thị: hero + số liệu, dải chuyên môn, vấn đề → giải pháp, hồ sơ bác sĩ, danh sách khóa học, box đăng ký, FAQ + thẻ tư vấn, footer liên hệ (bố cục mới Đợt 19 – FR-194 → FR-197) | M | ✅ |
 | FR-002 | Danh sách khóa học chỉ gồm khóa `published`, sắp theo `sort_order` tăng dần, hiển thị tên, mô tả (tối đa 3 dòng), giá | M | ✅ |
 | FR-003 | Giá `0` hiển thị "Liên hệ"; giá > 0 hiển thị định dạng `1.500.000đ` | M | ✅ |
 | FR-004 | Nút "Đăng ký" của mỗi khóa chuyển tới `/?course=<id>#dang-ky`, cuộn tới box đăng ký và chọn sẵn khóa đó | M | ✅ |
@@ -277,6 +277,17 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | FR-192 | Menu quản trị: từ màn hình ≥ 1024px là cột dọc bên trái (dính khi cuộn), nhỏ hơn là hàng tab cuộn ngang; thứ tự Tổng quan · Đơn đăng ký · Bệnh nhân · Khóa học · Phiếu tham vấn · Khách quan tâm · Mẫu phiếu (nhân viên không thấy Khóa học, Mẫu phiếu); số đơn chờ duyệt / phiếu mới / khách mới cạnh mục tương ứng (UI-02) | M | 15 | ✅ |
 | FR-193 | Tiến độ học hiển thị bằng vòng tròn % (số % ở giữa, "x/y bài hoàn thành" bên cạnh) ở Khóa học của tôi, trang khóa, trình học, Tổng quan, hồ sơ và danh sách bệnh nhân (UI-03) | M | 15 | ✅ |
 
+### 2.22. Thiết kế lại trang chủ (yêu cầu chủ dự án 17/10/2026 – Đợt 19)
+
+Tham khảo: chuyển động của irc.coach/dich-vu-dieu-tri, nội dung bác sĩ của bsdomanhcuong.com/bac-si.html#chuyen-mon. Giữ mọi chức năng cũ (FR-001 → FR-009, FR-122).
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-194 | Trang chủ có chuyển động hiện đại: hero hiện so le khi tải, nội dung hiện dần khi cuộn tới, số liệu đếm tăng, dải chuyên môn chạy ngang, thẻ nổi quanh ảnh bác sĩ, thẻ nhấc lên khi rê chuột; tôn trọng "giảm chuyển động" và tắt JS (nội dung luôn đọc được) (UI-04) | M | 19 | ✅ TC-112 |
+| FR-195 | Câu chữ thu hút hành động: hero nêu nỗi đau + lời hứa ("tập đúng, tập đủ ngay tại nhà"), 2 nút "Đăng ký chương trình" / "Tập thử miễn phí", số liệu tin cậy (10+ năm, 13.000+ người theo dõi, 3 cơ sở, 1:1), thẻ "Chưa biết chọn chương trình nào?" dẫn Zalo / hotline (UI-05) | M | 19 | ✅ TC-111 |
+| FR-196 | Mục `#bac-si` hiển thị hồ sơ bác sĩ: học vấn & chứng chỉ (YHCT, PHCN Thái Nguyên, Schroth SSOL), `#chuyen-mon` 4 lĩnh vực, quá trình công tác 3 mốc, 4 ảnh hoạt động chuyên môn; chân trang có 3 cơ sở trị liệu (UI-06) | M | 19 | ✅ TC-111 |
+| FR-197 | Bỏ phần trùng lặp: ảnh banner chứa lại tiểu sử, hàng ✓ và 3 ô số liệu lặp "10+ năm", khối CTA cuối lặp hero; gộp Vấn đề + Lợi ích thành một khối (UI-07) | S | 19 | ✅ TC-111 |
+
 ## 3. Yêu cầu phi chức năng (NFR)
 
 | ID | Nhóm | Yêu cầu | Cách đáp ứng hiện tại |
@@ -284,7 +295,7 @@ Nguồn: [project-overview §9](../00-overview/project-overview.md#9-định-v�
 | NFR-01 | Hiệu năng | Trang chủ tải nhanh trên 4G (LCP < 2,5s) | ISR tĩnh, `next/image` (blur, `sizes`), font `swap`, header đọc phiên ở client |
 | NFR-02 | Hiệu năng | Upload ảnh chuyển khoản nhanh | Nén ảnh client (~0,5MB), giới hạn body server action 6MB |
 | NFR-03 | Khả dụng | Dùng tốt trên điện thoại (mobile-first) | Tailwind responsive, nút ≥ 44px, `inputMode="tel"`, thanh CTA cố định |
-| NFR-04 | Khả năng tiếp cận | WCAG 2.1 AA cơ bản | `label` cho input, `role="alert"/"status"`, `aria-live`, `aria-current`, `prefers-reduced-motion` |
+| NFR-04 | Khả năng tiếp cận | WCAG 2.1 AA cơ bản | `label` cho input, `role="alert"/"status"`, `aria-live`, `aria-current`, `prefers-reduced-motion` (Đợt 19: hiệu ứng trang chủ hiện ngay, không đếm số, dải chữ đứng yên) |
 | NFR-05 | Bảo mật | Học viên chỉ thấy dữ liệu của mình; bài học chỉ mở theo khóa đã duyệt | RLS trên mọi bảng, service role chỉ ở server |
 | NFR-06 | Bảo mật | Ảnh chuyển khoản không công khai | Bucket private, chỉ admin đọc, signed URL 1 giờ |
 | NFR-07 | Bảo mật | Mã đặt lại mật khẩu an toàn | Băm SHA-256, so sánh `timingSafeEqual`, TTL, giới hạn thử |

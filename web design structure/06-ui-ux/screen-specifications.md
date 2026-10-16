@@ -61,38 +61,54 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 
 ## SCR-01 – Trang chủ
 
+*Thiết kế lại Đợt 19 (17/10/2026): thêm chuyển động, hồ sơ bác sĩ đầy đủ (nguồn bsdomanhcuong.com/bac-si.html), bỏ phần trùng lặp.
+Tham khảo bố cục dịch vụ của irc.coach/dich-vu-dieu-tri (thẻ dịch vụ có ảnh + CTA, khối kêu gọi cuối trang). Hiệu ứng: [design-system §5](design-system.md#5-chuyển-động).*
+
 ```text
-┌─ HERO ───────────────────────────────────────────────────────────────────┐
-│ [HOLISTIC THERAPY CENTER…]                        ┌───────────────┐      │
-│ Trị liệu cột sống – cơ xương khớp                 │  Ảnh bác sĩ   │      │
-│ TOÀN DIỆN cho người Việt                          │  (vuông)      │      │
-│ Khóa học video do Bác sĩ … hướng dẫn…             └┬─────────────┬┘      │
-│ [Đăng ký khóa học →]  [☎ 0973 027 017]             │BS Đỗ Mạnh C.│       │
-│ ✓ 10 năm kinh nghiệm ✓ Mọi thiết bị ✓ Hỗ trợ       └─────────────┘       │
-├─ #bac-si ────────────────────────────────────────────────────────────────┤
-│ [Ảnh trung tâm]        CHUYÊN GIA ĐỒNG HÀNH / Tên / chức danh            │
-│                        ✓ credential ×4   [10+] [YHCT] [1:1]              │
-├─ VẤN ĐỀ ─────────────────────────────────────────────────────────────────┤
-│ Những vấn đề cơ xương khớp phổ biến   │ [✓ đau cổ vai gáy] [✓ đau lưng]  │
-│                                       │ [✓ lệch vai…]      [✓ tê bì…]    │
-├─ LỢI ÍCH (4 thẻ) ────────────────────────────────────────────────────────┤
-├─ #khoa-hoc ──────────────────────────────────────────────────────────────┤
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐                             │
-│ │ ▶ Tên khóa │ │ …          │ │ …          │   grid 1 / 2 / 3 cột        │
-│ │ mô tả 3 dòng│ │            │ │            │                            │
-│ │ 1.500.000đ [Đăng ký]│      │ │            │                             │
-│ └────────────┘ └────────────┘ └────────────┘                             │
+┌─ HERO (nền gradient + 3 vệt màu chuyển động) ────────────────────────────┐
+│ [● HOLISTIC THERAPY CENTER…]  (chấm vàng nhấp nháy)  ┌───────────────┐   │
+│ Trị liệu cột sống – cơ xương khớp                [10+]  Ảnh bác sĩ   │   │
+│ TOÀN DIỆN (chữ gradient) cho người Việt             │  (vuông)  [Chứng │   │
+│ Đừng để cơn đau lưng… lộ trình theo từng buổi…      │      nhận Schroth]│  │
+│ [Đăng ký chương trình →] [▶ Tập thử miễn phí]       └┬─────────────┬┘   │
+│ ☎ Tư vấn miễn phí: 0973 027 017                     │BS Đỗ Mạnh C.│ (thẻ nổi bồng bềnh)
+│ ┌─ Số liệu (đếm tăng khi hiện) ──────────────────────────────────────┐  │
+│ │ 10+ năm KN · 13.000+ người theo dõi · 3 cơ sở · 1:1 kèm riêng       │  │
+│ └────────────────────────────────────────────────────────────────────┘  │
+├─ DẢI CHUYÊN MÔN (nền ocean-950, chạy ngang, rê chuột dừng) ──────────────┤
+│ ⚕ CONG VẸO CỘT SỐNG ⚕ PHƯƠNG PHÁP SCHROTH ⚕ ĐAU CỔ VAI GÁY ⚕ …           │
+├─ VẤN ĐỀ → GIẢI PHÁP ─────────────────────────────────────────────────────┤
+│ Cơn đau không tự hết – nhưng CÓ THỂ CẢI THIỆN │ [✓ đau cổ vai gáy] [✓ …] │
+│ [Bác sĩ trực tiếp xây dựng] [Lộ trình theo buổi] [Mọi lúc] [An toàn]     │
+├─ #bac-si (nền ocean-50) ─────────────────────────────────────────────────┤
+│ [Ảnh giảng dạy + ảnh chứng nhận SSOL nổi]  CHUYÊN GIA ĐỒNG HÀNH          │
+│                                            Bác sĩ Đỗ Mạnh Cường (H2)     │
+│                                            giới thiệu · Học vấn & chứng chỉ ×4
+│ #chuyen-mon  Lĩnh vực chuyên môn: [Cong vẹo] [Đau cột sống] [Chấn thương │
+│              thể thao] [Đào tạo chuyên môn]                               │
+│ Quá trình công tác (dòng thời gian 3 mốc) │ Hoạt động chuyên môn (4 ảnh  │
+│                                           │ 2×2, chú thích, phóng to khi rê)
+├─ #mien-phi → #khoa-hoc (SCR-15) → #premium ──────────────────────────────┤
+│ Thẻ khóa: nhấc lên + ảnh bìa phóng nhẹ khi rê; nhóm 1–2 thẻ căn giữa     │
 ├─ #dang-ky → SCR-03 ──────────────────────────────────────────────────────┤
-├─ FAQ (details/summary, dấu + xoay 45° khi mở) ───────────────────────────┤
-├─ CTA: Sẵn sàng chăm sóc cột sống? [Đăng ký học ngay →] [Tư vấn qua Zalo] ┤
+├─ FAQ (details/summary)            │ Thẻ "Chưa biết chọn chương trình nào?"│
+│                                   │ [Tư vấn qua Zalo] [☎ hotline]         │
 └──────────────────────────────────────────────────────────────────────────┘
+Footer (#lien-he): thêm 3 cơ sở trị liệu (Hà Đông, Ba Đình, Tân Bình).
 Mobile: thanh cố định đáy  [☎ Gọi ngay] [Đăng ký học]
 ```
 
 | Trạng thái | Hiển thị |
 | --- | --- |
-| Không có khóa | Thẻ "Khóa học đang được cập nhật. Gọi <hotline>…"; select trong box đăng ký bị disable |
-| Dữ liệu | Server render, ISR 300s |
+| Không có khóa | Thẻ "Chương trình đang được cập nhật. Gọi <hotline>…"; select trong box đăng ký bị disable |
+| Không có khóa miễn phí | Ẩn mục `#mien-phi`; nút thứ 2 ở hero đổi thành "Xem chương trình" (`#khoa-hoc`) |
+| Dữ liệu | Server render, ISR 300s; hồ sơ bác sĩ, số liệu, 3 cơ sở lấy từ `lib/site-config.ts` (`doctor.education/expertise/career`, `branches`) |
+| Ảnh | `public/images/bac-si-do-manh-cuong.jpg` (hero) + `public/images/bac-si/*.jpg` (6 ảnh hoạt động, đã nén ≤ 800px, ≤ 63KB) – CSP chỉ cho ảnh cùng domain |
+| Tắt JS / giảm chuyển động | Mọi nội dung hiện ngay, số liệu đúng giá trị cuối, dải chuyên môn đứng yên (TC-112) |
+
+**Đã bỏ khi thiết kế lại (trùng lặp)**: ảnh banner trung tâm `trung-tam-hv.jpg` ở mục bác sĩ (chữ trong ảnh lặp lại đúng 4 dòng tiểu sử; ảnh vẫn dùng làm ảnh chia sẻ Open Graph),
+hàng ✓ dưới nút hero và 3 ô "10+ / YHCT / 1:1" (gộp vào dải số liệu), khối CTA cuối trang "Sẵn sàng chăm sóc cột sống?" (lặp nút hero → thay bằng thẻ tư vấn cạnh FAQ),
+mục Lợi ích tách riêng (gộp vào khối Vấn đề → Giải pháp).
 
 ## SCR-02 – Trang đăng ký `/register`
 Tiêu đề trang + SCR-03. Metadata title "Đăng ký khóa học".

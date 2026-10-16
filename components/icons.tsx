@@ -191,6 +191,19 @@ export const StarIcon = (p: IconProps) => (
   </Svg>
 )
 
+export const MapPinIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </Svg>
+)
+
+export const GraduationIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M22 10 12 5 2 10l10 5 10-5ZM6 12v5c3 2 9 2 12 0v-5" />
+  </Svg>
+)
+
 export const SettingsIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />

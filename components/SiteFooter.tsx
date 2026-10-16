@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { hotlineHref, siteConfig } from '@/lib/site-config'
-import { MailIcon, PhoneIcon } from './icons'
+import { MailIcon, MapPinIcon, PhoneIcon } from './icons'
 
 export default function SiteFooter() {
   return (
@@ -12,6 +12,16 @@ export default function SiteFooter() {
           </p>
           <p className="mt-1 font-medium text-ocean-700">{siteConfig.tagline}</p>
           <p className="mt-3 max-w-md text-sm text-slate-600">{siteConfig.description}</p>
+          <ul aria-label="Cơ sở trị liệu" className="mt-4 space-y-2 text-sm text-slate-600">
+            {siteConfig.branches.map((b, i) => (
+              <li key={b} className="flex gap-2">
+                <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-ocean-500" />
+                <span>
+                  <strong className="font-semibold text-ocean-900">Cơ sở {i + 1}:</strong> {b}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
         <div className="text-sm">
           <p className="mb-3 font-semibold text-ocean-900">Liên kết</p>

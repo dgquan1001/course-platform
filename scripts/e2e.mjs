@@ -783,6 +783,69 @@ try {
     await guest.screenshot({ path: `${OUT}mobile-home.png` })
   })
 
+  await step('[Khách] Trang chủ mới: số liệu đếm tăng, dải chuyên môn, hồ sơ bác sĩ (chuyên môn, công tác, hoạt động), 3 cơ sở; bỏ phần trùng (TC-111)', async () => {
+    await guest2.goto(BASE)
+    // Số liệu: server render sẵn giá trị cuối, khi hiện trên màn hình đếm từ 0 lên rồi dừng đúng số
+    const STATS = ['10+', '13.000+', '3', '1:1']
+    await guest2
+      .waitForFunction((want) => {
+        const t = [...document.querySelectorAll('main dl dd')].map((d) => d.textContent)
+        return want.every((s) => t.includes(s))
+      }, STATS, { timeout: 8000 })
+      .catch(async () => assert(false, `Số liệu: ${await guest2.locator('main dl dd').allTextContents()}`))
+    const marquee = guest2.getByRole('list', { name: 'Lĩnh vực chuyên môn' })
+    assert((await marquee.getByText('Phương pháp Schroth').count()) === 2, 'Dải chuyên môn không lặp 2 lần (chạy vòng)')
+    assert((await marquee.locator('li[aria-hidden="true"]').count()) === (await marquee.locator('li').count()) / 2, 'Bản lặp của dải chuyên môn chưa ẩn với trình đọc màn hình')
+
+    const doctor = guest2.locator('#bac-si')
+    await doctor.getByRole('heading', { name: 'Học vấn & chứng chỉ' }).waitFor()
+    assert((await doctor.getByText('Schroth (SSOL)', { exact: false }).count()) >= 1, 'Thiếu chứng nhận Schroth')
+    const expertise = await guest2.locator('#chuyen-mon h4').allTextContents()
+    assert(expertise.length === 4 && expertise.includes('Cong vẹo cột sống') && expertise.includes('Phục hồi chấn thương thể thao'), `Chuyên môn: ${expertise}`)
+    await doctor.getByRole('heading', { name: 'Quá trình công tác' }).waitFor()
+    assert((await doctor.locator('ol li').count()) === 3, 'Quá trình công tác không đủ 3 mốc')
+    // Ảnh bác sĩ + hoạt động chuyên môn (lưu trong public/, tải được, không bị CSP chặn)
+    const imgs = doctor.locator('img')
+    assert((await imgs.count()) === 6, `#bac-si có ${await imgs.count()} ảnh`)
+    for (const img of await imgs.all()) {
+      // Cuộn bằng DOM: ảnh chứng nhận có hiệu ứng bồng bềnh liên tục nên không bao giờ "đứng yên" theo cách Playwright chờ
+      await img.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+      await guest2.waitForFunction((el) => el.complete && el.naturalWidth > 0, await img.elementHandle())
+    }
+    await guest2.waitForTimeout(900) // chờ hiệu ứng hiện dần xong để ảnh chụp rõ
+    await guest2.screenshot({ path: `${OUT}desktop-home-bac-si.png` })
+
+    const branches = guest2.getByRole('list', { name: 'Cơ sở trị liệu' })
+    assert((await branches.locator('li').count()) === 3, 'Chân trang thiếu địa chỉ cơ sở')
+    // Bỏ phần trùng: banner trung tâm (lặp lại tiểu sử bác sĩ) và khối CTA cuối trang lặp lại hero
+    // (banner vẫn là ảnh chia sẻ og:image trong <head> – chỉ kiểm tra phần nội dung <main>)
+    const main = guest2.locator('main')
+    assert((await main.locator('img[src*="trung-tam-hv"]').count()) === 0, 'Trang chủ còn banner trung tâm lặp tiểu sử')
+    assert(!(await main.textContent()).includes('Sẵn sàng chăm sóc cột sống'), 'Trang chủ còn khối CTA cuối trang lặp hero')
+    assert((await guest2.getByRole('heading', { level: 2, name: 'Bác sĩ Đỗ Mạnh Cường' }).count()) === 1, 'Tên bác sĩ làm tiêu đề nhiều lần')
+  })
+
+  await step('[Khách] Hiệu ứng hiện dần khi cuộn; bật "giảm chuyển động" thì nội dung hiện ngay, không chạy hiệu ứng (TC-112)', async () => {
+    await guest2.goto(BASE)
+    await guest2.waitForFunction(() => document.documentElement.classList.contains('reveal-ready'))
+    // Phần tử ở cuối trang chưa hiện; cuộn tới thì hiện (class is-visible, opacity về 1)
+    const faq = guest2.locator('section', { has: guest2.getByRole('heading', { name: 'Bạn còn thắc mắc?' }) }).locator('[data-reveal]').first()
+    assert(!(await faq.evaluate((el) => el.classList.contains('is-visible'))), 'Phần tử cuối trang hiện sẵn trước khi cuộn tới')
+    await faq.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await guest2.waitForFunction((el) => el.classList.contains('is-visible') && getComputedStyle(el).opacity === '1', await faq.elementHandle())
+    // Hero hiện ngay khi tải (không chờ cuộn)
+    await guest2.getByRole('heading', { level: 1 }).waitFor({ state: 'visible' })
+
+    const ctx = await newContext({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' })
+    const p = watch(await ctx.newPage(), 'giam-chuyen-dong')
+    await p.goto(BASE)
+    await p.waitForFunction(() => document.querySelectorAll('[data-reveal]').length > 0 && !document.querySelector('[data-reveal]:not(.is-visible)'))
+    assert(!(await p.evaluate(() => document.documentElement.classList.contains('reveal-ready'))), 'Giảm chuyển động vẫn ẩn nội dung chờ hiệu ứng')
+    const anim = await p.locator('ul[aria-label="Lĩnh vực chuyên môn"]').evaluate((el) => getComputedStyle(el).animationName)
+    assert(anim === 'none', `Giảm chuyển động vẫn chạy dải chữ: ${anim}`)
+    await ctx.close()
+  })
+
   await step('[Khách] Trang chủ chia 3 nhóm: Miễn phí, Chương trình (lọc vẹo lưng / vẹo ngực), Premium', async () => {
     const group = (id) => guest2.locator(id)
     await guest2.goto(BASE)

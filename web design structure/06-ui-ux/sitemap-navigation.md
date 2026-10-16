@@ -5,7 +5,7 @@
 ```mermaid
 flowchart TB
   root["/ Trang chủ"]
-  root --> s1["#bac-si"]
+  root --> s1["#bac-si (hồ sơ bác sĩ) · #chuyen-mon"]
   root --> s2["#khoa-hoc"]
   root --> s3["#dang-ky (box đăng ký)"]
   root --> s4["#lien-he (footer)"]

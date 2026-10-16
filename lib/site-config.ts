@@ -12,13 +12,32 @@ export const siteConfig = {
   doctor: {
     name: 'Bác sĩ Đỗ Mạnh Cường',
     title: 'CEO & Bác sĩ chuyên môn tại Trung tâm HV',
-    credentials: [
-      'CEO & Bác sĩ chuyên môn tại Trung tâm HV – trị liệu toàn diện cho người Việt',
-      'Tốt nghiệp Bác sĩ tại Học viện Y Dược học Cổ truyền Việt Nam',
-      'Hơn 10 năm kinh nghiệm điều trị bệnh lý cột sống – cơ xương khớp',
-      'Chuyên gia đào tạo giải phẫu và trị liệu bệnh lý cơ xương khớp cho bác sĩ, huấn luyện viên Yoga, Pilates, PT Gym...',
+    summary: 'Hơn 10 năm kinh nghiệm điều trị bệnh lý cột sống – cơ xương khớp',
+    // Hồ sơ chuyên môn (nguồn: bsdomanhcuong.com/bac-si.html), hiện ở mục "Bác sĩ" trên trang chủ
+    education: [
+      'Bác sĩ Y học cổ truyền – Học viện Y Dược học Cổ truyền Việt Nam',
+      'Chứng chỉ định hướng Phục hồi chức năng cơ bản – Đại học Y Dược Thái Nguyên',
+      'Chứng nhận thực hành phương pháp Schroth (SSOL) – giảng viên Andrea Lebel, MSc PT',
+      'Có tên trong danh bạ chuyên gia Scoliosis Schroth Online (SSOL Schroth MD Observer)',
+    ],
+    expertise: [
+      { title: 'Cong vẹo cột sống', text: 'Đánh giá sớm và lộ trình tập theo phương pháp Schroth cho trẻ em và người lớn.' },
+      { title: 'Đau cột sống – cơ xương khớp', text: 'Đau cổ vai gáy, đau lưng, thoát vị đĩa đệm, sai tư thế do ngồi làm việc lâu.' },
+      { title: 'Phục hồi chấn thương thể thao', text: 'Trị liệu, băng dán Kinesio Tape và bài tập đưa bạn trở lại vận động an toàn.' },
+      { title: 'Đào tạo chuyên môn', text: 'Giảng dạy giải phẫu và trị liệu cho bác sĩ, huấn luyện viên Yoga, Pilates, PT Gym.' },
+    ],
+    career: [
+      { time: '01/2024 – nay', text: 'Sáng lập Xương Khớp HV, bác sĩ điều trị tại HV Healthcare Center (Hà Đông, Hà Nội)' },
+      { time: '08/2022 – nay', text: 'Bác sĩ trị liệu cột sống tại Phòng khám BS Cường' },
+      { time: '04/2022 – 08/2022', text: 'Bác sĩ chuyên môn tại Phòng khám Cột sống, Cơ xương khớp Việt Mỹ' },
     ],
   },
+  // Các cơ sở trị liệu trực tiếp (hiện ở chân trang)
+  branches: [
+    'Tòa CT7 Booyoung Vina, Mộ Lao, Hà Đông, Hà Nội',
+    'Tòa D2 Giảng Võ, Ba Đình, Hà Nội',
+    'Tòa Skycenter, Phổ Quang, Tân Bình, TP. Hồ Chí Minh',
+  ],
   bank: {
     // Mã BIN ngân hàng theo chuẩn VietQR (Vietcombank = 970436)
     bin: '970436',

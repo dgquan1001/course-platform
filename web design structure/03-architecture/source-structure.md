@@ -2,14 +2,14 @@
 
 ## 1. Cây thư mục
 
-Cập nhật 27/09/2026 – sau Đợt 11 → 13 (v0.2). ✅ = đã có; mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (ADR-016).
+Cập nhật 17/10/2026 – sau Đợt 19 (thiết kế lại trang chủ). ✅ = đã có; mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (ADR-016).
 
 ```text
 course-platform/
 ├─ app/                              # Next.js App Router
 │  ├─ layout.tsx                     # Khung chung: font, metadata/OG, header, footer, toast, progress, LoginReminders
-│  ├─ page.tsx                       # Landing (ISR 300s): khóa theo 3 nhóm, box đăng ký #dang-ky
-│  ├─ globals.css                    # Tailwind + class dùng chung (.btn, .input, .card, .alert-*, .badge…)
+│  ├─ page.tsx                       # Landing (ISR 300s): hero + số liệu, hồ sơ bác sĩ #bac-si, khóa theo 3 nhóm, box đăng ký #dang-ky (thiết kế lại Đợt 19)
+│  ├─ globals.css                    # Tailwind + class dùng chung (.btn, .input, .card, .alert-*, .badge, .section-title, .text-gradient, .card-lift) + CSS hiệu ứng [data-reveal]
 │  ├─ icon.svg, not-found.tsx
 │  ├─ register/ {page, RegisterForm (client), actions}   # registerAction – chọn gói, ảnh chuyển khoản
 │  ├─ login/ {page, actions}         # loginAction (email / SĐT, giới hạn tần suất)
@@ -52,9 +52,12 @@ course-platform/
 │  ├─ PasswordInput.tsx                                             # Đợt 15: ô mật khẩu có nút mắt
 │  ├─ LoginReminders.tsx             # Đồng ý chính sách + nhắc đổi mật khẩu (thay ConsentReminder, Đợt 11)
 │  ├─ OneTimeSecret.tsx              # Mật khẩu hiện một lần + tin nhắn Zalo (Đợt 11)
-│  └─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
+│  ├─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
+│  ├─ RevealObserver.tsx (client)    # Hiện dần khi cuộn cho phần tử [data-reveal] (Đợt 19)
+│  └─ CountUp.tsx (client)           # Số đếm tăng khi cuộn tới (Đợt 19)
 ├─ lib/                              # Nghiệp vụ & hạ tầng (không chứa JSX)
-│  ├─ site-config.ts                 # Thương hiệu, liên hệ, ngân hàng, vietQrUrl, formatPrice
+│  ├─ site-config.ts                 # Thương hiệu, liên hệ, hồ sơ bác sĩ (học vấn, chuyên môn, công tác), 3 cơ sở, ngân hàng, vietQrUrl, formatPrice
+│  ├─ reveal.ts                      # revealDelay(i) – độ trễ so le cho hiệu ứng hiện dần (Đợt 19)
 │  ├─ auth.ts                        # getCurrentUser (cache theo request), requireAdmin/Staff, requireUserPage/StaffPage/AdminPage
 │  ├─ use-profile.ts                 # 'use client' – profile dùng chung cho header + hộp nhắc (cache 60s)
 │  ├─ accounts.ts                    # findAccount, isPhoneTaken, isEmailTaken (service role)
@@ -69,7 +72,8 @@ course-platform/
 ├─ middleware.ts                     # Nhẹ: đọc phiên từ cookie (getSession), chưa đăng nhập → /login (ADR-016)
 ├─ supabase/schema.sql               # Toàn bộ DB: bảng, index, hàm, trigger, RLS, storage (idempotent)
 ├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs, backup-storage.mjs}   # e2e ~2.400 dòng, chạy trên Node hoặc Cloudflare Workers (--workers); backup-storage: tải ảnh Storage
-├─ public/images/
+├─ public/favicon.ico               # Sinh từ app/icon.svg (Đợt 19 – trình duyệt tự xin /favicon.ico)
+├─ public/images/                   # Ảnh bác sĩ, banner OG; bac-si/ – 6 ảnh hoạt động chuyên môn (Đợt 19, đã nén ≤ 800px)
 ├─ .github/workflows/ {ci.yml, keepalive.yml, backup.yml}   # CI; giữ Supabase Free hoạt động; sao lưu tuần (runbook §7.1)
 ├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized), vercel.json (vùng sin1 – đường lùi, gỡ ở Đợt 17 P6)
 ├─ wrangler.jsonc (Worker hv-web: R2 / D1 / Durable Object cho ISR, Smart Placement), open-next.config.ts, public/_headers   # Cloudflare – ADR-017
@@ -101,8 +105,9 @@ flowchart TB
 
 | Muốn thay đổi | File |
 | --- | --- |
-| Tên trung tâm, hotline, email, Zalo, thông tin bác sĩ, tài khoản ngân hàng | `lib/site-config.ts` |
-| Nội dung trang chủ (pain points, lợi ích, FAQ) | `app/page.tsx` (mảng `painPoints`, `benefits`, `faqs`) |
+| Tên trung tâm, hotline, email, Zalo, hồ sơ bác sĩ (học vấn, chuyên môn, công tác), địa chỉ cơ sở, tài khoản ngân hàng | `lib/site-config.ts` (`doctor`, `branches`) |
+| Nội dung trang chủ (số liệu, dải chuyên môn, pain points, lợi ích, ảnh hoạt động, FAQ) | `app/page.tsx` (mảng `stats`, `keywords`, `painPoints`, `benefits`, `gallery`, `faqs`) |
+| Hiệu ứng chuyển động trang chủ | `tailwind.config.ts` (`keyframes`/`animation`: float, blob, marquee, fade-up-slow) + `app/globals.css` (`[data-reveal]`) + `components/RevealObserver.tsx`, `CountUp.tsx` – xem design-system §5 |
 | Màu sắc thương hiệu | `tailwind.config.ts` (`ocean`, `gold`) + `themeColor` trong `app/layout.tsx` + màu trong `lib/mailer.ts` |
 | Kiểu nút, ô nhập, thẻ | `app/globals.css` |
 | Quy tắc SĐT hợp lệ | `lib/phone.ts#normalizePhone` |

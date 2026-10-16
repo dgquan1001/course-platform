@@ -27,9 +27,9 @@ export default function CourseCard({ course }: { course: PublicCourse }) {
   const badge = kindBadge(course.kind, course.category)
   const detailHref = `/khoa-hoc/${course.id}`
   return (
-    <div className="card flex flex-col overflow-hidden transition hover:border-ocean-200 hover:shadow-md">
-      <Link href={detailHref} tabIndex={-1} aria-hidden="true">
-        <CourseCover src={course.cover_image} alt="" />
+    <div className="card card-lift group flex flex-col overflow-hidden">
+      <Link href={detailHref} tabIndex={-1} aria-hidden="true" className="block overflow-hidden">
+        <CourseCover src={course.cover_image} alt="" className="transition duration-700 group-hover:scale-105" />
       </Link>
       <div className="flex flex-1 flex-col p-5">
         <span className={`badge w-fit ${badge.className}`}>{badge.label}</span>

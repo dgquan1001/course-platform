@@ -45,9 +45,27 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // Trang chủ: thẻ nổi bồng bềnh, nền loang chuyển động, dải chuyên môn chạy ngang
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        blob: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(30px, -40px) scale(1.08)' },
+          '66%': { transform: 'translate(-25px, 20px) scale(0.95)' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.4s ease-out both',
+        'fade-up-slow': 'fade-up 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both',
+        float: 'float 6s ease-in-out infinite',
+        blob: 'blob 18s ease-in-out infinite',
+        marquee: 'marquee 40s linear infinite',
       },
     },
   },

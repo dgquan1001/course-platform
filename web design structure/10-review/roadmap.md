@@ -10,7 +10,7 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-**Cập nhật lần cuối: 18/10/2026** – **Đợt 26 xong** (gọi chung "khách hàng", tách danh mục Khách hàng / Nhân viên, thêm / sửa / xóa cả hai, gỡ Vercel khỏi mã nguồn – §3.7) · E2E Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng) · **chủ dự án chạy `supabase/schema.sql`** (A-30) + xóa project Vercel (A-31). Trước đó 17/10: **Đợt 21 → 24 xong** (bảo mật phiên đăng nhập, hiệu năng điện thoại 90 – 94 điểm, giao diện quản trị mới, thêm / sửa / xóa khóa học – §3.6) · E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) · chờ Pull Request vào `main`. Trước đó: Đợt 19 + **Đợt 20** (song ngữ trang chủ VI ↔ EN, giao diện hiện đại hơn) trên nhánh `hv-dgquan-20261017`, chờ PR vào `main`. Trước đó 06/10/2026: – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
+**Cập nhật lần cuối: 18/10/2026** – **Đợt 26 xong** (gọi chung "khách hàng", tách danh mục Khách hàng / Nhân viên, thêm / sửa / xóa cả hai, gỡ Vercel khỏi mã nguồn – §3.7) · E2E Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng) · ✅ chủ dự án đã chạy `supabase/schema.sql` (A-30, 18/10 – E2E chạy lại Node 107/107 · Workers 108/108, nhật ký xóa ghi đúng) · còn xóa project Vercel (A-31). Trước đó 17/10: **Đợt 21 → 24 xong** (bảo mật phiên đăng nhập, hiệu năng điện thoại 90 – 94 điểm, giao diện quản trị mới, thêm / sửa / xóa khóa học – §3.6) · E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) · chờ Pull Request vào `main`. Trước đó: Đợt 19 + **Đợt 20** (song ngữ trang chủ VI ↔ EN, giao diện hiện đại hơn) trên nhánh `hv-dgquan-20261017`, chờ PR vào `main`. Trước đó 06/10/2026: – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
 (PR #8, commit `73295e1`, check "Workers Builds: hv-web" ✅). Website: https://hv-web.bsdomanhcuong.workers.dev. Việc tiếp theo: **§0.1**.
 
 Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
@@ -39,7 +39,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 | Hiệu năng | **Đợt 22 (đo bằng `scripts/perf.mjs`)**: điện thoại 90 – 94 điểm (trước 71 – 89), TBT quản trị ≤ 41 ms, JS ~150 kB gzip / trang, máy tính 98 – 100; còn PERF-13 (LCP điện thoại 2,8 – 3,4 s do font – A-29). Middleware nhẹ (ADR-016); trang công khai ISR trả từ cache (`enableCacheInterception`); Worker 1,6 MiB nén, khởi động 16 ms; mạng VN → PoP Hồng Kông ~0,27 giây kết nối (PERF-01) – project-review §7.10 |
 | Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. **Deploy: merge vào `main` → Workers Builds tự deploy** (từ 06/10); `npm run deploy:win` chỉ khẩn cấp. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
 | Việc tiếp theo | **Đợt 26** (18/10): chủ dự án **chạy `supabase/schema.sql`** (A-30 – nhật ký xóa tài khoản, chặn xóa admin cuối ở database), xóa project Vercel + gỡ app Vercel khỏi GitHub (A-31), báo nhân viên menu mới (A-32) → Pull Request vào `main`. Trước đó: **Đợt 19 → 24** (trang chủ mới, song ngữ, bảo mật phiên, hiệu năng, quản trị mới, khóa học): Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) + **A-28** báo mọi người đăng nhập lại 1 lần / nhân viên làm quen giao diện mới, A-26 xác nhận ảnh / số liệu, A-27 duyệt bản dịch, A-29 chọn phương án font · sau đó **Đợt 25** (khách hàng: sửa nhanh, khóa / xóa tài khoản – cần chạy SQL) · Xem **§0.1** – ✅ bước 1 (trừ email), 2, 3.0 → 3.3 · ⏭ **bước 4 – Đợt 18** (thêm / sửa / xóa) · song song: theo dõi 14 ngày (3.4, tới 20/10), email khi chốt Gmail (1.3 → 1.4) · sau đó bước 5 (Đợt 14 chạy thử) |
-| Rủi ro còn mở cần chú ý | RK-63 (xóa khách hàng không hoàn tác – nhân viên cũng xóa được; có nhật ký), RK-65 (schema Đợt 26 chưa chạy – A-30), RK-54 (hydration trang quản trị trên workerd – CF-41), RK-55 (ảnh / số liệu trang chủ chờ A-26), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
+| Rủi ro còn mở cần chú ý | RK-63 (xóa khách hàng không hoàn tác – nhân viên cũng xóa được; có nhật ký), RK-54 (hydration trang quản trị trên workerd – CF-41), RK-55 (ảnh / số liệu trang chủ chờ A-26), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
 
 ## 0.1. Việc cần làm tiếp theo – từng bước (to-do)
 
@@ -66,7 +66,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - [x] **0b.3** Khách hàng: cột Thao tác (Hồ sơ · Sửa · Xóa), **xóa an toàn** cho nhân viên + admin (QL-02, QL-04); nhân viên vẫn không sửa khóa học ✅ 18/10
 - [x] **0b.4** Gỡ Vercel khỏi mã nguồn (`vercel.json`, README, ghi chú) – Đợt 17 P6 phần dev; rà soát deploy Cloudflare, rủi ro, hiệu năng, bảo mật (project-review §7.16) ✅ 18/10
 - [x] **0b.5** E2E Node + Workers (TC-117 → TC-119) – Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng)
-- [ ] **0b.6** (chủ dự án) **A-30** chạy `supabase/schema.sql` trên Supabase · **A-31** xóa project Vercel + gỡ app Vercel khỏi repo GitHub (runbook §4.1) · **A-32** báo nhân viên: menu "Bệnh nhân" đổi thành "Khách hàng", nhân viên được xóa khách hàng
+- [ ] **0b.6** (chủ dự án) ✅ **A-30** đã chạy `supabase/schema.sql` (18/10, E2E lại Node 107/107 · Workers 108/108, hết "lưu ý database") · **A-31** xóa project Vercel + gỡ app Vercel khỏi repo GitHub (runbook §4.1) · **A-32** báo nhân viên: menu "Bệnh nhân" đổi thành "Khách hàng", nhân viên được xóa khách hàng
 - [ ] **0b.7** Commit → push nhánh → Pull Request vào `main` → merge (tự deploy)
 
 ### Bước 1 – Hoàn tất cấu hình Cloudflare / Supabase (Đợt 17 P3 còn lại) – ưu tiên cao
@@ -179,7 +179,7 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | RK chuyển hạ tầng & quản lý (RK-43 → 54) | 12 | 7 (RK-43 → 47, 50, 53) | 3 (RK-48, 49 – cấu hình P3 / P5; RK-54 – theo dõi) | 2 (RK-51, 52 – Đợt 18) |
 | QL (thêm / sửa / xóa – 04/10) | 8 | 6 (QL-01, 02, 04, 06, 07, 08) | 0 | 2 (QL-03, QL-05 – Đợt 25) |
 | RK trang chủ (RK-55 → 58 – 17/10) | 4 | 1 (RK-56) | 3 (RK-55 – chờ A-26; RK-57 – chấp nhận; RK-58 – đo Lighthouse sau deploy) | 0 |
-| RK Đợt 26 (RK-63 → 70 – 18/10) | 8 | 5 (RK-64 chấp nhận, RK-67, 68, 69, 70) | 3 (RK-63 theo dõi nhật ký, RK-65 chờ A-30, RK-66 chờ A-31) | 0 |
+| RK Đợt 26 (RK-63 → 70 – 18/10) | 8 | 6 (RK-64 chấp nhận, RK-65, 67, 68, 69, 70) | 2 (RK-63 theo dõi nhật ký, RK-66 chờ A-31) | 0 |
 
 ## 2. Việc cần chủ dự án làm (không tự động hóa được)
 
@@ -213,7 +213,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-28 | Sau khi merge Đợt 21 → 24: **báo nhân viên / khách hàng đang dùng phải đăng nhập lại 1 lần** (cookie phiên mới – RK-59); nhân viên làm quen giao diện quản trị mới (menu giữ thứ tự, đổi màu / vị trí nút – RK-62); thử "Ghi nhớ đăng nhập" trên điện thoại riêng | SEC-13, UI-10 | Ngay sau deploy | ⬜ |
 | A-29 | Chọn phương án font để LCP điện thoại < 2,5 s (PERF-13): (a) giữ nguyên (điểm 90 – 94), (b) bỏ độ đậm 500 – chữ "vừa" dùng 400 / 600, (c) chỉ tải trước độ đậm 400 + 700 | PERF-13 | Khi tiện | ⬜ |
 | A-27 | Duyệt **bản dịch tiếng Anh** trang chủ (`lib/i18n.ts` › `homeCopy.en`, `cardCopy.en`, `chromeCopy.en`) – thuật ngữ y khoa, tên trường, chức danh bác sĩ | RK-57 | Trước khi quảng bá bản `/en` | ⬜ |
-| A-30 | **Chạy `supabase/schema.sql`** (Supabase › SQL Editor › dán toàn bộ › Run) sau Đợt 26: nhật ký xóa tài khoản (`account_events` cho phép `deleted`), trigger chặn xóa admin cuối cùng, lời báo lỗi "khách hàng". Chưa chạy: mọi chức năng vẫn dùng được, chỉ chưa lưu nhật ký xóa | RK-65 | Ngay (trước khi merge) | ⬜ |
+| A-30 | **Chạy `supabase/schema.sql`** (Supabase › SQL Editor › dán toàn bộ › Run) sau Đợt 26: nhật ký xóa tài khoản (`account_events` cho phép `deleted`), trigger chặn xóa admin cuối cùng, lời báo lỗi "khách hàng". Chưa chạy: mọi chức năng vẫn dùng được, chỉ chưa lưu nhật ký xóa | RK-65 | Ngay (trước khi merge) | ✅ 18/10/2026 |
 | A-31 | **Xóa project Vercel** (Vercel › project › Settings › Delete) + **gỡ app Vercel khỏi repo** (GitHub › Settings › Applications › Vercel › Configure) – runbook §4.1 | RK-35, RK-66 | Khi tiện (mã nguồn đã gỡ 18/10) | ⬜ |
 | A-32 | Báo nhân viên: menu "Bệnh nhân" → **"Khách hàng"**, nhân viên được **xóa khách hàng** (chỉ khi hết gói, gõ SĐT xác nhận, không hoàn tác); admin quản lý tài khoản nhân viên ở menu **"Nhân viên"**; tài khoản nhân viên nên có SĐT để đăng nhập | RK-63 | Sau deploy | ⬜ |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
@@ -427,7 +427,7 @@ bảo đảm deploy Cloudflare ổn định; (7) rà soát risk case, nguy hiể
 - [x] Khách hàng: cột Thao tác Hồ sơ · Sửa · Xóa; hồ sơ có vùng Xóa (chặn khi còn gói / đơn chờ, gõ SĐT), mục Phân quyền (admin); tài khoản nhân viên không còn hiện ở danh mục khách hàng
 - [x] Quyền: nhân viên thêm / sửa / xóa khách hàng; không vào `/admin/staff/**`, `/admin/courses/**`; action nhân viên dùng `requireAdmin`
 - [x] Gỡ Vercel khỏi mã nguồn (P6 phần dev) · [ ] A-31 chủ dự án xóa project + app Vercel
-- [x] Schema: `account_events.action` thêm `deleted` + index, trigger `guard_admin_delete` · [ ] **A-30 chủ dự án chạy `supabase/schema.sql`**
+- [x] Schema: `account_events.action` thêm `deleted` + index, trigger `guard_admin_delete` · [x] A-30 chủ dự án chạy `supabase/schema.sql` (18/10)
 - [x] typecheck / lint / build (Next + OpenNext) · [x] E2E TC-117 → TC-119 + chạy lại toàn bộ (Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng)) · [x] tài liệu (SRS FR-212 → 218, BR-120 → 124, US-17.01 → 17.03, SCR-26, sitemap, API, database, security T37 → T40, test-plan, source-structure, runbook §4.1, cloudflare-migration P6, glossary, ADR-017, project-review §7.16, README)
 - Để lại / đề xuất: QL-03 khóa tài khoản (thay cho xóa khi muốn giữ lịch sử) + QL-05 sửa gói → Đợt 25; trigger chặn xóa khóa còn học viên (RK-61); xuất danh sách khách hàng trước khi xóa nếu trung tâm cần lưu trữ
 
@@ -632,7 +632,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
   [x] RK-43 · [x] RK-44 · [x] RK-45 · [x] RK-46 (chờ thử thư thật CF-05) · [x] RK-47 · 🟡 RK-48 (P3) · 🟡 RK-49 (P3 / P5) · [x] RK-50 · [ ] RK-51 · [ ] RK-52 (Đợt 18) · [x] RK-53 · 🟡 RK-54 (kiểm lại CF-41)
   · 🟡 RK-55 (ảnh / số liệu trang chủ – A-26) · [x] RK-56 (hiệu ứng chạy liên tục làm treo thao tác Playwright – E2E cuộn bằng DOM) – Đợt 19
   · 🟡 RK-59 (đăng nhập lại 1 lần sau deploy – A-28) · 🔵 RK-60 (xem video > 2 giờ không chạm bị đăng xuất – chấp nhận) · 🟡 RK-61 (chặn xóa khóa chỉ ở server action – Đợt 25) · 🔵 RK-62 (làm quen giao diện quản trị mới) – Đợt 21 → 24
-  · 🟡 RK-63 (xóa khách hàng không hoàn tác) · [x] RK-64 (nhân viên đã xóa: "Tạo bởi" của khách hàng mất tên – chấp nhận) · 🟡 RK-65 (schema Đợt 26 chờ A-30) · 🟡 RK-66 (project / app Vercel còn trên tài khoản – A-31) – Đợt 26
+  · 🟡 RK-63 (xóa khách hàng không hoàn tác) · [x] RK-64 (nhân viên đã xóa: "Tạo bởi" của khách hàng mất tên – chấp nhận) · [x] RK-65 (schema Đợt 26 đã chạy 18/10) · 🟡 RK-66 (project / app Vercel còn trên tài khoản – A-31) – Đợt 26
   · 🟡 RK-57 (chỉ trang chủ có tiếng Anh – chấp nhận, A-27) · 🟡 RK-58 (hiệu ứng nặng hơn trên điện thoại yếu: blur, backdrop-blur – đo Lighthouse sau deploy) – Đợt 20
 
 ### 5.4. Tính năng mở rộng (R)

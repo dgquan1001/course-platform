@@ -5,7 +5,7 @@ import { PAYMENT_METHODS } from '@/lib/format'
 
 export type PlanOption = { id: string; courseTitle: string; months: number; sessions: number; price: number }
 
-// Ô cấp gói dùng chung (tạo bệnh nhân / cấp thêm gói): chọn gói → số tiền điền sẵn theo giá gói (sửa được, VD giảm giá),
+// Ô cấp gói dùng chung (tạo khách hàng / cấp thêm gói): chọn gói → số tiền điền sẵn theo giá gói (sửa được, VD giảm giá),
 // hình thức thanh toán, ảnh chuyển khoản (tùy chọn), ghi chú thanh toán.
 export default function GrantFields({ plans, required = false }: { plans: PlanOption[]; required?: boolean }) {
   const [amount, setAmount] = useState('')

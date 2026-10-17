@@ -61,8 +61,8 @@ Xem [10-review/roadmap.md](../10-review/roadmap.md) cho các hạng mục mở r
 | --- | --- | --- |
 | Chủ trung tâm / Bác sĩ | Chủ sở hữu sản phẩm, người tạo nội dung | Doanh thu, uy tín, bảo vệ nội dung |
 | Admin (quản trị viên) | Toàn quyền: nội dung khóa học, gói giá, phân quyền, doanh thu, xem mọi thông tin | Kiểm soát, số liệu tập trung |
-| Staff (nhân viên tư vấn, từ v0.2) | Kiểm tra đơn, tạo tài khoản bệnh nhân từ Zalo, cấp gói, theo dõi tiến độ, xử lý phiếu tham vấn và khách quan tâm premium | Thao tác nhanh, không nhầm lẫn, làm song song với Zalo |
-| Bệnh nhân (học viên, `role = user`) | Người tập chương trình phục hồi chức năng | Đăng ký dễ, tập trên điện thoại, biết mình tập đến đâu, được bác sĩ tham vấn |
+| Staff (nhân viên tư vấn, từ v0.2) | Kiểm tra đơn, tạo tài khoản khách hàng từ Zalo, cấp gói, theo dõi tiến độ, xử lý phiếu tham vấn và khách quan tâm premium | Thao tác nhanh, không nhầm lẫn, làm song song với Zalo |
+| Khách hàng (học viên, `role = user`) | Người tập chương trình phục hồi chức năng | Đăng ký dễ, tập trên điện thoại, biết mình tập đến đâu, được bác sĩ tham vấn |
 | Đội chuyên gia (giai đoạn sau) | Bác sĩ, HLV Yoga/Pilates/PT học khóa chuyên môn | Chưa làm ở v0.2 (chỉ chuẩn bị trường `audience`) |
 | Khách truy cập | Người tìm hiểu | Thông tin rõ ràng, liên hệ nhanh (hotline, Zalo) |
 | Đội phát triển | Bảo trì, mở rộng | Code rõ ràng, tài liệu đầy đủ, test tự động |
@@ -104,14 +104,14 @@ Chi tiết: [03-architecture/system-architecture.md](../03-architecture/system-a
 - Nội dung chuyển khoản là **số điện thoại** của khách để admin đối chiếu.
 - Supabase Auth bắt buộc có email → tài khoản chỉ có SĐT dùng email nội bộ `<SĐT>@sdt.hv.invalid` (xem ADR-003).
 - Video YouTube nên để chế độ **Unlisted**; hệ thống không ngăn học viên chia sẻ link video gốc.
-- Số lượng dữ liệu dự kiến nhỏ (hàng trăm – vài nghìn học viên); trang admin giới hạn 200 đơn / 200 bệnh nhân mỗi lần tải (lọc / tìm để thu hẹp).
+- Số lượng dữ liệu dự kiến nhỏ (hàng trăm – vài nghìn học viên); trang admin giới hạn 200 đơn / 200 khách hàng mỗi lần tải (lọc / tìm để thu hẹp).
 
 ## 9. Định vị lại – phiên bản 0.2 (chốt 27/09/2026)
 
 > Trạng thái (27/09/2026): **✅ đã triển khai toàn bộ yêu cầu v0.2** (Đợt 7 → 13, E2E xem test-plan). Việc còn lại trước khi chạy thật: [roadmap.md](../10-review/roadmap.md) – Đợt 14 (chạy thử MVP, kế hoạch 7 giai đoạn §3.1; cập nhật 02/10/2026).
 
 ### 9.1. Tầm nhìn
-Nền tảng dạy cho **bệnh nhân** và **đội chuyên gia**; giai đoạn này tập trung vào **bệnh nhân**. Bệnh nhân tập các chương trình
+Nền tảng dạy cho **khách hàng** và **đội chuyên gia**; giai đoạn này tập trung vào **khách hàng**. Khách hàng tập các chương trình
 tập luyện, phục hồi chức năng theo chuẩn y khoa, dưới sự hướng dẫn của chuyên gia; nhân viên theo dõi và kết nối với bác sĩ.
 
 ### 9.2. Yêu cầu chính
@@ -122,14 +122,14 @@ tập luyện, phục hồi chức năng theo chuẩn y khoa, dưới sự hư�
 | V-02 | Gói 1 / 3 / 6 / 12 tháng, giá riêng từng chương trình; 1 tháng = 12 buổi, 3 tháng = 36 buổi; hạn tính từ lúc duyệt, **cộng dồn** khi gia hạn; hết hạn mất quyền xem bài nhưng còn thấy tiến độ và nút Gia hạn | ADR-012 |
 | V-03 | Khóa gồm **buổi → bài tập**; admin tùy chọn số buổi, số bài mỗi buổi khi tạo khóa (mặc định 6 bài/buổi) | ADR-013 |
 | V-04 | Checklist mỗi buổi (mẫu chung: tick từng bài đã tập); buổi mở **lần lượt**; % tiến độ hiển thị nhỏ; nút hành động khi tập ("Tiếp tục buổi X"); bố cục tham khảo Udemy | ADR-013 |
-| V-05 | **Phiếu tham vấn** bác sĩ: bệnh nhân điền và gửi cho nhân viên **bất cứ lúc nào** (và được nhắc khi kết thúc khóa); staff xem câu trả lời | ADR-015 |
+| V-05 | **Phiếu tham vấn** bác sĩ: khách hàng điền và gửi cho nhân viên **bất cứ lúc nào** (và được nhắc khi kết thúc khóa); staff xem câu trả lời | ADR-015 |
 | V-06 | Khách đi web ⇄ Zalo; dashboard quản trị tập trung trên website, song song với Zalo | §9.3, dashboard |
-| V-07 | Khách từ **website**: tự đăng ký, tài khoản tạo tự động; staff xác nhận chuyển khoản (có thể gọi điện hướng dẫn) → bệnh nhân học khóa đã đăng ký | ADR-006 (giữ) |
-| V-08 | Khách từ **Zalo**: staff tạo tài khoản, nhập thông tin bệnh nhân, ghi số tiền & hình thức thanh toán, **mật khẩu hệ thống sinh**; bệnh nhân đăng nhập bằng SĐT/email; lần đầu **nên** đổi mật khẩu (không bắt buộc) | ADR-014 |
-| V-09 | 3 vai trò: `user` (bệnh nhân), `staff`, `admin` (cao nhất, toàn quyền, xem tất cả) | ADR-011 |
+| V-07 | Khách từ **website**: tự đăng ký, tài khoản tạo tự động; staff xác nhận chuyển khoản (có thể gọi điện hướng dẫn) → khách hàng học khóa đã đăng ký | ADR-006 (giữ) |
+| V-08 | Khách từ **Zalo**: staff tạo tài khoản, nhập thông tin khách hàng, ghi số tiền & hình thức thanh toán, **mật khẩu hệ thống sinh**; khách hàng đăng nhập bằng SĐT/email; lần đầu **nên** đổi mật khẩu (không bắt buộc) | ADR-014 |
+| V-09 | 3 vai trò: `user` (khách hàng), `staff`, `admin` (cao nhất, toàn quyền, xem tất cả) | ADR-011 |
 | V-10 | Premium: nút "Liên hệ Zalo nhận ưu đãi" **lưu khách bấm** và **mở Zalo** | ADR-015 |
 | V-11 | Trang **Chính sách bảo mật** + ô đồng ý xử lý dữ liệu (dữ liệu sức khỏe) | RV-17, security-design §6 |
-| V-12 | Dữ liệu hiện có: khóa hiện tại chuyển thành loại **chương trình**; chưa có bệnh nhân thật (toàn bộ là dữ liệu test) | database-design §10.7 |
+| V-12 | Dữ liệu hiện có: khóa hiện tại chuyển thành loại **chương trình**; chưa có khách hàng thật (toàn bộ là dữ liệu test) | database-design §10.7 |
 
 ### 9.3. Hai luồng khách hàng
 
@@ -139,7 +139,7 @@ flowchart LR
     W1[Khách xem trang chủ / khóa miễn phí] --> W2[Chọn chương trình + gói<br/>chuyển khoản QR, gửi đơn]
     W2 --> W3[Tài khoản tạo tự động<br/>source = web]
     W3 --> W4[Staff đối chiếu chuyển khoản<br/>có thể gọi điện hướng dẫn]
-    W4 --> L[Bệnh nhân học: buổi, checklist, % tiến độ]
+    W4 --> L[Khách hàng học: buổi, checklist, % tiến độ]
   end
   subgraph Zalo
     Z1[Khách nhắn Zalo / bấm nút premium] --> Z2[Staff tư vấn, chốt gói, nhận thanh toán]
@@ -154,5 +154,5 @@ flowchart LR
 ```
 
 ### 9.4. Ngoài phạm vi v0.2
-Khóa học cho đội chuyên gia (chỉ chuẩn bị trường `audience`), tài khoản chuyên gia/bác sĩ theo dõi riêng từng bệnh nhân
+Khóa học cho đội chuyên gia (chỉ chuẩn bị trường `audience`), tài khoản chuyên gia/bác sĩ theo dõi riêng từng khách hàng
 (staff đảm nhận), đặt lịch hẹn trên web, thông báo Zalo OA/SMS, cổng thanh toán online.

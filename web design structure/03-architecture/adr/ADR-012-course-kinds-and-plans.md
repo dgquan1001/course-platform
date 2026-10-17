@@ -19,20 +19,20 @@ v0.1 bán khóa học một lần, học vĩnh viễn. v0.2 có 3 loại:
   `sessions` mặc định = `months × 12`, admin sửa được.
 - Đơn đăng ký lưu **snapshot gói** (`plan_id`, `plan_months`, `plan_sessions`, `amount`) như snapshot tên khóa/học phí hiện có.
 - Khi đơn được duyệt, trigger tính:
-  `access_starts_at = greatest(now(), hạn cuối hiện tại của bệnh nhân cho khóa đó)`, `access_until = access_starts_at + plan_months`.
+  `access_starts_at = greatest(now(), hạn cuối hiện tại của khách hàng cho khóa đó)`, `access_until = access_starts_at + plan_months`.
   → Gia hạn khi còn hạn thì **cộng dồn** vào hạn cũ; đã hết hạn thì tính lại từ lúc duyệt.
-- **Số buổi được mở** = tổng `plan_sessions` của mọi đơn đã duyệt cho khóa đó (cộng dồn cả đơn đã hết hạn), để bệnh nhân
+- **Số buổi được mở** = tổng `plan_sessions` của mọi đơn đã duyệt cho khóa đó (cộng dồn cả đơn đã hết hạn), để khách hàng
   gia hạn thì học tiếp từ buổi đang dở chứ không học lại từ đầu.
 - Quyền xem bài chương trình ⇔ có đơn `approved` còn hạn (`access_until > now()`); đơn cũ v0.1 có `access_until = null`
   được coi là không thời hạn.
-- Unique index chống trùng đổi thành **chỉ 1 đơn `pending`** / bệnh nhân / khóa (cho phép nhiều đơn `approved` nối tiếp nhau).
+- Unique index chống trùng đổi thành **chỉ 1 đơn `pending`** / khách hàng / khóa (cho phép nhiều đơn `approved` nối tiếp nhau).
 - Khóa `premium` dùng `courses.price` để hiển thị giá; không có gói, không có bài học, không nhận đơn đăng ký.
 
 ## Hệ quả
 - ✅ Một chương trình dài (VD 144 buổi) phục vụ mọi gói; mua thêm là học tiếp.
 - ✅ Báo cáo doanh thu vẫn dựa trên `registrations.amount`.
 - ⚠️ Thu hồi một đơn nằm giữa chuỗi gia hạn không dời các đơn sau (có thể tạo "khoảng trống"); chấp nhận, staff xử lý tay.
-- ⚠️ Admin phải tạo đủ số buổi cho gói dài nhất; nếu thiếu, bệnh nhân thấy "Buổi tiếp theo đang được cập nhật".
+- ⚠️ Admin phải tạo đủ số buổi cho gói dài nhất; nếu thiếu, khách hàng thấy "Buổi tiếp theo đang được cập nhật".
 - 🔜 Nếu cần khuyến mãi / mã giảm giá: bổ sung vào `course_plans` hoặc bảng `coupons` (roadmap R-13).
 
 ## Phương án đã cân nhắc

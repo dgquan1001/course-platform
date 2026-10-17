@@ -159,7 +159,7 @@ flowchart TD
   D --> E[Tài khoản tạo tự động, source = web<br/>đơn pending]
   E --> G{Staff đối chiếu chuyển khoản<br/>có thể gọi điện hướng dẫn}
   G -- Duyệt --> H[access_until = lúc duyệt + số tháng]
-  G -- Từ chối kèm lý do --> R[Bệnh nhân thấy lý do, gọi hotline]
+  G -- Từ chối kèm lý do --> R[Khách hàng thấy lý do, gọi hotline]
   H --> L([Học: UF-12])
 ```
 
@@ -169,7 +169,7 @@ flowchart TD
 sequenceDiagram
   actor K as Khách (Zalo)
   actor S as Nhân viên
-  participant W as /admin/patients/new
+  participant W as /admin/customers/new
   participant A as createPatientAction (service role)
   participant DB as Supabase
   K->>S: Hỏi tư vấn, chốt gói, thanh toán (CK / tiền mặt)
@@ -196,7 +196,7 @@ flowchart LR
   A{Còn ≤ 7 ngày / đã hết hạn} --> B[Thẻ khóa: "Còn N ngày" / "Đã hết hạn" + Gia hạn]
   A --> S[Dashboard: nhân viên gọi nhắc]
   B --> C[Box đăng ký chọn sẵn chương trình → chọn gói → CK → đơn pending]
-  S --> D[Nhân viên cấp gói trên trang bệnh nhân]
+  S --> D[Nhân viên cấp gói trên trang khách hàng]
   C --> E[Duyệt]
   D --> E
   E --> F[access_until = max(now, hạn cũ) + tháng<br/>số buổi mở += plan_sessions]
@@ -226,7 +226,7 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-  actor P as Bệnh nhân
+  actor P as Khách hàng
   actor S as Nhân viên
   participant W as Website
   participant DB as Supabase

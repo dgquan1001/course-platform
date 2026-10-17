@@ -74,7 +74,7 @@ export type ConsultationState = { error: string | null }
 const MAX_TEXT_ANSWER = 500
 const MAX_CONSULT_NOTE = 1000
 
-// Bệnh nhân gửi phiếu bất cứ lúc nào: trả lời các câu hỏi đang dùng (Có/Không và thang 0–10 bắt buộc), chọn chương trình
+// Khách hàng gửi phiếu bất cứ lúc nào: trả lời các câu hỏi đang dùng (Có/Không và thang 0–10 bắt buộc), chọn chương trình
 // đang học (không bắt buộc). Phiếu lưu ảnh chụp câu hỏi + câu trả lời; tối đa 5 phiếu / ngày; ghi bằng service role.
 export async function submitConsultationAction(_prev: ConsultationState, formData: FormData): Promise<ConsultationState> {
   const user = await getCurrentUser()
@@ -107,7 +107,7 @@ export async function submitConsultationAction(_prev: ConsultationState, formDat
   const originRaw = String(formData.get('origin') ?? '')
   const origin = (CONSULT_ORIGINS as readonly string[]).includes(originRaw) ? originRaw : 'manual'
 
-  // Chương trình đang học: phải là chương trình bệnh nhân đã được duyệt (kể cả đã hết hạn)
+  // Chương trình đang học: phải là chương trình khách hàng đã được duyệt (kể cả đã hết hạn)
   const courseId = String(formData.get('courseId') ?? '')
   let course: { id: string; title: string } | null = null
   if (UUID.test(courseId)) {

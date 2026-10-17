@@ -21,7 +21,7 @@ course-platform/
 │  │  ├─ [courseId]/page.tsx         # Kiểu Udemy: đề cương theo buổi, chọn gói, premium CTA
 │  │  ├─ PlanPicker.tsx, LeadDialog.tsx (client)
 │  │  └─ actions.ts                  # createLeadAction
-│  ├─ courses/                       # Khu vực bệnh nhân
+│  ├─ courses/                       # Khu vực khách hàng
 │  │  ├─ page.tsx                    # Khóa học của tôi: tiến độ, hạn học, gia hạn, "Phiếu tham vấn của tôi"
 │  │  ├─ actions.ts                  # completeLessonAction, uncompleteLessonAction (Đợt 10), submitConsultationAction (Đợt 12)
 │  │  ├─ consultation/ {page, ConsultationForm (client)}  # Phiếu tham vấn (Đợt 12)
@@ -31,13 +31,19 @@ course-platform/
 │     ├─ actions.ts                  # Action quản trị dùng chung: đơn, lead, phiếu tham vấn, mẫu phiếu, phân quyền, khóa – gói – buổi – bài
 │     ├─ page.tsx                    # Tổng quan / dashboard (Đợt 13); /admin?status= → registrations
 │     ├─ registrations/page.tsx      # Đơn đăng ký (Đợt 7)
-│     ├─ patients/                   # Bệnh nhân (Đợt 11, thay users/)
-│     │  ├─ page.tsx                 # Danh sách + lọc (RPC admin_patients); tab Nhân viên & Admin (admin)
-│     │  ├─ new/ {page, NewPatientForm (client)}           # Tạo bệnh nhân Zalo + cấp gói
-│     │  ├─ [id]/ {page, ResetPassword (client)}           # Hồ sơ: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại MK
-│     │  ├─ actions.ts               # createPatientAction, grantPlanAction, updatePatientAction, resetPatientPasswordAction
+│     ├─ customers/                  # Khách hàng (Đợt 11 là patients/, đổi tên Đợt 26; /admin/patients/** chuyển hướng tới đây)
+│     │  ├─ page.tsx                 # Danh sách + lọc (RPC admin_patients), cột Thao tác Hồ sơ · Sửa · Xóa; ?role=team → /admin/staff
+│     │  ├─ new/ {page, NewCustomerForm (client)}           # Tạo khách hàng Zalo + cấp gói
+│     │  ├─ [id]/ {page, ResetPassword (client)}           # Hồ sơ: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại MK, xóa; admin: Phân quyền
+│     │  ├─ actions.ts               # createPatientAction, grantPlanAction, updatePatientAction, resetPatientPasswordAction, deleteCustomerAction
+│     │  ├─ usage.ts                 # customerUsage: gói còn hạn / đơn chờ (chặn xóa – Đợt 26)
 │     │  ├─ GrantFields.tsx (client), RoleForm.tsx, data.ts (getPlanOptions)
-│     ├─ users/page.tsx              # Đường dẫn cũ → /admin/patients
+│     ├─ staff/                      # Nhân viên (Đợt 26, chỉ admin – requireAdminPage / requireAdmin)
+│     │  ├─ page.tsx                 # Danh sách nhân viên / admin, người cấp quyền, nhật ký xóa tài khoản
+│     │  ├─ new/ {page, NewStaffForm (client)}              # Thêm nhân viên (mật khẩu hiện 1 lần)
+│     │  ├─ [id]/ {page, ResetStaffPassword (client)}      # Sửa, vai trò, cấp lại MK, xóa; lịch sử phân quyền
+│     │  ├─ actions.ts               # createStaffAction, updateStaffAction, resetStaffPasswordAction, deleteStaffAction
+│     ├─ users/page.tsx              # Đường dẫn cũ → /admin/customers
 │     ├─ consultations/page.tsx      # Phiếu tham vấn (Đợt 12)
 │     ├─ leads/page.tsx              # Khách quan tâm premium (Đợt 8)
 │     ├─ settings/ {page → consultation, consultation/page}  # Mẫu phiếu tham vấn (chỉ admin)
@@ -88,7 +94,7 @@ course-platform/
 ├─ public/favicon.ico               # Sinh từ app/icon.svg (Đợt 19 – trình duyệt tự xin /favicon.ico)
 ├─ public/images/                   # Ảnh bác sĩ, banner OG; bac-si/ – 6 ảnh hoạt động chuyên môn (Đợt 19, đã nén ≤ 800px)
 ├─ .github/workflows/ {ci.yml, keepalive.yml, backup.yml}   # CI; giữ Supabase Free hoạt động; sao lưu tuần (runbook §7.1)
-├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized), vercel.json (vùng sin1 – đường lùi, gỡ ở Đợt 17 P6)
+├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized, chuyển hướng /admin/patients → /admin/customers)
 ├─ wrangler.jsonc (Worker hv-web: R2 / D1 / Durable Object cho ISR, Smart Placement), open-next.config.ts, public/_headers   # Cloudflare – ADR-017
 └─ .env.local(.example)
 ```

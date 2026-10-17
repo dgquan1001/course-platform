@@ -206,7 +206,7 @@ Nghiên cứu xu hướng 2026: **bento grid** cho phần dịch vụ / lợi í
 
 | Thành phần | Mô tả |
 | --- | --- |
-| `ProgressRing` (Đợt 15, thay `ProgressBar`) | Vòng tròn SVG: rãnh `stroke-slate-100`, cung đã tập `stroke-ocean-500` (100% → `stroke-emerald-500`, kèm chữ "Đã hoàn thành" nên không chỉ dựa vào màu), đầu cung bo tròn, số % đậm `text-slate-800` ở giữa; bên cạnh "18/72 bài" + "hoàn thành". Cỡ `md` 56px (thẻ khóa, trang khóa, hồ sơ bệnh nhân) · `sm` 36px (header trình học, danh sách quản trị). Truyền `value` (VD tiến độ trung bình ở danh sách bệnh nhân) thì chỉ hiện vòng. `role="progressbar"`, `aria-valuenow/min/max`, `aria-label`; chuyển động chỉ khi không bật `prefers-reduced-motion` |
+| `ProgressRing` (Đợt 15, thay `ProgressBar`) | Vòng tròn SVG: rãnh `stroke-slate-100`, cung đã tập `stroke-ocean-500` (100% → `stroke-emerald-500`, kèm chữ "Đã hoàn thành" nên không chỉ dựa vào màu), đầu cung bo tròn, số % đậm `text-slate-800` ở giữa; bên cạnh "18/72 bài" + "hoàn thành". Cỡ `md` 56px (thẻ khóa, trang khóa, hồ sơ khách hàng) · `sm` 36px (header trình học, danh sách quản trị). Truyền `value` (VD tiến độ trung bình ở danh sách khách hàng) thì chỉ hiện vòng. `role="progressbar"`, `aria-valuenow/min/max`, `aria-label`; chuyển động chỉ khi không bật `prefers-reduced-motion` |
 | `PasswordInput` (Đợt 15) | `.input` + nút con mắt 44px bên phải (`type="button"`, `aria-label` "Hiện mật khẩu" / "Ẩn mật khẩu", `aria-pressed`, `aria-controls`); icon `EyeIcon` / `EyeOffIcon` màu slate-400, hover ocean-700. Dùng cho mọi ô mật khẩu |
 | Sidebar quản trị (Đợt 15) | ≥ `lg`: thẻ trắng rộng 224px, `sticky top-24`; tiêu đề "Bảng quản trị" + nhãn vai trò; mỗi mục icon 20px + nhãn, đang mở: nền `ocean-50` + vạch trái 4px `ocean-500`; số đếm: viên tròn `bg-ocean-600` chữ trắng 11px (> 99 → "99+"), có chữ ẩn cho trình đọc màn hình. < `lg`: hàng tab gạch chân cuộn ngang (không icon). Trang admin 2 cột (nội dung + form 380px) chỉ chia cột từ `xl` để không chật cạnh sidebar |
 | `CourseCover` | Ảnh bìa tỉ lệ 16:9 `rounded-xl object-cover` (`next/image`); không có ảnh → nền gradient ocean + icon cột sống |
@@ -217,7 +217,7 @@ Nghiên cứu xu hướng 2026: **bento grid** cho phần dịch vụ / lợi í
 | `LessonCheck` | Ô tick tròn 28px trong vùng chạm 44px; đã tập: nền emerald + ✓; `aria-pressed`, nhãn "Đánh dấu đã tập <tên bài>" |
 | CTA học tập | Nút chính `btn-gold btn-lg` ("Tiếp tục Buổi X", "Hoàn thành & bài tiếp theo"); mobile cố định đáy (`sticky bottom-0` có nền trắng + bóng trên) |
 | `StatCard` (dashboard) | ✅ `.card p-4` + viền trái 4px: nhãn nhỏ in hoa, số lớn `text-3xl font-bold tabular-nums`, dòng phụ; cả thẻ là link tới danh sách đã lọc. Viền ocean mặc định; gold khi cần làm (đơn chờ, sắp hết hạn, lead mới), red khi có phiếu tham vấn mới – luôn kèm chữ, không chỉ dựa vào màu |
-| Thanh tiến độ trung bình (dashboard) | ✅ `role="meter"`, rãnh `bg-ocean-100` cao 8px, phần đã tập `bg-ocean-500`; số % và số bệnh nhân ghi rõ bên cạnh |
+| Thanh tiến độ trung bình (dashboard) | ✅ `role="meter"`, rãnh `bg-ocean-100` cao 8px, phần đã tập `bg-ocean-500`; số % và số khách hàng ghi rõ bên cạnh |
 | Doanh thu (chỉ admin) | ✅ Số lớn (≥ 36px) tháng này + so với tháng trước (▲/▼ %); 4 bảng (chương trình / hình thức / nguồn / người xử lý), mỗi dòng thanh ngang một màu `ocean-500` tỉ lệ trong bảng + số tiền, số đơn; rê chuột xem chi tiết (`title`). Một màu vì chỉ thể hiện độ lớn, không có chuỗi so sánh |
 | `ConsentCheckbox` | Ô tick + chữ có link "Chính sách bảo mật" (mở tab mới); lỗi `role="alert"` ngay dưới |
 | `LoginReminders` | ✅ Hộp thoại giữa màn hình (`role="dialog"`, `aria-modal`): đồng ý chính sách (bắt buộc) hoặc "Bạn nên đổi mật khẩu" [Đổi ngay] [Để sau] |
@@ -225,7 +225,7 @@ Nghiên cứu xu hướng 2026: **bento grid** cho phần dịch vụ / lợi í
 | `.alert-warning` | ✅ Khung gold nhạt cho lời nhắc (VD mật khẩu do nhân viên cấp) |
 | `OneTimeSecret` | ✅ Khung emerald hiển thị mật khẩu vừa sinh (font mono, chữ lớn) + tin nhắn mẫu + [Chép tin nhắn gửi Zalo]; ghi "chỉ hiện một lần" |
 
-UX writing v0.2: gọi người dùng là "bạn" trên giao diện bệnh nhân; trong quản trị gọi là "bệnh nhân"; nút hành động học tập luôn
+UX writing v0.2: gọi người dùng là "bạn" trên giao diện khách hàng; trong quản trị gọi là "khách hàng"; nút hành động học tập luôn
 nói rõ buổi/bài ("Tiếp tục Buổi 4 – Bài 2"), tránh chữ chung chung "Tiếp tục".
 
 ## 9. Khu quản trị (Đợt 23 – UI-10)
@@ -236,7 +236,7 @@ nói rõ buổi/bài ("Tiếp tục Buổi 4 – Bài 2"), tránh chữ chung ch
 | Menu | Mục: icon `ocean-300` + chữ `ocean-200`; rê: `bg-white/5`; đang mở: `bg-white/10` chữ trắng, icon `gold-300`, vạch vàng 4px bên trái. Điện thoại: mục đang mở nền trắng chữ `ocean-950` | `app/admin/AdminNav.tsx` |
 | Số việc cần làm | Viên `bg-gold-400 text-ocean-950` cạnh mục menu (đơn chờ, phiếu mới, khách mới) | `app/admin/NavCount.tsx` |
 | Tiêu đề trang | H2 `text-2xl` + mô tả `text-sm slate-500` (≤ 2 dòng) + nút chính bên phải (`btn-gold` cho "Tạo / Thêm") + dòng "← quay lại" khi là trang con | `components/admin/PageHeader.tsx` |
-| Bộ lọc dạng viên | `.seg` (khung trắng viền nhạt) + `.seg-item`; mục đang chọn `aria-current="page"` nền `ocean-600` chữ trắng. Dùng cho tab trạng thái đơn, phiếu, khách, loại khóa, bệnh nhân / nhân viên, tab trong trang khóa | `app/globals.css` |
+| Bộ lọc dạng viên | `.seg` (khung trắng viền nhạt) + `.seg-item`; mục đang chọn `aria-current="page"` nền `ocean-600` chữ trắng. Dùng cho tab trạng thái đơn, phiếu, khách, loại khóa, khách hàng / nhân viên, tab trong trang khóa | `app/globals.css` |
 | Thẻ KPI | Nhãn chữ hoa nhỏ + ô icon 36px (màu theo mức: xanh / vàng "Cần chú ý" / đỏ "Cần xử lý" – luôn kèm chữ) + số `text-3xl` + dòng phụ; nhấc nhẹ khi rê | `components/StatCard.tsx` |
 | Thẻ khóa học | Ảnh bìa 16:10 trái + nhãn loại / trạng thái + tên (link tới trang sửa) + giá "Từ … · gói" + số bài / học viên; **hàng thao tác dưới thẻ** (nền `slate-50`): Sửa (primary) · Buổi – bài · Ẩn / Hiển thị · Xem trang ↗ · Xóa (đỏ, căn phải) | `app/admin/courses/page.tsx` |
 | Vùng nguy hiểm | Thẻ viền đỏ, tiêu đề đỏ có icon cảnh báo; bị chặn → `.alert-warning role="note"`; được xóa → ô gõ lại tên + nút đỏ chỉ mở khi gõ đúng | `app/admin/courses/DeleteCourse.tsx` |

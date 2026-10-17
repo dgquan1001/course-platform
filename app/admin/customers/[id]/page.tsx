@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaffPage } from '@/lib/auth'
 import { formatPrice } from '@/lib/site-config'
@@ -13,10 +13,14 @@ import SubmitButton from '@/components/SubmitButton'
 import { ArrowLeftIcon } from '@/components/icons'
 import { getPlanOptions } from '../data'
 import GrantFields from '../GrantFields'
-import { grantPlanAction, updatePatientAction } from '../actions'
+import { deleteCustomerAction, grantPlanAction, updatePatientAction } from '../actions'
 import ResetPassword from './ResetPassword'
+import RoleForm from '../RoleForm'
+import DeleteAccount from '@/components/admin/DeleteAccount'
+import { deleteConfirmValue } from '@/lib/managed-accounts'
+import { customerUsage, customerUsageMessage } from '../usage'
 
-export const metadata: Metadata = { title: 'Hồ sơ bệnh nhân' }
+export const metadata: Metadata = { title: 'Hồ sơ khách hàng' }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -35,13 +39,14 @@ const accountActions: Record<string, string> = {
   created: 'Tạo tài khoản',
   password_reset: 'Cấp lại mật khẩu',
   profile_updated: 'Sửa thông tin',
+  deleted: 'Xóa tài khoản',
 }
 
-// Hồ sơ bệnh nhân (SCR-24): thông tin, gói & hạn học, tiến độ, lịch sử đơn, phiếu tham vấn, nhật ký tài khoản.
-// Nhân viên / admin cấp gói, sửa thông tin, cấp lại mật khẩu.
-export default async function PatientPage(props: { params: Promise<{ id: string }> }) {
+// Hồ sơ khách hàng (SCR-24): thông tin, gói & hạn học, tiến độ, lịch sử đơn, phiếu tham vấn, nhật ký tài khoản.
+// Nhân viên / admin cấp gói, sửa thông tin, cấp lại mật khẩu, xóa tài khoản (Đợt 26); admin chuyển vai trò.
+export default async function CustomerPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
-  await requireStaffPage()
+  const me = await requireStaffPage()
   if (!UUID.test(params.id)) notFound()
   const supabase = await createClient()
 
@@ -51,8 +56,13 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
     .eq('id', params.id)
     .maybeSingle()
   if (!patient) notFound()
+  // Tài khoản nhân viên / admin quản lý ở trang Nhân viên (chỉ admin) – Đợt 26 tách riêng 2 danh mục
+  if (patient.role !== 'user') {
+    if (me.isAdmin) redirect(`/admin/staff/${patient.id}`)
+    notFound()
+  }
 
-  const [{ data: creator }, { data: note }, { data: progress }, { data: regs }, { data: consultations }, { data: events }, plans] = await Promise.all([
+  const [{ data: creator }, { data: note }, { data: progress }, { data: regs }, { data: consultations }, { data: events }, plans, usage] = await Promise.all([
     patient.created_by
       ? supabase.from('profiles').select('full_name, email, phone').eq('id', patient.created_by).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -71,21 +81,21 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
       .limit(20),
     supabase.from('account_events').select('action, actor_name, created_at').eq('user_id', patient.id).order('created_at', { ascending: false }).limit(20),
     getPlanOptions(),
+    customerUsage(supabase, patient.id),
   ])
   const courses = (progress ?? []) as CourseProgressRow[]
-  const isPatient = patient.role === 'user'
   const name = displayName(patient)
 
   return (
     <div className="space-y-5">
-      <Link href="/admin/patients" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-ocean-700">
-        <ArrowLeftIcon className="h-4 w-4" /> Danh sách bệnh nhân
+      <Link href="/admin/customers" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-ocean-700">
+        <ArrowLeftIcon className="h-4 w-4" /> Danh sách khách hàng
       </Link>
 
       <section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-bold">{name}</h2>
-          <StatusBadge status={isPatient ? `source_${patient.source}` : patient.role} />
+          <StatusBadge status={`source_${patient.source}`} />
           {patient.must_change_password && <span className="badge bg-gold-100 text-gold-800">Chưa đổi mật khẩu được cấp</span>}
         </div>
         <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
@@ -114,9 +124,6 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
         )}
       </section>
 
-      {!isPatient ? (
-        <p className="card p-6 text-sm text-slate-600">Đây là tài khoản nhân viên / admin – quản lý vai trò ở tab &quot;Nhân viên &amp; Admin&quot;.</p>
-      ) : (
         <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
           <div className="space-y-5">
             <section aria-label="Gói và tiến độ" className="card p-5">
@@ -191,7 +198,7 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
               )}
             </section>
 
-            <section aria-label="Phiếu tham vấn của bệnh nhân" className="card p-5">
+            <section aria-label="Phiếu tham vấn của khách hàng" className="card p-5">
               <h3 className="font-bold">Phiếu tham vấn</h3>
               {consultations?.length ? (
                 <ul className="mt-3 space-y-2 text-sm">
@@ -238,7 +245,7 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
               <p className="mt-2 text-xs text-slate-400">Còn hạn thì cộng dồn vào hạn cũ; đã hết hạn thì tính từ bây giờ.</p>
             </section>
 
-            <section className="card p-5">
+            <section id="sua-thong-tin" aria-label="Sửa thông tin" className="card scroll-mt-24 p-5">
               <h3 className="mb-3 font-bold">Sửa thông tin</h3>
               <ActionForm
                 key={`${patient.full_name}|${patient.phone}|${patient.email}|${note?.note}`}
@@ -267,12 +274,34 @@ export default async function PatientPage(props: { params: Promise<{ id: string 
 
             <section className="card p-5">
               <h3 className="mb-1 font-bold">Mật khẩu</h3>
-              <p className="mb-3 text-xs text-slate-500">Bệnh nhân quên mật khẩu, không có email: cấp mật khẩu mới rồi gửi qua Zalo.</p>
+              <p className="mb-3 text-xs text-slate-500">Khách hàng quên mật khẩu, không có email: cấp mật khẩu mới rồi gửi qua Zalo.</p>
               <ResetPassword userId={patient.id} name={name} />
             </section>
+
+            {me.isAdmin && (
+              <section aria-label="Phân quyền" className="card p-5">
+                <h3 className="mb-1 font-bold">Phân quyền</h3>
+                <p className="mb-3 text-xs text-slate-500">Chỉ admin. Chuyển thành nhân viên / admin thì tài khoản chuyển sang danh mục Nhân viên.</p>
+                <RoleForm target={{ id: patient.id, role: 'user', name }} />
+              </section>
+            )}
+
+            <DeleteAccount
+              id="xoa-khach-hang"
+              title="Xóa khách hàng"
+              description={
+                <p>
+                  Xóa vĩnh viễn tài khoản, tiến độ tập, ghi chú nội bộ và phiếu tham vấn. Đơn đăng ký + ảnh chuyển khoản vẫn giữ làm
+                  chứng từ (doanh thu không đổi). Không hoàn tác được.
+                </p>
+              }
+              confirmLabel="Gõ lại số điện thoại để xác nhận"
+              confirmValue={deleteConfirmValue(patient)}
+              blockedMessage={customerUsageMessage(usage)}
+              action={deleteCustomerAction.bind(null, patient.id)}
+            />
           </aside>
         </div>
-      )}
     </div>
   )
 }

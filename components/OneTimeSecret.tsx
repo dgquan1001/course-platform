@@ -5,12 +5,31 @@ import { siteConfig } from '@/lib/site-config'
 import { CheckIcon, CopyIcon } from './icons'
 import { toast } from './Toaster'
 
-// Mật khẩu do hệ thống sinh, hiện MỘT lần cho nhân viên (SCR-23): chép tin nhắn mẫu gửi bệnh nhân qua Zalo.
+// Mật khẩu do hệ thống sinh, hiện MỘT lần cho nhân viên (SCR-23): chép tin nhắn mẫu gửi khách hàng qua Zalo.
 // Tải lại trang là mất – hệ thống không lưu mật khẩu rõ ở đâu (BR-95).
-export default function OneTimeSecret({ name, phone, password, title }: { name: string; phone: string; password: string; title: string }) {
+// audience = staff (Đợt 26): tin nhắn cho nhân viên mới – vào trang quản trị, phải đổi mật khẩu ngay.
+export default function OneTimeSecret({
+  name,
+  phone,
+  password,
+  title,
+  audience = 'customer',
+}: {
+  name: string
+  phone: string
+  password: string
+  title: string
+  audience?: 'customer' | 'staff'
+}) {
   const [copied, setCopied] = useState(false)
   const loginUrl = `${siteConfig.url}/login`
-  const message =
+  const staffMessage =
+    `Chào ${name || 'bạn'}, tài khoản quản trị tại ${siteConfig.name}:\n` +
+    `- Đăng nhập: ${loginUrl}\n` +
+    `- Số điện thoại: ${phone}\n` +
+    `- Mật khẩu: ${password}\n` +
+    `Vui lòng đổi mật khẩu ngay sau khi đăng nhập (mục Tài khoản của tôi) và không chia sẻ mật khẩu cho người khác.`
+  const message = audience === 'staff' ? staffMessage :
     `Chào ${name || 'anh/chị'}, tài khoản tập luyện tại ${siteConfig.name}:\n` +
     `- Đăng nhập: ${loginUrl}\n` +
     `- Số điện thoại: ${phone}\n` +
@@ -21,7 +40,7 @@ export default function OneTimeSecret({ name, phone, password, title }: { name: 
     try {
       await navigator.clipboard.writeText(message)
       setCopied(true)
-      toast('Đã chép tin nhắn, dán vào Zalo để gửi bệnh nhân.')
+      toast(audience === 'staff' ? 'Đã chép tin nhắn, gửi riêng cho nhân viên.' : 'Đã chép tin nhắn, dán vào Zalo để gửi khách hàng.')
     } catch {
       toast('Không chép được, hãy bôi đen và chép tay tin nhắn bên dưới.', 'error')
     }
@@ -38,7 +57,7 @@ export default function OneTimeSecret({ name, phone, password, title }: { name: 
       </p>
       <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-white p-3 font-sans text-sm text-slate-700 ring-1 ring-emerald-100">{message}</pre>
       <button type="button" onClick={copy} className="btn-primary btn-sm mt-3">
-        {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />} Chép tin nhắn gửi Zalo
+        {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />} Chép tin nhắn {audience === 'staff' ? 'gửi nhân viên' : 'gửi Zalo'}
       </button>
     </div>
   )

@@ -25,25 +25,26 @@
 
 | Thuật ngữ | Tiếng Anh / trong code | Định nghĩa |
 | --- | --- | --- |
-| Bệnh nhân | User / `role = 'user'` | Tên gọi trên giao diện cho học viên ở v0.2 (đối tượng chính) |
-| Nhân viên | Staff / `role = 'staff'` | Nhân viên tư vấn: duyệt đơn, tạo tài khoản bệnh nhân, cấp gói, xử lý phiếu tham vấn và lead; không sửa nội dung khóa học, không phân quyền |
+| Khách hàng | User / `role = 'user'` | Người dùng dịch vụ (tự đăng ký trên web hoặc nhân viên tạo từ Zalo) – đối tượng chính. **Từ 18/10/2026 (Đợt 26) gọi chung là "khách hàng"**, thay cho "bệnh nhân" / "học viên" trên giao diện và tài liệu; tên trong database giữ nguyên (`admin_patients()`, `patient_notes`, `audience = 'patient'`). Quản lý ở `/admin/customers` |
+| Danh mục Nhân viên | `/admin/staff` | Trang riêng (chỉ admin) quản lý tài khoản nhân viên / admin: thêm, sửa, đổi vai trò, cấp lại mật khẩu, xóa (Đợt 26) |
+| Nhân viên | Staff / `role = 'staff'` | Nhân viên tư vấn: duyệt đơn, thêm / sửa / xóa khách hàng, cấp gói, xử lý phiếu tham vấn và lead; không thêm / sửa / xóa khóa học, không phân quyền, không quản lý nhân viên |
 | Quản trị viên | Admin / `role = 'admin'` | Quyền cao nhất, toàn quyền, xem mọi thông tin kể cả doanh thu |
 | Loại khóa | `courses.kind` | `free` (miễn phí) · `program` (chương trình trả phí theo gói) · `premium` (1:4, 1:2, 1:1 – chỉ liên hệ) |
 | Nhóm bệnh | `courses.category` | `veo_lung` (vẹo lưng) · `veo_nguc` (vẹo ngực) |
-| Đối tượng | `courses.audience` | `patient` (bệnh nhân) · `expert` (đội chuyên gia – giai đoạn sau) |
+| Đối tượng | `courses.audience` | `patient` (khách hàng) · `expert` (đội chuyên gia – giai đoạn sau) |
 | Chương trình | Program | Khóa `kind = 'program'`: lộ trình tập theo buổi, bán theo gói tháng |
 | Gói | Plan / `course_plans` | 1 / 3 / 6 / 12 tháng, giá riêng từng chương trình, số buổi được mở (mặc định 12 × số tháng) |
 | Buổi | Session / `course_sessions` | Một buổi tập gồm nhiều bài tập (thường 6) |
 | Bài tập | Lesson / `lessons` | Một video bài tập trong buổi (database giữ tên `lessons`) |
-| Checklist buổi | `lesson_progress` | Bệnh nhân tick từng bài đã tập; tick đủ thì mở buổi tiếp theo |
+| Checklist buổi | `lesson_progress` | Khách hàng tick từng bài đã tập; tick đủ thì mở buổi tiếp theo |
 | Tiến độ | Progress | % = số bài đã tick / tổng số bài trong số buổi đã mua |
 | Hạn học | `registrations.access_until` | Thời điểm hết quyền xem bài; tính từ lúc duyệt, cộng dồn khi gia hạn |
 | Gia hạn | Renewal | Mua thêm gói cho chương trình đang/đã học; học tiếp từ buổi đang dở |
-| Phiếu tham vấn | Consultation / `consultations` | Checklist tình trạng bệnh nhân gửi cho nhân viên để hẹn tham vấn bác sĩ |
+| Phiếu tham vấn | Consultation / `consultations` | Checklist tình trạng khách hàng gửi cho nhân viên để hẹn tham vấn bác sĩ |
 | Khách quan tâm | Lead / `leads` | Người bấm "Liên hệ Zalo" ở khóa premium (có hoặc không để lại SĐT) |
 | Nguồn khách | `profiles.source` | `web` (tự đăng ký) · `zalo` (nhân viên tạo) |
 | Hình thức thanh toán | `registrations.payment_method` | `bank_transfer` · `cash` · `other` |
-| Mật khẩu tạm | `must_change_password` | Mật khẩu hệ thống sinh khi nhân viên tạo / cấp lại; bệnh nhân được nhắc đổi |
+| Mật khẩu tạm | `must_change_password` | Mật khẩu hệ thống sinh khi nhân viên tạo / cấp lại; khách hàng được nhắc đổi |
 
 ## Kỹ thuật
 

@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaffPage } from '@/lib/auth'
 import { daysLeft } from '@/lib/courses'
 import { formatDay } from '@/lib/format'
 import ProgressRing from '@/components/ProgressRing'
 import StatusBadge from '@/components/StatusBadge'
-import RoleForm, { type RoleTarget } from './RoleForm'
 import PageHeader from '@/components/admin/PageHeader'
-import { InboxIcon, PlusIcon } from '@/components/icons'
+import { PencilIcon, InboxIcon, PlusIcon, TrashIcon } from '@/components/icons'
 
-export const metadata: Metadata = { title: 'Bệnh nhân' }
+export const metadata: Metadata = { title: 'Khách hàng' }
 
 type Patient = {
   id: string
@@ -37,9 +37,6 @@ type PatientRegistration = {
   plan_months: number | null
   courses: { title: string } | null
 }
-
-type TeamMember = { id: string; email: string | null; full_name: string | null; phone: string | null; role: string; created_at: string }
-type RoleEvent = { user_id: string; actor_name: string | null; created_at: string }
 
 const STATUS_FILTERS = [
   { value: '', label: 'Mọi trạng thái gói' },
@@ -95,53 +92,29 @@ function CourseList({ regs }: { regs: PatientRegistration[] | undefined }) {
   )
 }
 
-function Tabs({ team, isAdmin, teamCount }: { team: boolean; isAdmin: boolean; teamCount: number }) {
-  const tabs = [{ href: '/admin/patients', label: 'Bệnh nhân', active: !team }]
-  if (isAdmin) tabs.push({ href: '/admin/patients?role=team', label: `Nhân viên & Admin (${teamCount})`, active: team })
-  return (
-    <nav aria-label="Loại tài khoản" className="seg">
-      {tabs.map((t) => (
-        <Link key={t.href} href={t.href} aria-current={t.active ? 'page' : undefined} className="seg-item">
-          {t.label}
-        </Link>
-      ))}
-    </nav>
-  )
-}
-
-export default async function AdminPatientsPage(props: { searchParams: Promise<{ q?: string; role?: string; source?: string; status?: string; new?: string }> }) {
+export default async function AdminCustomersPage(props: { searchParams: Promise<{ q?: string; role?: string; source?: string; status?: string; new?: string }> }) {
   const searchParams = await props.searchParams
-  const me = await requireStaffPage()
+  await requireStaffPage()
   const q = (searchParams.q ?? '').trim().slice(0, 100)
-  // Tab "Nhân viên & Admin" chỉ admin xem (rà soát ai đang có quyền vào trang quản trị)
-  const team = searchParams.role === 'team' && me.isAdmin
+  // Đường dẫn cũ tab "Nhân viên & Admin" (?role=team) → danh mục Nhân viên riêng (Đợt 26; trang tự chặn người không phải admin)
+  if (searchParams.role === 'team') redirect(`/admin/staff${q ? `?q=${encodeURIComponent(q)}` : ''}`)
   const supabase = await createClient()
-  const { count: teamCount } = me.isAdmin
-    ? await supabase.from('profiles').select('id', { count: 'exact', head: true }).in('role', ['staff', 'admin'])
-    : { count: 0 }
 
   const search = (
     <form className="flex flex-wrap gap-2">
-      {team && <input type="hidden" name="role" value="team" />}
       <input name="q" defaultValue={q} placeholder="Tìm theo tên, email hoặc số điện thoại" aria-label="Từ khóa" className="input max-w-md flex-1" />
-      {!team && (
-        <>
-          <select name="source" defaultValue={pick(searchParams.source, SOURCE_FILTERS)} aria-label="Nguồn" className="input w-auto">
-            {SOURCE_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <select name="status" defaultValue={pick(searchParams.status, STATUS_FILTERS)} aria-label="Trạng thái gói" className="input w-auto">
-            {STATUS_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <select name="new" defaultValue={pick(searchParams.new, NEW_FILTERS)} aria-label="Thời điểm tạo" className="input w-auto">
-            {NEW_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </>
-      )}
+      <select name="source" defaultValue={pick(searchParams.source, SOURCE_FILTERS)} aria-label="Nguồn" className="input w-auto">
+        {SOURCE_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <select name="status" defaultValue={pick(searchParams.status, STATUS_FILTERS)} aria-label="Trạng thái gói" className="input w-auto">
+        {STATUS_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <select name="new" defaultValue={pick(searchParams.new, NEW_FILTERS)} aria-label="Thời điểm tạo" className="input w-auto">
+        {NEW_FILTERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
       <button className="btn-primary">Lọc</button>
     </form>
   )
-
-  if (team) return <TeamList q={q} me={me} teamCount={teamCount ?? 0} search={search} />
 
   const { data, error } = await supabase.rpc('admin_patients', {
     p_q: q.replace(/[%_\\]/g, ''),
@@ -153,7 +126,7 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
   if (error) throw new Error(error.message)
   const patients = (data ?? []) as Patient[]
 
-  // Đơn của các bệnh nhân đang hiển thị (không tải toàn bộ bảng đơn): mỗi khóa lấy đơn mới nhất
+  // Đơn của các khách hàng đang hiển thị (không tải toàn bộ bảng đơn): mỗi khóa lấy đơn mới nhất
   const regsByUser = new Map<string, PatientRegistration[]>()
   if (patients.length) {
     const { data: regs } = await supabase
@@ -184,33 +157,56 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
       <span className="text-slate-300">—</span>
     )
 
-  const roleTarget = (p: Patient): RoleTarget => ({ id: p.id, role: 'user', name: p.full_name || p.email || p.phone || 'tài khoản này' })
+  // Thao tác từng khách hàng (QL-02, Đợt 26): Sửa mở form ở hồ sơ, Xóa mở vùng xóa có kiểm tra điều kiện + gõ SĐT xác nhận
+  const rowActions = (p: Patient) => {
+    const name = p.full_name || p.phone || 'khách hàng'
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Link href={`/admin/customers/${p.id}`} className="btn btn-sm border border-ocean-200 bg-white text-ocean-700 hover:bg-ocean-50">
+          Hồ sơ
+        </Link>
+        <Link
+          href={`/admin/customers/${p.id}#sua-thong-tin`}
+          aria-label={`Sửa ${name}`}
+          className="btn btn-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+        >
+          <PencilIcon className="h-3.5 w-3.5" /> Sửa
+        </Link>
+        <Link
+          href={`/admin/customers/${p.id}#xoa-khach-hang`}
+          aria-label={`Xóa ${name}`}
+          className="btn btn-sm border border-red-200 bg-white text-red-600 hover:bg-red-50"
+        >
+          <TrashIcon className="h-3.5 w-3.5" /> Xóa
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Bệnh nhân"
-        description="Tài khoản bệnh nhân (tự đăng ký trên web hoặc nhân viên tạo từ Zalo), gói đang học và tiến độ tập."
+        title="Khách hàng"
+        description="Tài khoản khách hàng (tự đăng ký trên web hoặc nhân viên tạo từ Zalo), gói đang học và tiến độ tập."
         actions={
-          <Link href="/admin/patients/new" className="btn-gold">
-            <PlusIcon className="h-4 w-4" /> Tạo bệnh nhân
+          <Link href="/admin/customers/new" className="btn-gold">
+            <PlusIcon className="h-4 w-4" /> Tạo khách hàng
           </Link>
         }
       />
-      <Tabs team={false} isAdmin={me.isAdmin} teamCount={teamCount ?? 0} />
       {search}
-      <p className="text-sm text-slate-500">{patients.length} bệnh nhân{patients.length === 200 && ' (hiển thị 200 người mới nhất – hãy lọc hoặc tìm để thu hẹp)'}</p>
+      <p className="text-sm text-slate-500">{patients.length} khách hàng{patients.length === 200 && ' (hiển thị 200 người mới nhất – hãy lọc hoặc tìm để thu hẹp)'}</p>
 
       <div className="card hidden overflow-x-auto md:block">
-        <table aria-label="Danh sách bệnh nhân" className="w-full text-left text-sm">
+        <table aria-label="Danh sách khách hàng" className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-4 py-3">Bệnh nhân</th>
+              <th className="px-4 py-3">Khách hàng</th>
               <th className="px-4 py-3">Số điện thoại</th>
               <th className="px-4 py-3">Chương trình</th>
               <th className="px-4 py-3">Tiến độ</th>
               <th className="px-4 py-3">Ngày tạo</th>
-              {me.isAdmin && <th className="px-4 py-3">Vai trò</th>}
+              <th className="px-4 py-3">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -218,7 +214,7 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
               <tr key={p.id} className="align-top">
                 <td className="px-4 py-3">
                   <p className="flex flex-wrap items-center gap-2 font-semibold text-ocean-900">
-                    <Link href={`/admin/patients/${p.id}`} className="hover:underline">
+                    <Link href={`/admin/customers/${p.id}`} className="hover:underline">
                       {p.full_name || '—'}
                     </Link>
                     <StatusBadge status={`source_${p.source}`} />
@@ -232,11 +228,7 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
                 <td className="px-4 py-3"><CourseList regs={regsByUser.get(p.id)} /></td>
                 <td className="px-4 py-3">{progress(p)}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDay(p.created_at)}</td>
-                {me.isAdmin && (
-                  <td className="px-4 py-3">
-                    <RoleForm target={roleTarget(p)} />
-                  </td>
-                )}
+                <td className="px-4 py-3">{rowActions(p)}</td>
               </tr>
             ))}
           </tbody>
@@ -247,13 +239,14 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
         {patients.map((p) => (
           <div key={p.id} className="card p-4 text-sm">
             <p className="flex flex-wrap items-center gap-2 font-semibold text-ocean-900">
-              <Link href={`/admin/patients/${p.id}`} className="hover:underline">{p.full_name || '—'}</Link>
+              <Link href={`/admin/customers/${p.id}`} className="hover:underline">{p.full_name || '—'}</Link>
               <StatusBadge status={`source_${p.source}`} />
             </p>
             <p className="text-slate-500">{p.email ?? <span className="italic text-slate-400">Không có email</span>}</p>
             {p.phone && <a href={`tel:${p.phone}`} className="text-ocean-700">{p.phone}</a>}
             <div className="mt-2 border-t border-slate-100 pt-2"><CourseList regs={regsByUser.get(p.id)} /></div>
             <div className="mt-2">{progress(p)}</div>
+            <div className="mt-3 border-t border-slate-100 pt-3">{rowActions(p)}</div>
           </div>
         ))}
       </div>
@@ -261,83 +254,12 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
       {!patients.length && (
         <div className="card grid place-items-center gap-2 p-10 text-center text-slate-500">
           <InboxIcon className="h-8 w-8 text-slate-300" />
-          <p>Không tìm thấy bệnh nhân.</p>
+          <p>Không tìm thấy khách hàng.</p>
+          <Link href="/admin/customers/new" className="btn-primary btn-sm mt-1">
+            <PlusIcon className="h-4 w-4" /> Tạo khách hàng
+          </Link>
         </div>
       )}
-    </div>
-  )
-}
-
-// Tab "Nhân viên & Admin" (chỉ admin): ai đang có quyền vào trang quản trị, ai cấp quyền
-async function TeamList({ q, me, teamCount, search }: { q: string; me: { id: string; isAdmin: boolean }; teamCount: number; search: React.ReactNode }) {
-  const supabase = await createClient()
-  let query = supabase
-    .from('profiles')
-    .select('id, email, full_name, phone, role, created_at')
-    .in('role', ['staff', 'admin'])
-    .order('created_at', { ascending: false })
-    .limit(200)
-  if (q) {
-    const term = q.replace(/[%,()\\]/g, '')
-    query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
-  }
-  const [{ data, error }, { data: roleEvents }] = await Promise.all([
-    query,
-    supabase.from('role_events').select('user_id, actor_name, created_at').in('to_role', ['staff', 'admin']).order('created_at', { ascending: false }),
-  ])
-  if (error) throw new Error(error.message)
-  const members = (data ?? []) as TeamMember[]
-  // Lần cấp quyền gần nhất của mỗi tài khoản
-  const grantedBy = new Map<string, RoleEvent>()
-  for (const e of (roleEvents ?? []) as RoleEvent[]) if (!grantedBy.has(e.user_id)) grantedBy.set(e.user_id, e)
-
-  return (
-    <div className="space-y-5">
-      <PageHeader title="Nhân viên & Admin" description="Những tài khoản đang có quyền vào trang quản trị và người đã cấp quyền." />
-      <Tabs team isAdmin={me.isAdmin} teamCount={teamCount} />
-      {search}
-      <div className="card overflow-x-auto">
-        <table aria-label="Nhân viên và admin" className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Tài khoản</th>
-              <th className="px-4 py-3">Số điện thoại</th>
-              <th className="px-4 py-3">Ngày tạo</th>
-              <th className="px-4 py-3">Vai trò</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {members.map((u) => {
-              const event = grantedBy.get(u.id)
-              return (
-                <tr key={u.id} className="align-top">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-ocean-900">
-                      {u.full_name || '—'} <StatusBadge status={u.role} />
-                    </p>
-                    <p className="text-slate-500">{u.email ?? <span className="italic text-slate-400">Không có email</span>}</p>
-                    {event && (
-                      <p className="text-xs text-slate-400">
-                        Cấp quyền bởi {event.actor_name ?? 'Hệ thống'} · {formatDay(event.created_at)}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{u.phone ? <a href={`tel:${u.phone}`} className="text-ocean-700 hover:underline">{u.phone}</a> : '—'}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDay(u.created_at)}</td>
-                  <td className="px-4 py-3">
-                    {u.id === me.id ? (
-                      <span className="text-xs text-slate-400">Tài khoản của bạn</span>
-                    ) : (
-                      <RoleForm target={{ id: u.id, role: u.role, name: u.full_name || u.email || u.phone || 'tài khoản này' }} />
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        {!members.length && <p className="p-10 text-center text-slate-500">Không tìm thấy tài khoản.</p>}
-      </div>
     </div>
   )
 }

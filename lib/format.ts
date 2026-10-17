@@ -1,4 +1,4 @@
-// Định dạng ngày giờ (giờ Việt Nam) và nhãn dùng chung cho các trang quản trị / bệnh nhân
+// Định dạng ngày giờ (giờ Việt Nam) và nhãn dùng chung cho các trang quản trị / khách hàng
 const VN = { timeZone: 'Asia/Ho_Chi_Minh' } as const
 
 export const formatDateTime = (value: string) =>

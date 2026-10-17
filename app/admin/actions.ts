@@ -257,7 +257,7 @@ export async function setLeadStatus(leadId: string, expected: string, formData: 
 
 const consultationMessages = {
   new: 'Đã chuyển phiếu về "Mới".',
-  contacted: 'Đã ghi nhận: đã liên hệ bệnh nhân.',
+  contacted: 'Đã ghi nhận: đã liên hệ khách hàng.',
   done: 'Đã hoàn tất phiếu tham vấn.',
   cancelled: 'Đã hủy phiếu.',
 }
@@ -266,7 +266,7 @@ const isConsultationStatus = (s: string): s is ConsultationStatus => Object.hasO
 const MAX_STAFF_NOTE = 1000
 
 // Như setLeadStatus: không ghi đè khi người khác vừa xử lý; người xử lý, thời điểm do trigger consultations_stamp ghi.
-// Ghi chú nội bộ bệnh nhân không đọc được (bệnh nhân xem phiếu qua my_consultations()).
+// Ghi chú nội bộ khách hàng không đọc được (khách hàng xem phiếu qua my_consultations()).
 export async function setConsultationStatus(consultationId: string, expected: string, formData: FormData) {
   const status = text(formData, 'status')
   const note = text(formData, 'staff_note')
@@ -363,7 +363,7 @@ export async function moveConsultQuestion(questionId: string, direction: 'up' | 
 const roleMessages: Record<Role, string> = {
   admin: 'Đã cấp quyền admin.',
   staff: 'Đã chuyển vai trò thành Nhân viên.',
-  user: 'Đã chuyển vai trò thành Bệnh nhân.',
+  user: 'Đã chuyển vai trò thành Khách hàng.',
 }
 
 const isRole = (s: string): s is Role => Object.hasOwn(roleMessages, s)

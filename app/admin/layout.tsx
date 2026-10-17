@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireStaffPage } from '@/lib/auth'
-import { ExternalLinkIcon, ShieldIcon } from '@/components/icons'
+import { AlertIcon, ExternalLinkIcon, ShieldIcon } from '@/components/icons'
 import AdminNav from './AdminNav'
 import NavCount from './NavCount'
 
@@ -52,7 +52,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
       <div className="min-w-0 px-4 py-6 sm:px-6 sm:py-8 xl:px-8">
-        <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+        <div className="mx-auto w-full max-w-[1400px]">
+          {/* Mật khẩu do admin cấp (Đợt 26): nhắc nhân viên / admin đổi ngay – tài khoản quản trị có quyền xem dữ liệu khách hàng */}
+          {user.mustChangePassword && (
+            <p role="note" className="alert-warning mb-5 flex flex-wrap items-center gap-2">
+              <AlertIcon className="h-4 w-4 shrink-0" /> Bạn đang dùng mật khẩu được cấp.
+              <Link href="/account" className="font-semibold underline">
+                Đổi mật khẩu ngay
+              </Link>
+            </p>
+          )}
+          {children}
+        </div>
       </div>
     </main>
   )

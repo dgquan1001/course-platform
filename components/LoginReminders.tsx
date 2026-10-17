@@ -8,7 +8,7 @@ import { invalidateProfile, useProfile } from '@/lib/use-profile'
 import { SpinnerIcon } from './icons'
 import { toast } from './Toaster'
 
-// Hộp nhắc sau khi đăng nhập (SCR-21), chỉ với tài khoản học viên / bệnh nhân:
+// Hộp nhắc sau khi đăng nhập (SCR-21), chỉ với tài khoản khách hàng (nhân viên / admin được nhắc ở khung quản trị – app/admin/layout.tsx):
 // 1. Chưa đồng ý Chính sách bảo mật (tài khoản cũ): phải đồng ý mới dùng tiếp (vẫn đăng xuất được).
 // 2. Mật khẩu do nhân viên cấp (must_change_password): nhắc đổi, không bắt buộc – "Để sau" ẩn tới hết phiên trình duyệt.
 const skipKey = (userId: string) => `hv-skip-password-reminder:${userId}`

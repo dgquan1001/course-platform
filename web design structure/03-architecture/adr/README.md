@@ -18,10 +18,10 @@ giả định hoặc lặp lại tranh luận cũ. Mẫu: [../../templates/adr-t
 | [ADR-011](ADR-011-staff-role.md) | Ba vai trò user / staff / admin | Accepted – Đợt 7 |
 | [ADR-012](ADR-012-course-kinds-and-plans.md) | Loại khóa học (miễn phí / chương trình / premium) và gói theo thời hạn cộng dồn | Accepted – Đợt 8 (loại khóa) · ✅ Đợt 9 (gói, hạn học cộng dồn) |
 | [ADR-013](ADR-013-sessions-sequential-progress.md) | Buổi → Bài tập, mở buổi tuần tự, video theo `can_view_lesson` | Accepted – ✅ Đợt 10 (có điều chỉnh: RLS theo dòng thay column privilege) |
-| [ADR-014](ADR-014-staff-provisioned-accounts.md) | Nhân viên tạo tài khoản cho bệnh nhân từ Zalo, mật khẩu hệ thống sinh | Accepted – ✅ Đợt 11 (có điều chỉnh) |
+| [ADR-014](ADR-014-staff-provisioned-accounts.md) | Nhân viên tạo tài khoản cho khách hàng từ Zalo, mật khẩu hệ thống sinh | Accepted – ✅ Đợt 11 (có điều chỉnh) |
 | [ADR-015](ADR-015-consultation-and-leads.md) | Phiếu tham vấn bác sĩ và khách quan tâm premium | Accepted – ✅ Đợt 8 (khách quan tâm) · ✅ Đợt 12 (phiếu tham vấn, có điều chỉnh) |
 | [ADR-016](ADR-016-lightweight-middleware.md) | Middleware nhẹ: đọc phiên từ cookie, kiểm tra quyền ở trang (cache theo request) | Accepted – ✅ cùng Đợt 11 → 13 (sửa một phần ADR-011) |
-| [ADR-017](ADR-017-cloudflare-workers.md) | Chạy web trên Cloudflare Workers (OpenNext), giữ Supabase Free | Accepted – kế hoạch Đợt 17 (sửa phần "Vercel" của ADR-001) |
+| [ADR-017](ADR-017-cloudflare-workers.md) | Chạy web trên Cloudflare Workers (OpenNext), giữ Supabase Free | Accepted – đã triển khai (Đợt 17); Vercel gỡ 18/10/2026 (sửa phần "Vercel" của ADR-001) |
 | [ADR-018](ADR-018-homepage-i18n.md) | Song ngữ trang chủ: tiếng Việt `/`, tiếng Anh `/en`, từ điển tĩnh `lib/i18n.ts` | Accepted – ✅ Đợt 20 (17/10/2026) |
 
 > ADR-002 (RLS) và ADR-004 (chuyển khoản, duyệt thủ công) vẫn giữ nguyên, được mở rộng bởi ADR-011 → ADR-015.

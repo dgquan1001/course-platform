@@ -34,11 +34,11 @@ export default async function ConsultationSettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Mẫu phiếu tham vấn" description="Câu hỏi bệnh nhân trả lời khi gửi phiếu tham vấn cho bác sĩ." />
+      <PageHeader title="Mẫu phiếu tham vấn" description="Câu hỏi khách hàng trả lời khi gửi phiếu tham vấn cho bác sĩ." />
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className="space-y-3">
           <div className="card p-4 text-sm text-slate-600">
-            Bệnh nhân trả lời các câu hỏi <strong>đang dùng</strong> khi gửi phiếu. Câu Có/Không và thang 0–10 bắt buộc trả lời, câu trả lời ngắn không bắt buộc.
+            Khách hàng trả lời các câu hỏi <strong>đang dùng</strong> khi gửi phiếu. Câu Có/Không và thang 0–10 bắt buộc trả lời, câu trả lời ngắn không bắt buộc.
             Sửa hay xóa câu hỏi <strong>không ảnh hưởng phiếu đã gửi</strong> (phiếu lưu lại câu hỏi lúc gửi).
           </div>
           {questions.map((q, i) => (

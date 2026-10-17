@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { realEmail } from '@/lib/phone'
 
-// user: bệnh nhân / học viên · staff: nhân viên · admin: quyền cao nhất
+// user: khách hàng (trước 18/10/2026 gọi là bệnh nhân / học viên) · staff: nhân viên · admin: quyền cao nhất
 export type Role = 'user' | 'staff' | 'admin'
 
 type CurrentUser = {

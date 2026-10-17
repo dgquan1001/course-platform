@@ -5,7 +5,7 @@ import { setUserRole } from '../actions'
 export type RoleTarget = { id: string; role: string; name: string }
 
 const roleOptions = [
-  { value: 'user', label: 'Bệnh nhân' },
+  { value: 'user', label: 'Khách hàng' },
   { value: 'staff', label: 'Nhân viên' },
   { value: 'admin', label: 'Admin' },
 ]
@@ -26,7 +26,7 @@ export default function RoleForm({ target }: { target: RoleTarget }) {
       </select>
       <SubmitButton
         className="btn btn-sm whitespace-nowrap border border-ocean-200 bg-white text-ocean-700 hover:bg-ocean-50"
-        confirmMessage={`Đổi vai trò của ${target.name}? Nhân viên: duyệt đơn, quản lý bệnh nhân, phiếu tham vấn. Admin: toàn quyền, kể cả sửa khóa học và phân quyền. Bệnh nhân: không vào được trang quản trị.`}
+        confirmMessage={`Đổi vai trò của ${target.name}? Nhân viên: duyệt đơn, quản lý khách hàng, phiếu tham vấn. Admin: toàn quyền, kể cả sửa khóa học và phân quyền. Khách hàng: không vào được trang quản trị.`}
       >
         Lưu vai trò
       </SubmitButton>

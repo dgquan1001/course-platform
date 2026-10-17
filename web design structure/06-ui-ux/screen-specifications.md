@@ -31,8 +31,11 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-20 | *(v0.2)* Phiếu tham vấn | `/courses/consultation` | US-15.02 |
 | SCR-21 | *(v0.2)* Hộp nhắc đổi mật khẩu / đồng ý | (sau đăng nhập) | US-14.02, 11.06 |
 | SCR-22 | *(v0.2)* Admin – Tổng quan | `/admin` | EP-16 |
-| SCR-23 | *(v0.2)* Admin – Tạo bệnh nhân | `/admin/patients/new` | US-14.01 |
-| SCR-24 | *(v0.2)* Admin – Chi tiết bệnh nhân | `/admin/patients/:id` | US-14.03, 14.04 |
+| SCR-23 | *(v0.2)* Admin – Tạo khách hàng | `/admin/customers/new` | US-14.01 |
+| SCR-24 | *(v0.2)* Admin – Chi tiết khách hàng | `/admin/customers/:id` | US-14.03, 14.04, 17.01 |
+| SCR-26 | *(Đợt 26)* Admin – Nhân viên (danh sách) | `/admin/staff` | US-17.02, 17.03 |
+| SCR-26b | *(Đợt 26)* Admin – Thêm nhân viên | `/admin/staff/new` | US-17.02 |
+| SCR-26c | *(Đợt 26)* Admin – Hồ sơ nhân viên | `/admin/staff/:id` | US-17.03 |
 | SCR-25 | *(v0.2)* Admin – Phiếu tham vấn / Khách quan tâm | `/admin/consultations`, `/admin/leads` | US-15.04, 11.05 |
 | SCR-26 | *(v0.2)* Admin – Khóa học: loại, ảnh bìa, gói | `/admin/courses` | US-11.02, 12.01 |
 | SCR-27 | *(v0.2)* Admin – Nội dung buổi – bài | `/admin/courses/:id` | US-13.01, 13.02 |
@@ -276,10 +279,10 @@ Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc k
 >
 > ```text
 > ┌─ Bảng quản trị ─┐  ┌──────────── nội dung trang ─────────────┐
-> │ [Admin]         │  │ Tổng quan                 [+ Tạo bệnh nhân]│
+> │ [Admin]         │  │ Tổng quan                 [+ Tạo khách hàng]│
 > │▌⌂ Tổng quan     │  │ …                                          │
 > │ ▤ Đơn đăng ký ③ │  │                                            │
-> │ 👥 Bệnh nhân    │  │                                            │
+> │ 👥 Khách hàng    │  │                                            │
 > │ 📖 Khóa học     │  │                                            │
 > │ 🩺 Phiếu t.vấn ① │  │                                            │
 > │ ☆ Khách q.tâm   │  │                                            │
@@ -314,6 +317,28 @@ Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân v
 | Loading | Thanh tiến trình trên đầu trang (`NavigationProgress`). Không dùng `app/admin/loading.tsx` từ Đợt 17: Next 15.5 hủy điều hướng đổi tab `?status=` khi trang lớn (RK-53) |
 
 ## SCR-11 – Admin: Học viên
+
+> **Đợt 26 (18/10/2026)**: thay bằng **Khách hàng** (`/admin/customers` – chỉ tài khoản khách hàng, cột **Thao tác**: Hồ sơ · Sửa · Xóa,
+> không còn ô vai trò) và **Nhân viên** (SCR-26 – chỉ admin). Bản vẽ dưới đây giữ làm lịch sử.
+
+### SCR-26 – Admin: Nhân viên (Đợt 26)
+
+```text
+Nhân viên                                                        [+ Thêm nhân viên]
+[Tìm theo tên, email hoặc số điện thoại____] [Mọi vai trò ▾] [Lọc]
+3 tài khoản
+┌ Nhân viên ──────────────────┬ SĐT ──────┬ Vai trò ───┬ Ngày tạo ─┬ Thao tác ────────┐
+│ Nguyễn A (bạn)              │ 0912…     │ [Admin]    │ 26/09/2026│ [Sửa]            │
+│ Cấp quyền bởi Hệ thống · 26/09                                                       │
+│ Trần B                      │ 0987…     │ [Nhân viên]│ 18/10/2026│ [Sửa] [Xóa]      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+Nhật ký xóa tài khoản: 18/10 10:12 · Nguyễn A đã xóa Lê C
+```
+SCR-26b: họ tên*, SĐT* (đăng nhập), email, vai trò (Nhân viên / Admin) → mật khẩu 8 ký tự hiện 1 lần + "Chép tin nhắn gửi nhân viên".
+SCR-26c: thông tin, lịch sử phân quyền, nhật ký; cột phải: Sửa thông tin · Vai trò (Nhân viên / Admin / Khách hàng) · Cấp lại mật khẩu · **Xóa nhân viên**
+(gõ lại SĐT). Hồ sơ của chính mình chỉ có Sửa thông tin + lời nhắc đổi mật khẩu ở Tài khoản của tôi.
+SCR-24 (hồ sơ khách hàng) thêm vùng **Xóa khách hàng** (`#xoa-khach-hang`): còn gói còn hạn / đơn chờ → chỉ hiện lý do; không thì ô gõ SĐT + nút đỏ.
+Khung quản trị: tài khoản quản trị dùng mật khẩu được cấp → dải vàng "Bạn đang dùng mật khẩu được cấp. Đổi mật khẩu ngay".
 
 ```text
 [Tất cả tài khoản] [Nhân viên & Admin (3)]
@@ -523,12 +548,12 @@ Câu `scale` bắt buộc chọn; `check` bắt buộc; `text` không bắt bu�
 ## SCR-22 – Admin: Tổng quan
 
 ```text
-Tổng quan                                                   [+ Tạo bệnh nhân]
-┌ Bệnh nhân ┐┌ Mới 7 ngày ┐┌ Đơn chờ ┐┌ Gói hiệu lực ┐┌ Sắp hết hạn ┐┌ Đã hết hạn ┐┌ Phiếu mới ┐┌ Lead mới ┐
+Tổng quan                                                   [+ Tạo khách hàng]
+┌ Khách hàng ┐┌ Mới 7 ngày ┐┌ Đơn chờ ┐┌ Gói hiệu lực ┐┌ Sắp hết hạn ┐┌ Đã hết hạn ┐┌ Phiếu mới ┐┌ Lead mới ┐
 │   128     ││ 9 (Web 4 · Zalo 5)││ 3 ││ 96 ││ 7 ││ 12 ││ 2 ││ 5 │
 └───────────┘└────────────┘└─────────┘└──────────────┘└─────────────┘└────────────┘└───────────┘└──────────┘
 Việc cần làm                                   │ Tiến độ theo chương trình
-• Đơn chờ lâu nhất (3)          [Mở]            │ Vẹo lưng  ██████░░ 58% (40 bệnh nhân)
+• Đơn chờ lâu nhất (3)          [Mở]            │ Vẹo lưng  ██████░░ 58% (40 khách hàng)
 • Sắp hết hạn: Nguyễn A (2 ngày) [☎][Zalo]      │ Vẹo ngực  ████░░░░ 41% (31)
 • Phiếu tham vấn mới (2)        [Mở]            │ Không tập > 7 ngày: 11  [Xem]
 • Lead premium mới (5)          [Mở]            │
@@ -538,27 +563,27 @@ theo chương trình · theo hình thức (CK / tiền mặt / khác) · theo ng
 ```
 Mỗi thẻ là link tới danh sách đã lọc. Biểu đồ tuân theo design system (không màu mè, số liệu có nhãn).
 
-> ✅ Đợt 13: 8 thẻ (Bệnh nhân · Mới 30 ngày · Đơn chờ duyệt · Gói đang hiệu lực · Sắp hết hạn 7 ngày · Đã hết hạn · Phiếu tham vấn mới · Khách premium mới), "Việc cần làm" (đơn chờ, phiếu mới, lead mới, bệnh nhân sắp hết hạn kèm Gọi / Zalo), "Tiến độ theo chương trình" + "Không tập > 7 ngày"; khối Doanh thu chỉ admin (tháng này so tháng trước, 4 bảng phân tích).
+> ✅ Đợt 13: 8 thẻ (Khách hàng · Mới 30 ngày · Đơn chờ duyệt · Gói đang hiệu lực · Sắp hết hạn 7 ngày · Đã hết hạn · Phiếu tham vấn mới · Khách premium mới), "Việc cần làm" (đơn chờ, phiếu mới, lead mới, khách hàng sắp hết hạn kèm Gọi / Zalo), "Tiến độ theo chương trình" + "Không tập > 7 ngày"; khối Doanh thu chỉ admin (tháng này so tháng trước, 4 bảng phân tích).
 
-## SCR-23 – Admin: Tạo bệnh nhân
+## SCR-23 – Admin: Tạo khách hàng
 
 ```text
-Tạo tài khoản bệnh nhân (khách từ Zalo)
+Tạo tài khoản khách hàng (khách từ Zalo)
 Họ và tên * [____]   SĐT * [____]   Email [____]
 Ghi chú nội bộ [____]
-[✓] Bệnh nhân đã đồng ý Chính sách bảo mật (đã gửi link qua Zalo) *
+[✓] Khách hàng đã đồng ý Chính sách bảo mật (đã gửi link qua Zalo) *
 ── Cấp gói ngay (tùy chọn) ─────────────────────────
 Chương trình [Vẹo ngực ▾]  Gói (•)1 tháng ( )3 tháng …
 Số tiền đã nhận * [990.000]  Hình thức * (•)Chuyển khoản ( )Tiền mặt ( )Khác
 Ảnh chuyển khoản [chọn ảnh]  Ghi chú thanh toán [____]
 [ Tạo tài khoản ]
 ```
-> ✅ Đợt 11: như trên; số tiền tự điền theo giá gói (sửa được). Thành công ở lại trang, hiện khung mật khẩu + [Xem hồ sơ bệnh nhân] [Tạo bệnh nhân khác].
+> ✅ Đợt 11: như trên; số tiền tự điền theo giá gói (sửa được). Thành công ở lại trang, hiện khung mật khẩu + [Xem hồ sơ khách hàng] [Tạo khách hàng khác].
 
 Thành công → khung xanh: "Mật khẩu: **K7mPq4xa** (chỉ hiện một lần)" + [Chép tin nhắn gửi Zalo]:
 "Chào chị Mai, tài khoản tập luyện tại Trung tâm HV: Đăng nhập: <link> · SĐT: 09xx · Mật khẩu: … · Chị nên đổi mật khẩu sau khi đăng nhập."
 
-## SCR-24 – Admin: Chi tiết bệnh nhân
+## SCR-24 – Admin: Chi tiết khách hàng
 
 > ✅ Đợt 11: cột trái – thông tin (nguồn, người tạo, ngày đồng ý, ghi chú nội bộ), Gói & tiến độ, Lịch sử đơn / gói, Phiếu tham vấn, Nhật ký tài khoản; cột phải – Cấp gói / Gia hạn, Sửa thông tin (kèm ghi chú nội bộ), Cấp lại mật khẩu. Tài khoản nhân viên / admin: chỉ hiện thông tin.
 Thông tin (sửa được), nguồn (Web/Zalo), người tạo, ngày đồng ý chính sách; **Gói & hạn học** từng chương trình (lịch sử đơn, số tiền,
@@ -567,8 +592,8 @@ hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (than
 
 ## SCR-25 – Admin: Phiếu tham vấn / Khách quan tâm
 
-> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`). ✅ Đợt 12 phần Phiếu (`/admin/consultations`): tab kèm số lượng; thẻ phiếu có link hồ sơ bệnh nhân, Gọi / Zalo, chương trình, nguồn nhắc, nhãn câu thang điểm đầu tiên (mức đau), câu trả lời mở sẵn ở tab Mới; ô trạng thái + ghi chú nội bộ. % tiến độ xem ở hồ sơ bệnh nhân.
-- Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: bệnh nhân (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
+> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`). ✅ Đợt 12 phần Phiếu (`/admin/consultations`): tab kèm số lượng; thẻ phiếu có link hồ sơ khách hàng, Gọi / Zalo, chương trình, nguồn nhắc, nhãn câu thang điểm đầu tiên (mức đau), câu trả lời mở sẵn ở tab Mới; ô trạng thái + ghi chú nội bộ. % tiến độ xem ở hồ sơ khách hàng.
+- Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: khách hàng (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
   mở rộng xem toàn bộ câu trả lời; ô ghi chú nội bộ + nút chuyển trạng thái; người xử lý.
 - Lead: tab Mới · Đã liên hệ · Đã chốt · Đóng; cột khóa premium, họ tên, SĐT, đã đăng nhập hay chưa, thời điểm; dòng thống kê
   "Lượt bấm ẩn danh 30 ngày: 42".

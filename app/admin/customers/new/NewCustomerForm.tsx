@@ -7,7 +7,7 @@ import OneTimeSecret from '@/components/OneTimeSecret'
 import { createPatientAction } from '../actions'
 import GrantFields, { type PlanOption } from '../GrantFields'
 
-// Form tạo tài khoản bệnh nhân (SCR-23). Thành công → hiện mật khẩu một lần + tin nhắn mẫu gửi Zalo.
+// Form tạo tài khoản khách hàng (SCR-23). Thành công → hiện mật khẩu một lần + tin nhắn mẫu gửi Zalo.
 export default function NewPatientForm({ plans }: { plans: PlanOption[] }) {
   const [round, setRound] = useState(0)
   return <PatientForm key={round} plans={plans} onAnother={() => setRound((r) => r + 1)} />
@@ -21,11 +21,11 @@ function PatientForm({ plans, onAnother }: { plans: PlanOption[]; onAnother: () 
       <div className="space-y-4">
         <OneTimeSecret title={`${state.message} ${state.name} – ${state.phone}`} name={state.name} phone={state.phone} password={state.password} />
         <div className="flex flex-wrap gap-2">
-          <Link href={`/admin/patients/${state.patientId}`} className="btn-primary">
-            Xem hồ sơ bệnh nhân
+          <Link href={`/admin/customers/${state.patientId}`} className="btn-primary">
+            Xem hồ sơ khách hàng
           </Link>
           <button type="button" onClick={onAnother} className="btn-outline">
-            Tạo bệnh nhân khác
+            Tạo khách hàng khác
           </button>
         </div>
       </div>
@@ -53,7 +53,7 @@ function PatientForm({ plans, onAnother }: { plans: PlanOption[]; onAnother: () 
           <input id="email" name="email" type="email" className="input" />
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="note" className="label">Ghi chú nội bộ <span className="font-normal text-slate-400">(bệnh nhân không thấy)</span></label>
+          <label htmlFor="note" className="label">Ghi chú nội bộ <span className="font-normal text-slate-400">(khách hàng không thấy)</span></label>
           <textarea id="note" name="note" rows={2} maxLength={1000} placeholder="VD: khách Zalo, vẹo lưng nhẹ, ưu tiên gọi buổi tối" className="input" />
         </div>
       </div>
@@ -66,7 +66,7 @@ function PatientForm({ plans, onAnother }: { plans: PlanOption[]; onAnother: () 
       <label className="flex items-start gap-3 text-sm text-slate-700">
         <input id="consent" name="consent" type="checkbox" value="yes" required className="mt-0.5 h-5 w-5 accent-ocean-600" />
         <span>
-          Bệnh nhân đã đồng ý{' '}
+          Khách hàng đã đồng ý{' '}
           <Link href="/chinh-sach-bao-mat" target="_blank" className="font-semibold text-ocean-700 underline">
             Chính sách bảo mật
           </Link>{' '}

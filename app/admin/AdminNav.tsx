@@ -2,18 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookIcon, ClipboardIcon, HomeIcon, SettingsIcon, StarIcon, StethoscopeIcon, UsersIcon } from '@/components/icons'
+import { BookIcon, ClipboardIcon, HomeIcon, SettingsIcon, StarIcon, StethoscopeIcon, UserIcon, UsersIcon } from '@/components/icons'
 
-// Thứ tự menu do chủ dự án chốt 29/09/2026 (UI-02).
+// Thứ tự menu do chủ dự án chốt 29/09/2026 (UI-02); Đợt 26 (18/10/2026) tách "Nhân viên" (chỉ admin) khỏi "Khách hàng".
 // adminOnly: nhân viên (staff) không thấy mục này (trang cũng tự chặn bằng requireAdminPage)
 // exact: "Tổng quan" (/admin) chỉ sáng khi đúng trang, không sáng theo các trang con
 const tabs = [
   { href: '/admin', label: 'Tổng quan', icon: HomeIcon, adminOnly: false, exact: true },
   { href: '/admin/registrations', label: 'Đơn đăng ký', icon: ClipboardIcon, adminOnly: false },
-  { href: '/admin/patients', label: 'Bệnh nhân', icon: UsersIcon, adminOnly: false },
+  { href: '/admin/customers', label: 'Khách hàng', icon: UsersIcon, adminOnly: false },
   { href: '/admin/courses', label: 'Khóa học', icon: BookIcon, adminOnly: true },
   { href: '/admin/consultations', label: 'Phiếu tham vấn', icon: StethoscopeIcon, adminOnly: false },
   { href: '/admin/leads', label: 'Khách quan tâm', icon: StarIcon, adminOnly: false },
+  { href: '/admin/staff', label: 'Nhân viên', icon: UserIcon, adminOnly: true },
   { href: '/admin/settings/consultation', label: 'Mẫu phiếu', icon: SettingsIcon, adminOnly: true },
 ]
 

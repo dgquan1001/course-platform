@@ -28,7 +28,7 @@ type Consultation = {
   created_at: string
 }
 
-// Phiếu tham vấn bệnh nhân gửi (SCR-25): nhân viên xem câu trả lời, gọi / nhắn Zalo hẹn bác sĩ, cập nhật trạng thái
+// Phiếu tham vấn khách hàng gửi (SCR-25): nhân viên xem câu trả lời, gọi / nhắn Zalo hẹn bác sĩ, cập nhật trạng thái
 export default async function AdminConsultationsPage(props: { searchParams: Promise<{ status?: string }> }) {
   const searchParams = await props.searchParams
   await requireStaffPage()
@@ -51,7 +51,7 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Phiếu tham vấn" description="Phiếu bệnh nhân gửi cho bác sĩ: liên hệ hẹn lịch, ghi chú nội bộ và cập nhật trạng thái." />
+      <PageHeader title="Phiếu tham vấn" description="Phiếu khách hàng gửi cho bác sĩ: liên hệ hẹn lịch, ghi chú nội bộ và cập nhật trạng thái." />
       <nav aria-label="Lọc theo trạng thái phiếu" className="seg">
         {CONSULT_STATUSES.map((s, i) => (
           <Link
@@ -74,11 +74,11 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {c.user_id ? (
-                    <Link href={`/admin/patients/${c.user_id}`} className="font-semibold text-ocean-900 hover:underline">
-                      {c.full_name ?? 'Bệnh nhân'}
+                    <Link href={`/admin/customers/${c.user_id}`} className="font-semibold text-ocean-900 hover:underline">
+                      {c.full_name ?? 'Khách hàng'}
                     </Link>
                   ) : (
-                    <p className="font-semibold text-ocean-900">{c.full_name ?? 'Bệnh nhân'} <span className="text-xs font-normal italic text-slate-400">(tài khoản đã xóa)</span></p>
+                    <p className="font-semibold text-ocean-900">{c.full_name ?? 'Khách hàng'} <span className="text-xs font-normal italic text-slate-400">(tài khoản đã xóa)</span></p>
                   )}
                   <StatusBadge status={`consult_${c.status}`} />
                   {scale && <span className="badge bg-red-50 text-red-700">{scale.label}: {answerText(scale)}</span>}
@@ -123,7 +123,7 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
                   rows={3}
                   maxLength={1000}
                   defaultValue={c.staff_note ?? ''}
-                  placeholder="Ghi chú nội bộ (bệnh nhân không thấy), VD: hẹn bác sĩ gọi 19h thứ 5"
+                  placeholder="Ghi chú nội bộ (khách hàng không thấy), VD: hẹn bác sĩ gọi 19h thứ 5"
                   className="input text-sm"
                 />
                 <SubmitButton className="btn-primary btn-sm w-full">Cập nhật</SubmitButton>

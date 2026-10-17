@@ -48,27 +48,30 @@
 | password_resets | ❌ | ❌ | ❌ | ✅ |
 | Storage payment-proofs – đọc | ❌ | ❌ | ✅ | ✅ |
 | Storage payment-proofs – ghi | ❌ | ❌ | ❌ | ✅ |
-| Đổi `role` | ❌ | ❌ | ✅ (trang Học viên; nhân viên không đổi được – xem §3.1) | ✅ |
+| Đổi `role` | ❌ | ❌ | ✅ (hồ sơ khách hàng / hồ sơ nhân viên; nhân viên không đổi được – xem §3.1) | ✅ |
 
 ### 3.1. Ma trận phân quyền phiên bản 0.2 (ADR-011)
 
 > ✅ Toàn bộ ma trận dưới đã áp dụng (Đợt 7 → 13, 27/09/2026) và có E2E kiểm tra qua API (RLS / trigger / hàm), không chỉ ở giao diện.
 > Đợt 9: chỉ admin quản lý gói; nhân viên / admin không sửa tay được gói, học phí, hạn học của đơn (trigger).
 > Đợt 11: nhân viên chỉ tạo được đơn `source = staff` đã duyệt, gói của đúng chương trình (trigger); ghi chú nội bộ ở `patient_notes`.
-> Đợt 12: bệnh nhân đọc phiếu qua `my_consultations()` (không có ghi chú nội bộ). Đợt 13: `revenue_report()` báo lỗi với nhân viên.
+> Đợt 12: khách hàng đọc phiếu qua `my_consultations()` (không có ghi chú nội bộ). Đợt 13: `revenue_report()` báo lỗi với nhân viên.
+> **Đợt 26 (18/10/2026)**: tách danh mục **Khách hàng** (`/admin/customers` – nhân viên + admin thêm / sửa / xóa) và **Nhân viên** (`/admin/staff` – chỉ admin thêm / sửa / đổi vai trò / cấp lại mật khẩu / xóa). Mọi thao tác kiểm tra quyền ở server action (`requireStaff` / `requireAdmin`) và đúng loại tài khoản (`role = user` với khách hàng, `staff` / `admin` với nhân viên).
 
-| Tài nguyên / thao tác | Khách | Bệnh nhân | Staff | Admin |
+| Tài nguyên / thao tác | Khách | Khách hàng | Staff | Admin |
 | --- | --- | --- | --- | --- |
 | Khóa đang hiển thị, gói đang bán, đề cương (buổi, tên bài) | ✅ | ✅ | ✅ | ✅ |
 | Video bài khóa **free** (RLS `can_view_lesson`) | ✅ | ✅ | ✅ | ✅ |
 | Video bài khóa **program** | ❌ | 🔸 còn hạn + buổi đã mở | ✅ xem trước | ✅ |
 | Khóa / gói / buổi / bài / ảnh bìa – thêm, sửa, xóa | ❌ | ❌ | ❌ | ✅ |
 | `lesson_progress` – đọc | ❌ | 🔸 | ✅ | ✅ |
-| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ giao diện không có nút (RLS vẫn cho ghi tiến độ **của chính mình**, không ảnh hưởng bệnh nhân) | ❌ như staff |
+| `lesson_progress` – tick / bỏ tick | ❌ | 🔸 chỉ bài đang xem được | ❌ giao diện không có nút (RLS vẫn cho ghi tiến độ **của chính mình**, không ảnh hưởng khách hàng) | ❌ như staff |
 | profiles – đọc | ❌ | 🔸 | ✅ | ✅ |
 | profiles – sửa | ❌ | 🔸 qua action | ✅ chỉ `role = user` | ✅ |
 | Đổi `role` | ❌ | ❌ | ❌ | ✅ |
-| Tạo tài khoản bệnh nhân, cấp lại mật khẩu | ❌ | ❌ | ✅ (tài khoản `user`) | ✅ |
+| Tạo / sửa tài khoản khách hàng, cấp lại mật khẩu | ❌ | ❌ | ✅ (tài khoản `user`) | ✅ |
+| **Xóa khách hàng** (Đợt 26) | ❌ | ❌ | ✅ khi không còn gói còn hạn / đơn chờ, gõ lại SĐT | ✅ như staff |
+| **Danh mục Nhân viên**: thêm / sửa / đổi vai trò / cấp lại mật khẩu / xóa (Đợt 26) | ❌ | ❌ | ❌ (trang chuyển về Tổng quan, action báo lỗi) | ✅ – không tự đổi quyền / tự xóa, luôn còn ≥ 1 admin (app + trigger `guard_admin_delete`) |
 | registrations – đọc | ❌ | 🔸 | ✅ | ✅ |
 | registrations – duyệt / từ chối / thu hồi | ❌ | ❌ | ✅ | ✅ |
 | registrations – tạo đơn đã duyệt (cấp gói) | ❌ | ❌ | ✅ `source = staff` | ✅ |
@@ -121,11 +124,11 @@
 | T23 | Chạy E2E nhầm lên database thật | Tampering | ✅ Script chỉ chạy khi `E2E_SUPABASE_REF` khớp project (RK-10) | Thấp |
 | T24 *(v0.2)* | Staff tự nâng quyền / sửa tài khoản admin | Elevation | ✅ Đợt 7: trigger chỉ cho admin đổi `role`; policy staff chỉ sửa dòng `role = 'user'` (E2E TC-65) | Thấp |
 | T25 *(v0.2)* | Staff cấp gói "miễn phí" cho người quen (đơn approved không ảnh) | Repudiation / Fraud | ✅ Đợt 11: bắt buộc số tiền + hình thức; trigger tự lấy gói theo `plan_id` của đúng chương trình, ghi `created_by`, người xử lý, lịch sử `new → approved`; staff không sửa được học phí / hạn học sau đó (Đợt 9). ✅ Đợt 13: admin xem doanh thu theo người duyệt / cấp gói, theo hình thức | Trung bình – vẫn cần đối soát định kỳ (tiền mặt) |
-| T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | ✅ Đợt 11: hiện một lần, không lưu; nhắc bệnh nhân đổi (`must_change_password`); cấp lại được (mật khẩu cũ hết hiệu lực – E2E) | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
+| T26 *(v0.2)* | Mật khẩu hệ thống sinh bị lộ qua tin nhắn Zalo | Spoofing | ✅ Đợt 11: hiện một lần, không lưu; nhắc khách hàng đổi (`must_change_password`); cấp lại được (mật khẩu cũ hết hiệu lực – E2E) | Trung bình – chấp nhận vì yêu cầu không bắt buộc đổi |
 | T27 *(v0.2)* | Vượt khóa tuần tự / xem video khi hết hạn bằng cách gọi API | Information disclosure | ✅ Đợt 10: RLS `lessons_select = can_view_lesson(id)`, `lesson_progress` insert/delete chỉ khi `can_view_lesson` (E2E: tick trước buổi, đọc video buổi khóa, tick vượt số buổi đã mua đều bị chặn) | Thấp. Link YouTube gốc vẫn chia sẻ được (T4) |
-| T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | ✅ Đợt 12: RLS `consultations` chỉ staff / admin; bệnh nhân đọc phiếu mình qua `my_consultations()`; không có trang công khai; đồng ý xử lý dữ liệu (E2E: bệnh nhân khác, khách không đọc được) | Thấp–Trung bình |
+| T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | ✅ Đợt 12: RLS `consultations` chỉ staff / admin; khách hàng đọc phiếu mình qua `my_consultations()`; không có trang công khai; đồng ý xử lý dữ liệu (E2E: khách hàng khác, khách không đọc được) | Thấp–Trung bình |
 | T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | ✅ Đợt 8: rate limit 20 lead/giờ/IP (`lead:<IP>`); ✅ Đợt 12: 5 phiếu/ngày/tài khoản (`consult:<user_id>`); Turnstile nếu bật | Thấp |
-| T31 *(v0.2)* | Bệnh nhân sửa giá gói ở trình duyệt / gửi gói của chương trình khác | Tampering | ✅ Đợt 9: server lấy giá từ `course_plans` đúng chương trình, gói phải đang bán (TC-75) | Thấp |
+| T31 *(v0.2)* | Khách hàng sửa giá gói ở trình duyệt / gửi gói của chương trình khác | Tampering | ✅ Đợt 9: server lấy giá từ `course_plans` đúng chương trình, gói phải đang bán (TC-75) | Thấp |
 | T33 *(Đợt 21)* | Người khác dùng máy / trình duyệt sau khi chủ tài khoản rời đi (phiên còn mãi – SEC-13) | Spoofing | ✅ Cookie tạm, tự đăng xuất khi không thao tác (30 phút / 2 giờ), tối đa 12 giờ, thu hồi phiên khi hết hạn (TC-114, TC-115) | Thấp – còn rủi ro trong khoảng thời gian chờ (đóng tab nhưng chưa đóng trình duyệt) |
 | T34 *(Đợt 21)* | Link giả `/login?error=<chữ tùy ý>` hiện thông báo lừa đảo trong hộp lỗi của website (SEC-14) | Spoofing | ✅ Chỉ hiển thị theo mã lỗi (`app/login/errors.ts`, TC-116) | — |
 | T35 *(Đợt 21)* | Mật khẩu lộ: đổi mật khẩu nhưng kẻ gian vẫn giữ phiên trên máy khác (SEC-15) | Spoofing | ✅ Đổi / đặt lại mật khẩu đăng xuất mọi thiết bị khác (TC-116) | — |
@@ -136,6 +139,10 @@
 | T33 *(Đợt 17)* | Giả IP bằng header `X-Forwarded-For` để né giới hạn tần suất khi chạy sau Cloudflare (Cloudflare giữ giá trị người dùng gửi, chỉ nối IP thật vào cuối) – RK-43 | Spoofing / DoS | ✅ Đợt 17: `clientIp()` ưu tiên `cf-connecting-ip` (Cloudflare luôn ghi đè), chỉ dùng `x-forwarded-for` khi chạy ngoài Cloudflare; TC-102 đổi `X-Forwarded-For` mỗi lần vẫn bị khóa | Thấp |
 | T35 *(rà soát 04/10)* | Tạo tài khoản rác qua API Supabase `/auth/v1/signup` bằng khóa `anon` công khai (bỏ qua form, giới hạn tần suất, Turnstile) – SEC-01 | Spoofing / DoS | ⬜ Tắt "Allow new users to sign up" (A-24); website chỉ tạo tài khoản bằng service role | Trung bình → Thấp sau khi tắt |
 | T36 *(rà soát 04/10)* | Lộ thông tin máy chủ thư / database qua thông báo lỗi trả cho khách – SEC-02 | Information disclosure | ✅ Thông báo chung cho khách, chi tiết ở log server; module server có `import 'server-only'` (SEC-03) | Thấp |
+| T37 *(Đợt 26)* | Nhân viên xóa nhầm / cố ý xóa hàng loạt khách hàng | Repudiation / Tampering | ✅ Chặn khi còn gói còn hạn / đơn chờ; gõ lại SĐT; đơn + ảnh chuyển khoản + doanh thu giữ nguyên; nhật ký xóa (`account_events.action = 'deleted'`, người xóa + tên người bị xóa) hiện ở trang Nhân viên cho admin | Trung bình – xóa không hoàn tác; admin rà nhật ký định kỳ; sao lưu tuần có dữ liệu |
+| T38 *(Đợt 26)* | Nhân viên gọi thẳng action quản lý nhân viên / xóa tài khoản admin | Elevation | ✅ `requireAdmin()` trong mọi action của `/admin/staff`; action khách hàng chỉ nhận `role = user`; RLS `profiles_staff_update` chỉ dòng `role = user` (TC-118) | Thấp |
+| T39 *(Đợt 26)* | Mất admin cuối cùng khi xóa tài khoản (2 admin xóa nhau cùng lúc, xóa qua Supabase dashboard) | DoS | ✅ App chặn tự xóa + kiểm còn admin khác; trigger `guard_admin_delete` (khóa tư vấn chung với `guard_role_change`) chặn ở database | Thấp – cần chạy `schema.sql` Đợt 26 |
+| T40 *(Đợt 26)* | Nhân viên mới giữ mật khẩu do admin cấp (lộ qua tin nhắn) | Spoofing | ✅ Hiện 1 lần, `must_change_password`, dải nhắc đổi mật khẩu trong khu quản trị; cấp lại mật khẩu đăng xuất mọi phiên (TC-119) | Trung bình – chưa bắt buộc đổi |
 | T34 *(Đợt 17)* | Lộ khóa `service_role` khi cấu hình Cloudflare (ghi vào `wrangler.jsonc` hoặc biến công khai) | Information disclosure | Khóa bí mật chỉ đặt dạng **Secret** trong Cloudflare; `wrangler.jsonc` không chứa biến; `.dev.vars` trong `.gitignore`, E2E tự xóa khi kết thúc; checklist CF-12, CF-13 | Thấp |
 
 ## 6. Bảo vệ dữ liệu cá nhân (tham chiếu Nghị định 13/2023/NĐ-CP)
@@ -143,10 +150,10 @@
 | Yêu cầu | Hiện trạng | Việc cần làm |
 | --- | --- | --- |
 | Thông báo/đồng ý xử lý dữ liệu | ✅ Đợt 8 (nội dung chờ trung tâm rà soát – roadmap A-7) | **v0.2 bắt buộc (Đợt 8)**: trang `/chinh-sach-bao-mat`, ô đồng ý ở box đăng ký, nhân viên xác nhận khi tạo tài khoản, hộp đồng ý cho tài khoản cũ; lưu `consent_at`, `consent_version` |
-| Dữ liệu sức khỏe (nhạy cảm) | ✅ Đợt 10, 12: tiến độ tập, phiếu tham vấn – chỉ bệnh nhân đó + nhân viên / admin; chính sách nêu mục đích | Chủ trung tâm duyệt nội dung chính sách (A-7); quy trình xóa theo yêu cầu (xóa tài khoản → phiếu giữ họ tên / SĐT: cần xóa tay nếu bệnh nhân yêu cầu xóa hẳn) |
+| Dữ liệu sức khỏe (nhạy cảm) | ✅ Đợt 10, 12: tiến độ tập, phiếu tham vấn – chỉ khách hàng đó + nhân viên / admin; chính sách nêu mục đích. ✅ Đợt 26: xóa khách hàng xóa luôn phiếu tham vấn, tiến độ, ghi chú nội bộ | Chủ trung tâm duyệt nội dung chính sách (A-7) |
 | Tối thiểu hóa | Chỉ thu tên, SĐT, email (tùy chọn), ảnh CK | Đạt |
 | Quyền truy cập/sửa | Học viên tự sửa ở `/account` | Đạt |
-| Quyền xóa | Chưa có chức năng | **Đợt 18 (đã chốt 04/10/2026)**: admin xóa bệnh nhân (không còn gói còn hạn / đơn chờ), xóa luôn phiếu tham vấn; đơn + ảnh chuyển khoản giữ làm chứng từ; nhân viên chỉ khóa tài khoản |
+| Quyền xóa | ✅ Đợt 26 (18/10/2026): nhân viên / admin xóa khách hàng (không còn gói còn hạn / đơn chờ, gõ lại SĐT), xóa luôn phiếu tham vấn; đơn + ảnh chuyển khoản giữ làm chứng từ (họ tên / SĐT trên đơn) | Chủ dự án đổi quyết định Q-6 (18/10): nhân viên cũng được xóa khách hàng. Khóa tài khoản (QL-03) để sau |
 | Hạn lưu trữ ảnh CK | Không giới hạn | Đề xuất xóa ảnh sau N tháng kể từ khi duyệt |
 | Bảo mật lưu trữ | Bucket private, RLS, HTTPS | Đạt |
 

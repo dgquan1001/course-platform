@@ -47,7 +47,7 @@ flowchart LR
     RC[React Client Components<br/>SiteHeader, RegisterForm,<br/>Toaster, ActionForm…]
   end
 
-  subgraph Vercel["Cloudflare Workers – Next.js 15 qua OpenNext (ADR-017)"]
+  subgraph CF["Cloudflare Workers – Next.js 15 qua OpenNext (ADR-017)"]
     MW[Middleware<br/>chặn /courses /account /admin]
     SC[Server Components<br/>pages app/**/page.tsx]
     SA[Server Actions<br/>app/**/actions.ts]
@@ -232,7 +232,7 @@ flowchart LR
 | Tạo tài khoản bởi nhân viên | ✅ Đợt 11: service role tạo user (như ADR-006); đơn cấp gói insert bằng server client của nhân viên (policy `registrations_staff_insert` + trigger) để ghi đúng người | ADR-014 |
 | Trang công khai | `/khoa-hoc/[id]` ISR như trang chủ (`revalidatePath` khi admin sửa khóa/gói/buổi); `/courses/[id]/**` render động, công khai với khóa free | ADR-008 |
 | Storage | Thêm bucket **public** `course-covers` (ảnh bìa); `payment-proofs` cho staff đọc | — |
-| Dashboard | ✅ Đợt 13: hàm SQL `dashboard_stats()` (1 lần gọi cho mọi thẻ + danh sách), `revenue_report()` (chỉ admin); hàm nội bộ `_patient_courses()` dùng chung với danh sách / hồ sơ bệnh nhân; không thêm dịch vụ ngoài | — |
-| Phiếu tham vấn | ✅ Đợt 12: ghi bằng service role sau khi kiểm tra; bệnh nhân đọc qua `my_consultations()` (ẩn ghi chú nội bộ) | ADR-015 |
+| Dashboard | ✅ Đợt 13: hàm SQL `dashboard_stats()` (1 lần gọi cho mọi thẻ + danh sách), `revenue_report()` (chỉ admin); hàm nội bộ `_patient_courses()` dùng chung với danh sách / hồ sơ khách hàng; không thêm dịch vụ ngoài | — |
+| Phiếu tham vấn | ✅ Đợt 12: ghi bằng service role sau khi kiểm tra; khách hàng đọc qua `my_consultations()` (ẩn ghi chú nội bộ) | ADR-015 |
 | Hiệu năng xác thực | ✅ `getCurrentUser()` bọc `React.cache` (1 lần xác thực / request); header + hộp nhắc dùng chung profile phía trình duyệt (`lib/use-profile.ts`, cache 60s) | ADR-016 |
 | Zalo | Chỉ dùng link `zalo.me` (mở chat); không tích hợp API Zalo OA ở v0.2 | ADR-015 |

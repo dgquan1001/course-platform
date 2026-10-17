@@ -12,10 +12,10 @@ export const ACTIVITY_COOKIE = 'hv-activity'
 export const REMEMBER_COOKIE = 'hv-remember'
 
 const MINUTE = 60_000
-export const IDLE_STAFF_MS = 30 * MINUTE
-export const IDLE_USER_MS = 120 * MINUTE
-export const MAX_SESSION_MS = 12 * 60 * MINUTE
-export const REMEMBER_MS = 30 * 24 * 60 * MINUTE
+const IDLE_STAFF_MS = 30 * MINUTE
+const IDLE_USER_MS = 120 * MINUTE
+const MAX_SESSION_MS = 12 * 60 * MINUTE
+const REMEMBER_MS = 30 * 24 * 60 * MINUTE
 // Ghi lại "thao tác cuối" tối đa mỗi phút một lần (đỡ ghi cookie liên tục)
 export const TOUCH_EVERY_MS = MINUTE
 
@@ -32,7 +32,7 @@ export const formatActivity = (a: Activity) => `${a.loginAt}.${a.lastSeen}.${a.s
 // Ghi nhớ chỉ dành cho học viên: tài khoản quản trị luôn hết phiên khi đóng trình duyệt
 export const remembers = (a: Activity) => a.remember && !a.staff
 
-export function idleLimit(a: Activity) {
+function idleLimit(a: Activity) {
   return remembers(a) ? REMEMBER_MS : a.staff ? IDLE_STAFF_MS : IDLE_USER_MS
 }
 

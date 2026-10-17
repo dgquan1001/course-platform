@@ -25,6 +25,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 06/10/2026 – chủ dự án: Supabase URL, tắt đăng ký công khai (SEC-01 ✅), nghiệm thu bước 2; `deploy:win` có rào chặn; PR #7 → `main`;
   Workers Builds: sửa lỗi build (biến công khai vào `.env.production`, `.node-version`), PR #8 → **deploy tự động từ `main` thành công** (Đợt 17 P3 ✅, P5 bắt đầu theo dõi)
 - 17/10/2026 – chủ dự án yêu cầu: rà soát hiệu năng + bảo mật (lỗi **phiên đăng nhập còn sau khi tắt trình duyệt**), thêm / sửa / xóa khóa học, thiết kế lại trang quản trị → **Đợt 21 → 24 xong cùng ngày**: SEC-13 → SEC-19, PERF-08 → PERF-12, UI-10, QL-06 → QL-08 · E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
+- 17/10/2026 – dọn dự án trước khi push: bỏ `.idea/` khỏi git (cấu hình IDE riêng từng máy), xóa thư mục build / kết quả test cũ (~530 MB), bỏ 2 icon + 6 export không dùng; build sạch và kiểm thử lại Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng) → push nhánh `hv-dgquan-20261017`
 - 17/10/2026 – Đợt 20: nút chuyển ngữ VI | EN (trang chủ tiếng Anh `/en`, ADR-018), hero tối + bento + hiệu ứng theo cuộn · E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
 - 17/10/2026 – Đợt 19 thiết kế lại trang chủ (UI-04 → UI-07): chuyển động, hồ sơ + ảnh bác sĩ, bỏ phần trùng · E2E Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
 
@@ -53,8 +54,8 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - [x] **0.2 Đợt 22 – Hiệu năng** ✅ 17/10/2026 – điện thoại 71 – 89 → 90 – 94 điểm (project-review §7.14); PERF-13 chờ A-29: đo Lighthouse (điện thoại + máy tính) các trang chính, dung lượng JS, thời gian phản hồi; sửa vấn đề tìm được. *Xong khi*: bảng số đo trước / sau ở project-review §7.14, không trang nào dưới ngưỡng test-plan §5
 - [x] **0.3 Đợt 23 – Giao diện quản trị mới** ✅ 17/10/2026 (project-review §7.15) (UI-10): khung quản trị riêng (thanh bên tối, thanh trên có tiêu đề trang), Tổng quan dạng thẻ số liệu, bảng / bộ lọc thống nhất, trạng thái rỗng, điện thoại dễ dùng. *Xong khi*: mọi trang quản trị dùng khung mới, E2E PASS
 - [x] **0.4 Đợt 24 – Thêm / sửa / xóa khóa học** ✅ 17/10/2026 – TC-108 → TC-110 (QL-06 → QL-08 của Đợt 18): nút "+ Thêm khóa học", trang sửa riêng, hàng thao tác rõ ràng, xóa an toàn (chặn khi còn học viên / đơn chờ, gõ tên để xác nhận, xóa ảnh bìa). *Xong khi*: TC-108 → TC-110 PASS
-- [x] 0.5a Commit Đợt 21 → 24 trên nhánh `hv-dgquan-20261017` (dev, 17/10/2026)
-- [ ] **0.5b** (chủ dự án) push + Pull Request vào `main` → merge (tự deploy) → **A-28** · (dev) đo lại hiệu năng trên website thật: `PERF_BASE=https://hv-web.bsdomanhcuong.workers.dev` (cần tài khoản admin thật – chỉ đo trang công khai: chạy Lighthouse tay)
+- [x] 0.5a Commit Đợt 21 → 24 trên nhánh `hv-dgquan-20261017` (dev, 17/10/2026); dọn dự án + kiểm thử lại Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng); **push nhánh lên GitHub** ✅
+- [ ] **0.5b** (chủ dự án) mở Pull Request `hv-dgquan-20261017` → `main` (nhánh đã push) → merge (tự deploy) → **A-28** · (dev) đo lại hiệu năng trên website thật: `PERF_BASE=https://hv-web.bsdomanhcuong.workers.dev` (cần tài khoản admin thật – chỉ đo trang công khai: chạy Lighthouse tay)
 - [ ] **0.6 Đợt 25** (dev, sau 0.5b) – phần bệnh nhân của Đợt 18: QL-02 sửa nhanh ở danh sách, QL-03 khóa / mở khóa tài khoản, QL-04 xóa bệnh nhân (chỉ admin), QL-05 sửa gói; trigger chặn xóa khóa còn học viên ở database (RK-61) → **chủ dự án chạy `supabase/schema.sql`**
 
 ### Bước 1 – Hoàn tất cấu hình Cloudflare / Supabase (Đợt 17 P3 còn lại) – ưu tiên cao
@@ -404,6 +405,11 @@ Phần bệnh nhân của Đợt 18 (QL-02 → QL-05: sửa nhanh, khóa tài kh
 - [x] PERF-08 thư viện Supabase (68 kB gzip) chỉ tải khi có cookie đăng nhập (khách không tải) · PERF-09 hiệu ứng tiêu đề hero / thẻ đăng nhập không bắt đầu từ opacity 0 (phần tử LCP) · PERF-10 xác thực + đọc profile song song (bớt 1 lượt gọi Supabase mỗi trang đăng nhập)
 - [x] PERF-12 TBT quản trị (form sửa khóa rời khỏi danh sách – Đợt 24) · [x] Đo sau: **điện thoại 90 – 94 điểm** (trước 71 – 89), LCP 2,8 – 3,4 s, TBT quản trị 28 – 41 ms (trước 177 – 643), JS 149 – 159 kB (trước 219 – 230); máy tính 98 – 100 · [x] project-review §7.14
 - Để lại / đề xuất: PERF-13 font (A-29); PERF-11 ảnh thu nhỏ chuyển khoản; đo lại trên Cloudflare thật sau deploy
+
+#### Dọn dự án trước khi push ✅ (17/10/2026)
+- [x] Bỏ `.idea/` khỏi git (thêm vào `.gitignore` – file vẫn còn trên máy) · [x] xóa `.next-e2e`, `.next-dev`, `.open-next`, `.wrangler`, `test-results`, `tsconfig.tsbuildinfo` (tạo lại khi build / test) · [x] bỏ `SearchIcon`, `WalletIcon`, export nội bộ của `lib/session-policy.ts`, `app/login/errors.ts`
+- [x] Rà soát: không còn module / ảnh không dùng (`public/_headers`, `favicon.ico`, `lib/cloudflare-sockets.d.ts` vẫn cần); `vercel.json` giữ tới P6 (bước 3.4)
+- [x] typecheck / lint / build sạch · E2E Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng)
 
 #### Đợt 21 – Bảo mật: phiên đăng nhập + rà soát toàn bộ ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
 - [x] SEC-13 cookie phiên + tự đăng xuất khi không dùng / quá 12 giờ + "Ghi nhớ đăng nhập" (học viên) + đăng xuất thu hồi phiên (`lib/session-policy.ts`, middleware mọi trang, `SessionGuard`)

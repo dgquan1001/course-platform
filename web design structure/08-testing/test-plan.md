@@ -59,6 +59,7 @@
 | 17/10/2026 | Đợt 19 (trang chủ mới) | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
 | 17/10/2026 | Đợt 20 (song ngữ, giao diện hiện đại) | Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
 | 17/10/2026 | Đợt 21 (bảo mật phiên đăng nhập) | Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) |
+| 17/10/2026 | Sau khi dọn dự án (build sạch, trước khi push) | Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng) |
 
 Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).

@@ -59,6 +59,20 @@ const config: Config = {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        // Đợt 20: chữ tiêu đề hero hiện từng từ (mờ → rõ, trồi lên)
+        'word-in': {
+          '0%': { opacity: '0', transform: 'translateY(0.55em) rotate(2deg)', filter: 'blur(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0) rotate(0)', filter: 'blur(0)' },
+        },
+        'scroll-cue': {
+          '0%': { transform: 'translateY(0)', opacity: '1' },
+          '70%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '0' },
+        },
+        glow: {
+          '0%, 100%': { opacity: '0.55', transform: 'scale(1)' },
+          '50%': { opacity: '0.9', transform: 'scale(1.06)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.4s ease-out both',
@@ -66,6 +80,11 @@ const config: Config = {
         float: 'float 6s ease-in-out infinite',
         blob: 'blob 18s ease-in-out infinite',
         marquee: 'marquee 40s linear infinite',
+        'marquee-reverse': 'marquee 48s linear infinite reverse',
+        'word-in': 'word-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both',
+        'scroll-cue': 'scroll-cue 1.8s ease-in-out infinite',
+        'spin-slow': 'spin 14s linear infinite',
+        glow: 'glow 5s ease-in-out infinite',
       },
     },
   },

@@ -34,9 +34,20 @@ export default function RevealObserver() {
     }
     root.classList.add('reveal-ready')
 
+    // Ánh sáng theo con trỏ trên thẻ .spotlight (CSS ở app/globals.css)
+    const onMove = (e: PointerEvent) => {
+      const el = (e.target instanceof Element ? e.target : null)?.closest<HTMLElement>('.spotlight')
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+      el.style.setProperty('--my', `${e.clientY - r.top}px`)
+    }
+    document.addEventListener('pointermove', onMove, { passive: true })
+
     return () => {
       io.disconnect()
       root.classList.remove('reveal-ready')
+      document.removeEventListener('pointermove', onMove)
     }
   }, [])
 

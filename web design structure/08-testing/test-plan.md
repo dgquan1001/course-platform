@@ -19,6 +19,10 @@
       $env:NEXT_DIST_DIR=".next-e2e"; npm run build; npm run test:e2e      # PowerShell
       NEXT_DIST_DIR=.next-e2e npm run build && NEXT_DIST_DIR=.next-e2e npm run test:e2e   # bash
 
+- **Chế độ workers khi đang chạy `npm run dev`** (Đợt 20): `npx opennextjs-cloudflare build` luôn build vào `.next` – trùng thư mục dev server đang ghi
+  → lỗi `Invariant: no direct app page entry found for /account`. Cách làm: tắt dev server, **hoặc** chép mã nguồn sang thư mục riêng (bỏ `node_modules`, `.next*`,
+  `.open-next`, `.wrangler`, `.git`), chạy `npm ci` + `npm install-scripts approve esbuild workerd unrs-resolver` + `npm rebuild` trong bản sao rồi build +
+  `node scripts/e2e.mjs --workers` ở đó. **Không dùng junction `node_modules`**: OpenNext gom nhầm `sharp` (đường dẫn ngoài thư mục app) → build lỗi `.node`.
 - Script tự khởi động server cổng 3123 kèm hộp thư giả HTTP (`MAIL_OUTBOX_URL` – thư JSON ghi vào `test-results/mail-outbox` để đọc mã).
   Hai chế độ (Đợt 17):
   - `npm run test:e2e` – **Node** (`next start`, cần `npm run build`).
@@ -35,7 +39,8 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: **17/10/2026** · sau Đợt 19 thiết kế lại trang chủ (project-review §7.11) · Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
+**Lần chạy gần nhất**: **17/10/2026** · sau Đợt 20 song ngữ + giao diện hiện đại (project-review §7.12) · Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
+· sau Đợt 19 (§7.11): Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
 · trước đó 05/10/2026: Node 99/99, Workers 100/100 (17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
 
 **Các lần chạy theo thời gian (cũ → mới)**:
@@ -51,6 +56,7 @@
 | 04/10/2026 | Đợt 17 P0 → P2 (Next 15, Cloudflare) | Node 99/99 · Workers 100/100 (12 lỗi RK-54 ghi riêng) |
 | 05/10/2026 | Rà soát performance & security | Node 99/99 · Workers 100/100 (17 lỗi RK-54 ghi riêng) |
 | 17/10/2026 | Đợt 19 (trang chủ mới) | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
+| 17/10/2026 | Đợt 20 (song ngữ, giao diện hiện đại) | Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
 
 Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
@@ -188,6 +194,7 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-103 | 17 | Admin / Khách | ✅ PASS (Node + workers) – Trang chủ và `/khoa-hoc/<id>` đã lưu đệm (ISR); admin sửa tên khóa → cả 2 trang hiện tên mới ngay (≤ 5 giây), đổi lại tên cũ cũng cập nhật | RK-45, ADR-008 |
 | TC-111 | 19 | Khách | ✅ PASS – Trang chủ mới (máy tính): số liệu dừng đúng "10+ · 13.000+ · 3 · 1:1"; dải chuyên môn lặp 2 lần, bản lặp `aria-hidden`; `#bac-si` có "Học vấn & chứng chỉ" (Schroth SSOL), `#chuyen-mon` đủ 4 lĩnh vực, "Quá trình công tác" 3 mốc, 6 ảnh tải được (`naturalWidth > 0`, không bị CSP chặn); chân trang 3 cơ sở; trong `<main>` không còn banner `trung-tam-hv.jpg` và khối "Sẵn sàng chăm sóc cột sống"; tên bác sĩ chỉ là tiêu đề H2 một lần; ảnh `desktop-home-bac-si.png` | FR-195 → FR-197, UI-05 → UI-07 |
 | TC-112 | 19 | Khách | ✅ PASS – `html.reveal-ready` sau khi tải; khối FAQ cuối trang chưa `is-visible` → cuộn tới thì `is-visible` + `opacity: 1`; hero hiện ngay. Ngữ cảnh `reducedMotion: 'reduce'`: mọi `[data-reveal]` hiện ngay, không gắn `reveal-ready`, dải chuyên môn `animation-name: none` | FR-194, UI-04, NFR-04 |
+| TC-113 | 20 | Khách | ✅ PASS – `/`: nav "Chọn ngôn ngữ", VI `aria-current`; bấm "English" → `/en`, H1 "Holistic spine…", `<html lang="en">`, `<main lang="en">`, hreflang vi / en; menu "Doctor" → `/en#bac-si`, "Sign in"; list "Areas of expertise", H2 "Dr. Do Manh Cuong", `#chuyen-mon` có "Scoliosis"; thẻ khóa A: nhãn "Lumbar scoliosis", "Register" → `/?course=<A>#dang-ky`; lọc "Thoracic scoliosis" chỉ còn khóa B, "All" hiện lại; `#dang-ky` không có form, có nút → `/#dang-ky`; chân trang "Our clinics" 3 cơ sở; ảnh `desktop-home-en.png`. Từ `/en#bac-si` bấm "Tiếng Việt" → `/#bac-si`, `lang="vi"`. `/login` không có nút chuyển ngữ | FR-198 → FR-201, UI-08, ADR-018 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -224,7 +231,8 @@ Kết quả Node: lần 1 – 35/36 (bước "Đơn đăng ký hiển thị dạ
 Kết quả Workers (`npm run test:e2e:workers`): lần 1 – server không khởi động (`opennextjs-cloudflare preview` treo ở bước tạo bảng D1 trên Windows → script tự tạo bảng + `wrangler dev`); lần 2 – 6/7 (header `cf-connecting-ip` gửi kèm tới Supabase bị chặn CORS → chỉ gắn cho yêu cầu tới website); lần 3 → 6 – 99/100: mọi bước chức năng PASS (kể cả TC-102, TC-103), bước "không có lỗi JavaScript" đỏ vì 8 – 13 lỗi React #418 lác đác ở `/admin/**` (RK-54 – đã điều tra, chưa rõ nguyên nhân gốc, chức năng không ảnh hưởng); **lần 7 – 100/100 PASS** sau khi chế độ workers ghi #418 ở trang quản trị là vấn đề đã biết (in số lượng, không làm đỏ test), dữ liệu test dọn sạch. Cùng ngày: **Node 99/99 PASS** trên đúng mã nguồn đó; `next dev` mở được trang công khai, trang cần đăng nhập chuyển `/login`, log không lỗi.
 
 Đợt 19 (17/10/2026, không đổi schema): TC-111 ↔ "[Khách] Trang chủ mới: số liệu đếm tăng, dải chuyên môn, hồ sơ bác sĩ…", TC-112 ↔ "[Khách] Hiệu ứng hiện dần khi cuộn; bật giảm chuyển động…" (đặt ngay sau bước trang chủ của phase 4). **Không sửa bước cũ nào** – TC-11 (tiêu đề H1 "Trị liệu cột sống", H2 tên bác sĩ, FAQ, box 3 bước), TC-69 (3 nhóm, lọc), TC-12 ("Đăng ký" chọn sẵn khóa), TC-103 (ISR) chạy nguyên trên bố cục mới.
-Mã TC-104 → TC-110 giữ cho Đợt 18 (roadmap §3.5). Lần chạy: Node lần 1 – 16/17 (TC-111: `scrollIntoViewIfNeeded` chờ ảnh bồng bềnh "đứng yên" – lỗi của test, RK-56), lần 2 – 16/17 (test bắt nhầm `og:image` trong `<head>`), lần 3 – 100/101 (**lỗi thật nhỏ**: Chrome xin `/favicon.ico` → 404 trong console; thêm `public/favicon.ico`), **lần 4 – 101/101 PASS**; **Workers 102/102 PASS** ngay lần đầu (14 lỗi #418 ở `/admin/**` ghi riêng – RK-54, như trước). Dữ liệu test dọn sạch.
+Mã TC-104 → TC-110 giữ cho Đợt 18 (roadmap §3.5).
+Đợt 20 (17/10/2026, không đổi schema): TC-113 ↔ "[Khách] Chuyển ngữ VI ↔ EN ở trang chủ…" (sau TC-112). TC-111, TC-112 và các bước cũ chạy nguyên trên giao diện mới (không sửa). Lần chạy: E2E: Node 102/102, Workers 103/103 (17/10/2026). Lần chạy Node đầu dừng ở TC-113 vì script so hreflang `vi` với chuỗi kết thúc "/" trong khi Next ghi URL gốc không có "/" cuối – trang đúng, sửa script so theo pathname Lần chạy: Node lần 1 – 16/17 (TC-111: `scrollIntoViewIfNeeded` chờ ảnh bồng bềnh "đứng yên" – lỗi của test, RK-56), lần 2 – 16/17 (test bắt nhầm `og:image` trong `<head>`), lần 3 – 100/101 (**lỗi thật nhỏ**: Chrome xin `/favicon.ico` → 404 trong console; thêm `public/favicon.ico`), **lần 4 – 101/101 PASS**; **Workers 102/102 PASS** ngay lần đầu (14 lỗi #418 ở `/admin/**` ghi riêng – RK-54, như trước). Dữ liệu test dọn sạch.
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
 TC-13/TC-14 (chọn gói), TC-18/TC-19 (ô đồng ý), TC-21/TC-30 (trình học mới), TC-23 + TC-48 (unique index chỉ còn `pending`),
@@ -254,7 +262,7 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 
 **Thiết bị**: iPhone Safari, Android Chrome, máy tính Chrome/Edge; màn hình 360px, 768px, 1280px+.
 
-- [ ] Trang chủ hiển thị đúng, ảnh không vỡ, font tiếng Việt đúng dấu; hiệu ứng cuộn mượt trên điện thoại tầm trung (Đợt 19), bật "Giảm chuyển động" (iOS: Trợ năng › Chuyển động) thì nội dung hiện ngay.
+- [ ] Trang chủ hiển thị đúng, ảnh không vỡ, font tiếng Việt đúng dấu; hiệu ứng cuộn mượt trên điện thoại tầm trung (Đợt 19 – 20, RK-58); nút VI | EN chuyển đúng, bản `/en` không còn chữ tiếng Việt ngoài tên khóa (Đợt 20), bật "Giảm chuyển động" (iOS: Trợ năng › Chuyển động) thì nội dung hiện ngay.
 - [ ] QR quét được bằng app ngân hàng thật, số tiền & nội dung đúng.
 - [ ] Đăng ký trên điện thoại thật với ảnh chụp màn hình thật (kể cả HEIC trên iPhone).
 - [ ] Nhận email mã quên mật khẩu thật (kiểm tra cả hộp Spam), tiêu đề/nội dung đúng thương hiệu.

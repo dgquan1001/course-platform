@@ -35,7 +35,7 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 - **AC1** Given tôi mở `/` When trang tải xong Then tôi thấy hero + số liệu, dải chuyên môn, vấn đề → giải pháp, hồ sơ bác sĩ, khóa học, box đăng ký, FAQ + thẻ tư vấn và footer liên hệ (bố cục Đợt 19).
 - **AC2** Given tôi dùng điện thoại When cuộn trang Then thanh "Gọi ngay / Đăng ký học" luôn cố định dưới màn hình.
 
-### US-01.05 – Trang chủ sinh động, tạo tin tưởng để bắt đầu ✅ (5 SP · Đợt 19)
+### US-01.05 – Trang chủ sinh động, tạo tin tưởng để bắt đầu ✅ (5 SP · Đợt 19, nâng cấp Đợt 20 – FR-202)
 **Là** khách đến từ quảng cáo / mạng xã hội, **tôi muốn** trang chủ hiện đại, có chuyển động và cho thấy rõ bác sĩ là ai, **để** tin tưởng và bấm đăng ký hoặc tập thử.
 - FR: FR-194 → FR-197 · Màn hình: SCR-01 · TC-111, TC-112
 - **AC1** Given tôi mở `/` Then hero hiện so le, số liệu "10+ · 13.000+ · 3 · 1:1" đếm tăng rồi dừng đúng số, dải chuyên môn chạy ngang (dừng khi rê chuột).
@@ -43,6 +43,14 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 - **AC3** Given tôi xem mục Bác sĩ Then thấy học vấn & chứng chỉ (có Schroth SSOL), 4 lĩnh vực chuyên môn, quá trình công tác, ảnh hoạt động chuyên môn; chân trang có 3 cơ sở.
 - **AC4** Given máy bật "giảm chuyển động" (hoặc tắt JS) Then mọi nội dung hiện ngay, không có hiệu ứng chạy.
 - **AC5** Given bố cục mới Then không còn nội dung trùng: banner lặp tiểu sử, ô số liệu lặp, khối CTA cuối lặp hero; mọi chức năng cũ (lọc chương trình, nút Đăng ký chọn sẵn khóa, box 3 bước, FAQ) giữ nguyên.
+
+### US-01.06 – Xem trang chủ bằng tiếng Anh ✅ (5 SP · Đợt 20)
+**Là** khách nước ngoài hoặc người nhà đọc tiếng Anh, **tôi muốn** bấm "EN" để đọc trang chủ bằng tiếng Anh, **để** hiểu trung tâm, bác sĩ và các chương trình.
+- FR: FR-198 → FR-201 · ADR-018 · Màn hình: SCR-01, SCR-01b · TC-113
+- **AC1** Given tôi ở `/` When bấm "EN" trên header Then sang `/en`, mọi chữ cố định (hero, số liệu, hồ sơ bác sĩ, FAQ, header, chân trang) là tiếng Anh; bấm "VI" quay lại, vẫn ở mục đang xem.
+- **AC2** Given ở `/en` Then thẻ khóa có nhãn / nút tiếng Anh, lọc theo nhóm bệnh vẫn chạy; tên khóa giữ nguyên tiếng Việt.
+- **AC3** Given tôi muốn đăng ký ở `/en` Then thấy 3 bước bằng tiếng Anh và nút mở form đăng ký tiếng Việt (ghi rõ "in Vietnamese").
+- **AC4** Given trang khác (đăng nhập, học tập, quản trị) Then không có nút chuyển ngữ.
 
 ### US-01.02 – Xem danh sách khóa học và giá ✅ (2 SP)
 **Là** khách, **tôi muốn** xem các khóa đang mở kèm giá, **để** chọn khóa phù hợp.

@@ -846,6 +846,55 @@ try {
     await ctx.close()
   })
 
+  await step('[Khách] Chuyển ngữ VI ↔ EN ở trang chủ: /en tiếng Anh đầy đủ, giữ lọc / nút Đăng ký / mục đang xem; trang khác không có nút (TC-113)', async () => {
+    await guest2.goto(BASE)
+    const lang = guest2.getByRole('navigation', { name: 'Chọn ngôn ngữ' })
+    assert((await lang.getByRole('link', { name: 'Tiếng Việt' }).getAttribute('aria-current')) === 'true', 'VI chưa được chọn ở "/"')
+    await lang.getByRole('link', { name: 'English' }).click()
+    await guest2.waitForURL(`${BASE}/en`)
+    await guest2.getByRole('heading', { level: 1, name: /Holistic spine/ }).waitFor()
+    await guest2.waitForFunction(() => document.documentElement.lang === 'en')
+    assert((await guest2.locator('main').getAttribute('lang')) === 'en', '<main> thiếu lang="en"')
+    // SEO: liên kết bản ngôn ngữ (hreflang) ở cả 2 trang
+    // (Next ghi URL tuyệt đối theo NEXT_PUBLIC_SITE_URL, trang gốc không có "/" cuối → so theo pathname)
+    const alt = async (l) => new URL((await guest2.locator(`link[rel=alternate][hreflang=${l}]`).getAttribute('href')) ?? 'x:').pathname
+    assert(['/', ''].includes(await alt('vi')) && (await alt('en')) === '/en', `hreflang sai: vi=${await alt('vi')} en=${await alt('en')}`)
+    // Header, số liệu, dải chuyên môn, hồ sơ bác sĩ bằng tiếng Anh
+    assert((await guest2.getByRole('link', { name: 'Doctor', exact: true }).getAttribute('href')) === '/en#bac-si', 'Menu neo chưa trỏ /en#…')
+    await guest2.getByRole('link', { name: 'Sign in' }).first().waitFor()
+    await guest2.getByRole('list', { name: 'Areas of expertise' }).getByText('Schroth Method').first().waitFor()
+    await guest2.locator('#bac-si').getByRole('heading', { level: 2, name: 'Dr. Do Manh Cuong' }).waitFor()
+    assert((await guest2.locator('#chuyen-mon h4').allTextContents()).includes('Scoliosis'), 'Chuyên môn chưa dịch')
+    // Thẻ khóa: nhãn / nút tiếng Anh, tên khóa giữ nguyên; lọc theo nhóm bệnh vẫn chạy; "Register" mở form tiếng Việt chọn sẵn khóa
+    const programs = guest2.locator('#khoa-hoc')
+    const cardA = programs.locator('.card', { has: guest2.getByRole('heading', { name: COURSE_A.title }) })
+    assert((await cardA.getByRole('link', { name: 'Register' }).getAttribute('href')) === `/?course=${created.courseIds.A}#dang-ky`, 'Nút Register sai')
+    await cardA.getByText('Lumbar scoliosis').waitFor()
+    await programs.getByRole('button', { name: 'Thoracic scoliosis' }).click()
+    await programs.getByRole('heading', { name: COURSE_B.title }).waitFor()
+    assert((await programs.getByRole('heading', { name: COURSE_A.title }).count()) === 0, 'Lọc Thoracic vẫn hiện khóa Vẹo lưng')
+    await programs.getByRole('button', { name: 'All' }).click()
+    // Đăng ký: bản tiếng Anh không có form (form chỉ tiếng Việt) – có nút mở form tiếng Việt
+    const enroll = guest2.locator('#dang-ky')
+    assert((await enroll.locator('#fullName').count()) === 0, '/en vẫn nhúng form tiếng Việt')
+    assert((await enroll.getByRole('link', { name: /Open the registration form/ }).getAttribute('href')) === '/#dang-ky', 'Thiếu nút mở form')
+    assert((await guest2.getByRole('list', { name: 'Our clinics' }).locator('li').count()) === 3, 'Chân trang chưa dịch')
+    await guest2.evaluate(() => scrollTo(0, 0))
+    await guest2.waitForTimeout(1500) // chờ tiêu đề hiện từng từ xong để ảnh chụp rõ
+    await guest2.screenshot({ path: `${OUT}desktop-home-en.png` })
+
+    // Chuyển về tiếng Việt giữ mục đang xem (#bac-si)
+    await guest2.goto(`${BASE}/en#bac-si`)
+    await guest2.getByRole('navigation', { name: 'Choose language' }).getByRole('link', { name: 'Tiếng Việt' }).click()
+    await guest2.waitForURL(`${BASE}/#bac-si`)
+    await guest2.getByRole('heading', { level: 1, name: /Trị liệu cột sống/ }).waitFor()
+    await guest2.waitForFunction(() => document.documentElement.lang === 'vi')
+    // Trang khác (đăng nhập…) chỉ có tiếng Việt: không hiện nút chuyển ngữ
+    await guest2.goto(`${BASE}/login`)
+    await guest2.locator('#identifier').waitFor()
+    assert((await guest2.getByRole('navigation', { name: 'Chọn ngôn ngữ' }).count()) === 0, 'Trang đăng nhập có nút chuyển ngữ')
+  })
+
   await step('[Khách] Trang chủ chia 3 nhóm: Miễn phí, Chương trình (lọc vẹo lưng / vẹo ngực), Premium', async () => {
     const group = (id) => guest2.locator(id)
     await guest2.goto(BASE)

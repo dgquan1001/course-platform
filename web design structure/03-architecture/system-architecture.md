@@ -10,7 +10,7 @@ render, triển khai.
 | A1 | **Database là lớp phân quyền cuối cùng** | Mọi bảng bật RLS; UI/middleware chỉ là lớp tiện dụng, không phải lớp bảo mật duy nhất |
 | A2 | **Server-first** | Đọc dữ liệu trong Server Component, ghi dữ liệu bằng Server Action; client component chỉ cho tương tác |
 | A3 | **Bí mật chỉ ở server** | `SUPABASE_SERVICE_ROLE_KEY`, SMTP chỉ dùng trong `'use server'` / script |
-| A4 | **Trang công khai tĩnh** | Trang chủ, `/register` dùng ISR + client anon không cookie; header đọc phiên ở client |
+| A4 | **Trang công khai tĩnh** | Trang chủ (`/`, bản tiếng Anh `/en` – ADR-018), `/register` dùng ISR + client anon không cookie; header đọc phiên ở client |
 | A5 | **Không tự xây hạ tầng khi có dịch vụ miễn phí** | Video YouTube/TikTok, QR VietQR, Auth/Storage của Supabase |
 | A6 | **Đơn giản, ít phụ thuộc** | Không dùng thư viện UI/form/state; icon SVG tự viết; toast tự viết |
 

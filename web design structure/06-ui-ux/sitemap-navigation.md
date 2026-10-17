@@ -6,6 +6,7 @@
 flowchart TB
   root["/ Trang chủ"]
   root --> s1["#bac-si (hồ sơ bác sĩ) · #chuyen-mon"]
+  root <--> en["/en – trang chủ tiếng Anh (nút VI | EN, ADR-018)"]
   root --> s2["#khoa-hoc"]
   root --> s3["#dang-ky (box đăng ký)"]
   root --> s4["#lien-he (footer)"]
@@ -47,9 +48,10 @@ flowchart TB
 
 | Vùng | Máy tính (≥ lg) | Điện thoại / tablet (< lg) |
 | --- | --- | --- |
-| Logo | Icon cột sống + "Trung tâm HV" + tagline, về `/` | Như máy tính |
-| Menu neo | Chương trình · Miễn phí · Premium · Bác sĩ · Liên hệ (Đợt 8) | Trong menu hamburger |
-| Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold) | Trong menu hamburger |
+| Logo | Icon cột sống + "Trung tâm HV" + tagline, về trang chủ cùng ngôn ngữ (`/` hoặc `/en`) | Như máy tính |
+| Chuyển ngữ (Đợt 20) | Viên **VI | EN** (`LangSwitch`, `nav aria-label="Chọn ngôn ngữ"` / "Choose language") – **chỉ ở `/` và `/en`**, giữ `#mục` khi chuyển | Luôn hiện cạnh nút hamburger |
+| Menu neo | Chương trình · Miễn phí · Premium · Bác sĩ · Liên hệ (Đợt 8); ở `/en`: Programs · Free · Premium · Doctor · Contact, trỏ `/en#…` | Trong menu hamburger |
+| Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold); ở `/en`: "Sign in" · "Enroll" (vẫn tới trang tiếng Việt `/login`, `/register`) | Trong menu hamburger |
 | Đã đăng nhập | [Quản trị] (nhân viên, admin) · Avatar chữ cái + "Tài khoản" ▾ | Avatar ▾ (ẩn chữ "Tài khoản" < sm) |
 | Menu Tài khoản | Tên + email/SĐT · Tài khoản của tôi · Khóa học của tôi · Quản trị (admin) · Đăng xuất (đỏ) | Như máy tính, mở bằng chạm |
 
@@ -70,6 +72,9 @@ Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
 
 ## 5. Footer (`#lien-he`)
+
+Đợt 20: nền xanh đậm `ocean-950`, dùng cho mọi trang; ở `/en` hiện bản tiếng Anh (`lang="en"`), link "Rehabilitation programs" trỏ `/en#khoa-hoc`.
+
 
 Tên + tên đầy đủ + tagline + mô tả · Liên kết (Khóa học, Đăng ký học, Đăng nhập) ·
 Liên hệ (hotline `tel:`, email `mailto:`, Zalo) · Chính sách bảo mật · Dòng miễn trừ y khoa.

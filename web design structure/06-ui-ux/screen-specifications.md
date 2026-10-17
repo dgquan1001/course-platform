@@ -7,6 +7,7 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | --- | --- | --- | --- |
 | SCR-00 | Header / Footer / Toast | (chung) | US-08.x |
 | SCR-01 | Trang chủ | `/` | US-01.x |
+| SCR-01b | Trang chủ tiếng Anh (Đợt 20) | `/en` | US-01.06 |
 | SCR-02 | Trang đăng ký | `/register` | US-02.x |
 | SCR-03 | Box đăng ký 3 bước | `/#dang-ky`, `/register` | US-02.01–02.07 |
 | SCR-04 | Đăng nhập | `/login` | US-03.01 |
@@ -61,54 +62,70 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 
 ## SCR-01 – Trang chủ
 
-*Thiết kế lại Đợt 19 (17/10/2026): thêm chuyển động, hồ sơ bác sĩ đầy đủ (nguồn bsdomanhcuong.com/bac-si.html), bỏ phần trùng lặp.
-Tham khảo bố cục dịch vụ của irc.coach/dich-vu-dieu-tri (thẻ dịch vụ có ảnh + CTA, khối kêu gọi cuối trang). Hiệu ứng: [design-system §5](design-system.md#5-chuyển-động).*
+*Đợt 19 (17/10/2026): chuyển động, hồ sơ bác sĩ (nguồn bsdomanhcuong.com/bac-si.html), bỏ phần trùng. **Đợt 20 (17/10/2026)**: giao diện hiện đại hơn
+(hero tối, bento, cột ảnh dính, hiệu ứng theo cuộn) + song ngữ (SCR-01b). Mã nguồn: `components/home/HomePage.tsx` (dùng chung `/` và `/en`), chữ ở `lib/i18n.ts`.
+Hiệu ứng: [design-system §5, §5.1](design-system.md#5-chuyển-động).*
 
 ```text
-┌─ HERO (nền gradient + 3 vệt màu chuyển động) ────────────────────────────┐
-│ [● HOLISTIC THERAPY CENTER…]  (chấm vàng nhấp nháy)  ┌───────────────┐   │
-│ Trị liệu cột sống – cơ xương khớp                [10+]  Ảnh bác sĩ   │   │
-│ TOÀN DIỆN (chữ gradient) cho người Việt             │  (vuông)  [Chứng │   │
-│ Đừng để cơn đau lưng… lộ trình theo từng buổi…      │      nhận Schroth]│  │
-│ [Đăng ký chương trình →] [▶ Tập thử miễn phí]       └┬─────────────┬┘   │
-│ ☎ Tư vấn miễn phí: 0973 027 017                     │BS Đỗ Mạnh C.│ (thẻ nổi bồng bềnh)
-│ ┌─ Số liệu (đếm tăng khi hiện) ──────────────────────────────────────┐  │
-│ │ 10+ năm KN · 13.000+ người theo dõi · 3 cơ sở · 1:1 kèm riêng       │  │
-│ └────────────────────────────────────────────────────────────────────┘  │
-├─ DẢI CHUYÊN MÔN (nền ocean-950, chạy ngang, rê chuột dừng) ──────────────┤
-│ ⚕ CONG VẸO CỘT SỐNG ⚕ PHƯƠNG PHÁP SCHROTH ⚕ ĐAU CỔ VAI GÁY ⚕ …           │
-├─ VẤN ĐỀ → GIẢI PHÁP ─────────────────────────────────────────────────────┤
-│ Cơn đau không tự hết – nhưng CÓ THỂ CẢI THIỆN │ [✓ đau cổ vai gáy] [✓ …] │
-│ [Bác sĩ trực tiếp xây dựng] [Lộ trình theo buổi] [Mọi lúc] [An toàn]     │
+▔▔▔▔▔▔▔▔▔▔▔ thanh tiến độ cuộn (vàng → xanh, CSS scroll-driven) ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+Header: Logo · menu neo · [🌐 VI|EN] · Đăng nhập · [Đăng ký học]
+┌─ HERO (nền ocean-950 + lưới mờ + 3 vệt màu trôi) ────────────────────────┐
+│ (● HOLISTIC THERAPY CENTER…)                         ╭─ viền conic xoay ─╮│
+│ Trị liệu cột sống – cơ xương khớp                [10+]  Ảnh bác sĩ 4:5  ││
+│ TOÀN DIỆN (vàng→xanh) cho người Việt  ← hiện từng từ │       [🏅 Schroth]││
+│ Đừng để cơn đau lưng…                                ╰─[BS Đỗ Mạnh Cường]╯│
+│ [Đăng ký chương trình → ✨] [▶ Tập thử miễn phí (kính)]   (parallax)       │
+│ ☎ Tư vấn miễn phí: 0973 027 017                 ( chuột "Cuộn xuống" )    │
+╞═ 2 dải chuyên môn chéo ±2°: vàng (đọc được) / xanh (ngược chiều, ẩn) ═══╡
+├─ SỐ LIỆU: 10+ │ 13.000+ │ 3 │ 1:1  (chữ gradient 6xl, đếm tăng) ─────────┤
+├─ #van-de BENTO ──────────────────────────────────────────────────────────┤
+│ ┌──────────── ô lớn 2×2 (gradient xanh) ┐ ┌ Bác sĩ trực tiếp ┐┌ Lộ trình ┐│
+│ │ Cơn đau không tự hết – nhưng CÓ THỂ…  │ └──────────────────┘└──────────┘│
+│ │ [✓ đau cổ vai gáy] [✓ đau lưng] …     │ ┌ Mọi lúc mọi nơi  ┐┌ An toàn  ┐│
+│ └───────────────────────────────────────┘ └──────────────────┘└──────────┘│
 ├─ #bac-si (nền ocean-50) ─────────────────────────────────────────────────┤
-│ [Ảnh giảng dạy + ảnh chứng nhận SSOL nổi]  CHUYÊN GIA ĐỒNG HÀNH          │
-│                                            Bác sĩ Đỗ Mạnh Cường (H2)     │
-│                                            giới thiệu · Học vấn & chứng chỉ ×4
-│ #chuyen-mon  Lĩnh vực chuyên môn: [Cong vẹo] [Đau cột sống] [Chấn thương │
-│              thể thao] [Đào tạo chuyên môn]                               │
-│ Quá trình công tác (dòng thời gian 3 mốc) │ Hoạt động chuyên môn (4 ảnh  │
-│                                           │ 2×2, chú thích, phóng to khi rê)
-├─ #mien-phi → #khoa-hoc (SCR-15) → #premium ──────────────────────────────┤
-│ Thẻ khóa: nhấc lên + ảnh bìa phóng nhẹ khi rê; nhóm 1–2 thẻ căn giữa     │
-├─ #dang-ky → SCR-03 ──────────────────────────────────────────────────────┤
-├─ FAQ (details/summary)            │ Thẻ "Chưa biết chọn chương trình nào?"│
-│                                   │ [Tư vấn qua Zalo] [☎ hotline]         │
+│ ┌ cột DÍNH khi cuộn ───┐  CHUYÊN GIA ĐỒNG HÀNH / Bác sĩ Đỗ Mạnh Cường (H2) │
+│ │ ảnh giảng dạy        │  giới thiệu                                       │
+│ │   + ảnh SSOL nổi     │  [Học vấn & chứng chỉ ×4]                         │
+│ │ “Kết quả trị liệu    │  #chuyen-mon Lĩnh vực chuyên môn 2×2 (h4)         │
+│ │  khác nhau…” — BS    │  Quá trình công tác: đường thời gian tự vẽ khi cuộn│
+│ └──────────────────────┘                                                   │
+│ Hoạt động chuyên môn: 4 ảnh dọc 4:5, chú thích trồi lên khi rê            │
+├─ #mien-phi → #khoa-hoc (SCR-15, lọc dạng viên) → #premium (nền tối + lưới)┤
+│ Thẻ khóa: nhấc lên, ảnh bìa phóng nhẹ, ánh sáng theo con trỏ             │
+├─ #dang-ky → SCR-03 (bản tiếng Anh: SCR-01b) ─────────────────────────────┤
+├─ FAQ (dấu + đổi vàng khi mở)      │ Thẻ tối "Chưa biết chọn chương trình  │
+│                                   │ nào?" [Tư vấn qua Zalo ✨] [☎]         │
 └──────────────────────────────────────────────────────────────────────────┘
-Footer (#lien-he): thêm 3 cơ sở trị liệu (Hà Đông, Ba Đình, Tân Bình).
-Mobile: thanh cố định đáy  [☎ Gọi ngay] [Đăng ký học]
+Footer tối (#lien-he): thương hiệu, 3 cơ sở, liên kết, liên hệ.
+Mobile: thanh cố định đáy  [☎ Gọi ngay] [Đăng ký học]; bento / hồ sơ xếp 1 cột, cột ảnh không dính.
 ```
 
 | Trạng thái | Hiển thị |
 | --- | --- |
 | Không có khóa | Thẻ "Chương trình đang được cập nhật. Gọi <hotline>…"; select trong box đăng ký bị disable |
 | Không có khóa miễn phí | Ẩn mục `#mien-phi`; nút thứ 2 ở hero đổi thành "Xem chương trình" (`#khoa-hoc`) |
-| Dữ liệu | Server render, ISR 300s; hồ sơ bác sĩ, số liệu, 3 cơ sở lấy từ `lib/site-config.ts` (`doctor.education/expertise/career`, `branches`) |
+| Dữ liệu | Server render, ISR 300s; hồ sơ bác sĩ, số liệu, 3 cơ sở lấy từ `lib/site-config.ts` (tiếng Việt) và `lib/i18n.ts` (tiếng Anh) |
 | Ảnh | `public/images/bac-si-do-manh-cuong.jpg` (hero) + `public/images/bac-si/*.jpg` (6 ảnh hoạt động, đã nén ≤ 800px, ≤ 63KB) – CSP chỉ cho ảnh cùng domain |
-| Tắt JS / giảm chuyển động | Mọi nội dung hiện ngay, số liệu đúng giá trị cuối, dải chuyên môn đứng yên (TC-112) |
+| Tắt JS / giảm chuyển động | Mọi nội dung hiện ngay, số liệu đúng giá trị cuối, dải chuyên môn / parallax / thanh tiến độ / vệt sáng đứng yên (TC-112) |
+| Trình duyệt chưa hỗ trợ CSS scroll-driven (Firefox) | Không có parallax, thanh tiến độ, đường thời gian tự vẽ – các hiệu ứng khác vẫn chạy |
 
-**Đã bỏ khi thiết kế lại (trùng lặp)**: ảnh banner trung tâm `trung-tam-hv.jpg` ở mục bác sĩ (chữ trong ảnh lặp lại đúng 4 dòng tiểu sử; ảnh vẫn dùng làm ảnh chia sẻ Open Graph),
-hàng ✓ dưới nút hero và 3 ô "10+ / YHCT / 1:1" (gộp vào dải số liệu), khối CTA cuối trang "Sẵn sàng chăm sóc cột sống?" (lặp nút hero → thay bằng thẻ tư vấn cạnh FAQ),
-mục Lợi ích tách riêng (gộp vào khối Vấn đề → Giải pháp).
+**Đã bỏ (Đợt 19, trùng lặp)**: ảnh banner trung tâm `trung-tam-hv.jpg` ở mục bác sĩ (chữ trong ảnh lặp 4 dòng tiểu sử; vẫn là ảnh chia sẻ Open Graph),
+hàng ✓ dưới nút hero và 3 ô "10+ / YHCT / 1:1" (gộp vào dải số liệu), khối CTA cuối trang "Sẵn sàng chăm sóc cột sống?" (thay bằng thẻ tư vấn cạnh FAQ),
+mục Lợi ích tách riêng (gộp vào bento Vấn đề → giải pháp).
+
+## SCR-01b – Trang chủ tiếng Anh `/en` (Đợt 20, ADR-018)
+
+Cùng bố cục SCR-01, chữ tiếng Anh từ `lib/i18n.ts`. Khác biệt:
+
+| Vùng | `/en` |
+| --- | --- |
+| Header | Programs · Free · Premium · Doctor · Contact (→ `/en#…`), "Sign in", "Enroll"; viên VI \| EN chọn EN |
+| Thẻ khóa | Nhãn "Free / Premium / Lumbar scoliosis / Thoracic scoliosis", "From 199.000đ · Plans 1 month · 3 months", nút "View program", "Register", "Watch now", "Get the offer", giá 0 = "Contact us"; **tên, mô tả khóa giữ tiếng Việt** |
+| `#dang-ky` | Khối xanh: 3 bước bằng tiếng Anh + [Open the registration form (in Vietnamese) →] (`/#dang-ky`) + [Chat on Zalo] – **không nhúng form** |
+| Thanh đáy điện thoại | [Call now] [Enroll → `/#dang-ky`] |
+| Chân trang | Bản tiếng Anh ("Our clinics", "Clinic 1:"…; "Privacy policy (Vietnamese)") |
+| `<head>` | title / description / Open Graph `en_US`; `canonical` `/en`; hreflang vi `/`, en `/en`; `<html lang="en">` (client) + `<main lang="en">` |
 
 ## SCR-02 – Trang đăng ký `/register`
 Tiêu đề trang + SCR-03. Metadata title "Đăng ký khóa học".

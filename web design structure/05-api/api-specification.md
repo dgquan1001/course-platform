@@ -12,6 +12,7 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | Route | Quyền | Params / Query | Render | Mô tả |
 | --- | --- | --- | --- | --- |
 | `/` | Công khai | `?course=<uuid>` chọn sẵn khóa; `#dang-ky`, `#mien-phi`, `#khoa-hoc`, `#premium`, `#bac-si`, `#chuyen-mon`, `#lien-he` | ISR 300s | Landing + box đăng ký |
+| `/en` | Công khai | Neo như `/` (form đăng ký không có – nút mở `/#dang-ky`) | ISR 300s | Trang chủ tiếng Anh (Đợt 20, ADR-018); hreflang vi / en |
 | `/register` | Công khai | `?course=<uuid>&plan=<uuid>` (Đợt 9) | ISR 300s | Trang đăng ký riêng |
 | `/login` | Công khai | `?error=<msg>&next=<path>` | Động | Đăng nhập |
 | `/forgot-password` | Công khai | — | Động | Quên mật khẩu 2 giai đoạn |

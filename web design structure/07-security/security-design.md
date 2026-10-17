@@ -165,6 +165,7 @@ async headers() {
 }
 ```
 CSP cần cho phép `frame-src` YouTube/TikTok, `img-src` `img.vietqr.io`, Supabase Storage và `blob:` (preview ảnh).
+Đợt 19 – 20 (trang chủ mới, song ngữ – ADR-018): **không nới CSP** – ảnh bác sĩ lưu trong `public/`, hiệu ứng là CSS + JS cùng domain, bản tiếng Anh là từ điển tĩnh (không dùng widget dịch máy bên thứ ba).
 
 ## 8. Checklist bảo mật cho mỗi thay đổi
 

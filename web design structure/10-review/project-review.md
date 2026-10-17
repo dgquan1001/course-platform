@@ -1,7 +1,7 @@
 # Báo cáo review dự án
 
 - **Phạm vi**: `README.md`, `supabase/schema.sql`, toàn bộ `app/`, `components/`, `lib/`, `middleware.ts`, `scripts/`, cấu hình.
-- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9; rà soát performance & security – §7.10) · 17/10/2026 (thiết kế lại trang chủ, Đợt 19 – §7.11)
+- **Ngày**: 26/09/2026 · **Phiên bản**: 0.1.0 → 0.2 · cập nhật 27/09/2026 (v0.2 Đợt 7 → 13, xem §7.5 – §7.6) · 29/09/2026 (review tài liệu, kế hoạch Đợt 15 – §7.7) · 02/10/2026 (hạ tầng gói Free, kế hoạch chạy thử – §7.8) · 04/10/2026 (chuyển Cloudflare Workers, thêm / sửa / xóa – §7.9; rà soát performance & security – §7.10) · 17/10/2026 (thiết kế lại trang chủ, Đợt 19 – §7.11; song ngữ + giao diện hiện đại, Đợt 20 – §7.12)
 - **Phương pháp**: đọc mã nguồn, đối chiếu README với hành vi thực tế, phân tích RLS, luồng dữ liệu, bảo mật, khả năng mở rộng;
   mỗi đợt chạy `typecheck`, `lint`, `build`, E2E trên Supabase thật (kiểm tra cả API / RLS, không chỉ giao diện).
 
@@ -455,6 +455,31 @@ Yêu cầu chủ dự án 17/10: trang chủ có chuyển động (tham khảo i
 | --- | --- | --- | --- |
 | RK-55 | 🟡 | Ảnh lấy từ website bác sĩ có **học viên / người tham dự** (workshop, hội nghị); số liệu "13.000+ người theo dõi", "3 cơ sở", lịch sử công tác viết cứng trong code – có thể cũ đi hoặc chưa được người trong ảnh đồng ý | Chủ dự án xác nhận quyền dùng ảnh + số liệu (A-26); thay ảnh / số trong `lib/site-config.ts`, `public/images/bac-si/` khi cần (đổi xong deploy là cập nhật) |
 | RK-56 | 🟢 | Phần tử có hiệu ứng chạy liên tục (`animate-float`, `marquee`) không bao giờ "đứng yên" → Playwright `click` / `scrollIntoViewIfNeeded` lên chúng sẽ treo | Ghi chú trong design-system §5; E2E cuộn bằng DOM; không đặt nút bấm bên trong phần tử bồng bềnh |
+
+### 7.12. Đợt 20 – Song ngữ trang chủ + giao diện hiện đại hơn (17/10/2026)
+
+Yêu cầu chủ dự án 17/10: ô chuyển ngôn ngữ Việt ↔ Anh như irc.coach (bản tiếng Anh ở `/en/`), hiệu ứng mạnh hơn, thiết kế hiện đại hơn, giữ màu
+xanh nước biển – trắng – vàng và các chức năng chính; dev tự quyết. Không đổi schema / API / quyền.
+
+**Nghiên cứu** (tóm tắt): xu hướng 2026 – bento grid cho phần dịch vụ / lợi ích (6 – 9 ô, 1 cột trên điện thoại), chuyển động gắn với cuộn trang
+(CSS scroll-driven: Chrome / Edge 115+, Safari 26; Firefox chưa chắc → dùng `@supports`), kinetic typography vừa phải; tránh 3D / WebGL vì tốn hiệu năng
+(nguồn: line25.com/articles/web-design-trends-2026, tinyfrog.com/web-design-trends, developer.chrome.com/blog/scroll-triggered-animations, flaviocopes.com/css-scroll-driven-animations).
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| Song ngữ | ADR-018: `/en` + từ điển tĩnh `lib/i18n.ts`; nút `LangSwitch` (chỉ trang chủ); header, chân trang, thẻ khóa, bộ lọc theo ngôn ngữ; hreflang + canonical + metadata en; `<html lang>`. Không widget dịch máy (giữ CSP, không nháy chữ, SEO được) |
+| Giao diện | `components/home/HomePage.tsx` dùng chung 2 ngôn ngữ: hero nền tối + lưới + tiêu đề hiện từng từ, viền conic xoay, 2 dải chéo, số liệu gradient, bento, cột ảnh bác sĩ dính + trích dẫn **nguyên văn** từ website bác sĩ (không tự viết lời bác sĩ), đường thời gian tự vẽ, parallax + thanh tiến độ cuộn, `.spotlight`, `.btn-shine`, chân trang tối |
+| Giữ chức năng | Neo, lọc chương trình, "Đăng ký" chọn sẵn khóa, box 3 bước (bản Việt), FAQ, thanh CTA điện thoại; mọi bước E2E cũ chạy nguyên trên giao diện mới |
+| Hiệu năng | Không thêm thư viện; JS trang chủ +~0,5 kB (First Load 197 kB); hiệu ứng theo cuộn bằng CSS (không lắng nghe cuộn bằng JS); `/en` cũng tĩnh |
+| Kiểm thử | TC-113 (chuyển ngữ 2 chiều, giữ #mục, `lang`, hreflang, thẻ khóa / lọc / Register, `/en` không nhúng form, chân trang en, trang khác không có nút) + TC-111, TC-112 trên giao diện mới. E2E: Node 102/102, Workers 103/103 (17/10/2026). Lần chạy Node đầu dừng ở TC-113 vì script so hreflang `vi` với chuỗi kết thúc "/" trong khi Next ghi URL gốc không có "/" cuối – trang đúng, sửa script so theo pathname |
+
+| Mã | Mức | Rủi ro | Xử lý |
+| --- | --- | --- | --- |
+| RK-57 | 🟡 | Chỉ trang chủ có tiếng Anh: tên / mô tả khóa, form đăng ký, đăng nhập, học tập vẫn tiếng Việt – khách nước ngoài có thể bỏ dở | Chấp nhận (khách chính là người Việt); ghi rõ "(in Vietnamese)" ở nút; mở rộng `title_en`, dịch form khi có nhu cầu (ADR-018); A-27 duyệt bản dịch |
+| RK-58 | 🟡 | Hiệu ứng nặng hơn (nhiều lớp `blur-3xl`, `backdrop-blur`, chữ hiện từng từ) có thể giảm mượt / Lighthouse trên điện thoại yếu | Chỉ `opacity` / `transform` / `filter`; giảm chuyển động tắt hết; đo Lighthouse mobile sau deploy (test-plan §5), quá ngưỡng thì bỏ bớt vệt mờ ở hero |
+
+Ghi nhận khi làm: build `next build` trên Windows có lần worker thoát mã `3221226505` (0xC0000409) ở bước "Generating static pages" – chạy lại thì qua, không do mã nguồn (Workers Builds chạy Linux).
+`npx opennextjs-cloudflare build` khi `npm run dev` đang chạy cùng thư mục làm hỏng `.next` (lỗi `Invariant: no direct app page entry found for /account`, dev server trả 500) → build workers ở bản sao riêng (test-plan §2); đã xóa `.next` hỏng ở thư mục chính, `npm run dev` tự tạo lại.
 
 ## 8. Kế hoạch xử lý đề xuất
 

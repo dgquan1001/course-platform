@@ -24,7 +24,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 
 | ID | Yêu cầu | Ưu tiên | TT |
 | --- | --- | --- | --- |
-| FR-001 | Trang chủ `/` hiển thị: hero + số liệu, dải chuyên môn, vấn đề → giải pháp, hồ sơ bác sĩ, danh sách khóa học, box đăng ký, FAQ + thẻ tư vấn, footer liên hệ (bố cục mới Đợt 19 – FR-194 → FR-197) | M | ✅ |
+| FR-001 | Trang chủ `/` (và bản tiếng Anh `/en` – FR-198) hiển thị: hero + số liệu, dải chuyên môn, vấn đề → giải pháp, hồ sơ bác sĩ, danh sách khóa học, box đăng ký, FAQ + thẻ tư vấn, footer liên hệ (bố cục mới Đợt 19 – FR-194 → FR-197) | M | ✅ |
 | FR-002 | Danh sách khóa học chỉ gồm khóa `published`, sắp theo `sort_order` tăng dần, hiển thị tên, mô tả (tối đa 3 dòng), giá | M | ✅ |
 | FR-003 | Giá `0` hiển thị "Liên hệ"; giá > 0 hiển thị định dạng `1.500.000đ` | M | ✅ |
 | FR-004 | Nút "Đăng ký" của mỗi khóa chuyển tới `/?course=<id>#dang-ky`, cuộn tới box đăng ký và chọn sẵn khóa đó | M | ✅ |
@@ -287,6 +287,18 @@ Tham khảo: chuyển động của irc.coach/dich-vu-dieu-tri, nội dung bác 
 | FR-195 | Câu chữ thu hút hành động: hero nêu nỗi đau + lời hứa ("tập đúng, tập đủ ngay tại nhà"), 2 nút "Đăng ký chương trình" / "Tập thử miễn phí", số liệu tin cậy (10+ năm, 13.000+ người theo dõi, 3 cơ sở, 1:1), thẻ "Chưa biết chọn chương trình nào?" dẫn Zalo / hotline (UI-05) | M | 19 | ✅ TC-111 |
 | FR-196 | Mục `#bac-si` hiển thị hồ sơ bác sĩ: học vấn & chứng chỉ (YHCT, PHCN Thái Nguyên, Schroth SSOL), `#chuyen-mon` 4 lĩnh vực, quá trình công tác 3 mốc, 4 ảnh hoạt động chuyên môn; chân trang có 3 cơ sở trị liệu (UI-06) | M | 19 | ✅ TC-111 |
 | FR-197 | Bỏ phần trùng lặp: ảnh banner chứa lại tiểu sử, hàng ✓ và 3 ô số liệu lặp "10+ năm", khối CTA cuối lặp hero; gộp Vấn đề + Lợi ích thành một khối (UI-07) | S | 19 | ✅ TC-111 |
+
+### 2.23. Song ngữ & giao diện hiện đại hơn (yêu cầu chủ dự án 17/10/2026 – Đợt 20)
+
+Tham khảo nút chuyển ngữ của irc.coach (bản tiếng Anh ở `/en/`); thiết kế theo xu hướng 2026 (bento grid, chuyển động theo cuộn) – ADR-018.
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-198 | Nút chuyển ngữ **VI | EN** trên header ở trang chủ; chuyển giữa `/` (tiếng Việt) và `/en` (tiếng Anh), giữ nguyên mục đang xem (`#bac-si`…); trang khác không có nút (UI-08) | M | 20 | ✅ TC-113 |
+| FR-199 | `/en` dịch toàn bộ chữ cố định của trang chủ, header (menu neo, Sign in / Enroll), chân trang; thẻ khóa dịch nhãn / giá "From … · Plans" / nút, giữ tên – mô tả khóa (dữ liệu admin); lọc "Lumbar / Thoracic scoliosis" | M | 20 | ✅ TC-113 |
+| FR-200 | `/en` không nhúng form đăng ký (chỉ có tiếng Việt): tóm tắt 3 bước bằng tiếng Anh + nút "Open the registration form (in Vietnamese)" → `/#dang-ky`; "Register" trên thẻ → `/?course=<id>#dang-ky` | M | 20 | ✅ TC-113 |
+| FR-201 | SEO / truy cập: hreflang vi / en + canonical, title / mô tả / Open Graph tiếng Anh ở `/en`, `<html lang="en">` khi ở `/en` | S | 20 | ✅ TC-113 |
+| FR-202 | Giao diện hiện đại hơn, chuyển động mạnh hơn, giữ màu xanh nước biển – trắng – vàng: hero nền tối + tiêu đề hiện từng từ, 2 dải chuyên môn chéo ngược chiều, bento "Vấn đề → giải pháp", cột ảnh bác sĩ dính khi cuộn, parallax + thanh tiến độ cuộn (CSS scroll-driven), ánh sáng theo con trỏ, vệt sáng nút chính, chân trang tối (UI-09) | M | 20 | ✅ TC-111, TC-112 |
 
 ## 3. Yêu cầu phi chức năng (NFR)
 

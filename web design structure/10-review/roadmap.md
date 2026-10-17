@@ -10,7 +10,7 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-**Cập nhật lần cuối: 17/10/2026** – Đợt 19 thiết kế lại trang chủ (nhánh `hv-dgquan-20261017`, chờ PR). Trước đó 06/10/2026: – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
+**Cập nhật lần cuối: 17/10/2026** – Đợt 19 + **Đợt 20** (song ngữ trang chủ VI ↔ EN, giao diện hiện đại hơn) trên nhánh `hv-dgquan-20261017`, chờ PR vào `main`. Trước đó 06/10/2026: – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
 (PR #8, commit `73295e1`, check "Workers Builds: hv-web" ✅). Website: https://hv-web.bsdomanhcuong.workers.dev. Việc tiếp theo: **§0.1**.
 
 Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
@@ -24,6 +24,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 05/10/2026 – rà soát performance & security: sửa SEC-02, SEC-03, PERF-02; A-24, A-25 · E2E Node 99/99, Workers 100/100
 - 06/10/2026 – chủ dự án: Supabase URL, tắt đăng ký công khai (SEC-01 ✅), nghiệm thu bước 2; `deploy:win` có rào chặn; PR #7 → `main`;
   Workers Builds: sửa lỗi build (biến công khai vào `.env.production`, `.node-version`), PR #8 → **deploy tự động từ `main` thành công** (Đợt 17 P3 ✅, P5 bắt đầu theo dõi)
+- 17/10/2026 – Đợt 20: nút chuyển ngữ VI | EN (trang chủ tiếng Anh `/en`, ADR-018), hero tối + bento + hiệu ứng theo cuộn · E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
 - 17/10/2026 – Đợt 19 thiết kế lại trang chủ (UI-04 → UI-07): chuyển động, hồ sơ + ảnh bác sĩ, bỏ phần trùng · E2E Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
 
 ## 0. Tóm tắt hiện trạng
@@ -34,7 +35,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 | Kiểm thử | E2E **Node 101/101**, **Cloudflare Workers 102/102** (17/10/2026 sau Đợt 19 – trang chủ mới, RK-54 ghi nhận riêng); 05/10: Node 99/99, Workers 100/100 – chạy trên project Supabase hiện tại (dữ liệu test); chủ dự án nghiệm thu trên website thật 06/10 ✅ (trừ email thật – chờ 1.3) |
 | Hiệu năng | Middleware nhẹ (ADR-016); trang công khai ISR trả từ cache (`enableCacheInterception`); Worker 1,6 MiB nén, khởi động 16 ms; mạng VN → PoP Hồng Kông ~0,27 giây kết nối (PERF-01) – project-review §7.10 |
 | Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. **Deploy: merge vào `main` → Workers Builds tự deploy** (từ 06/10); `npm run deploy:win` chỉ khẩn cấp. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
-| Việc tiếp theo | **Đợt 19 (trang chủ mới)**: Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) + A-26 xác nhận ảnh / số liệu · Xem **§0.1** – ✅ bước 1 (trừ email), 2, 3.0 → 3.3 · ⏭ **bước 4 – Đợt 18** (thêm / sửa / xóa) · song song: theo dõi 14 ngày (3.4, tới 20/10), email khi chốt Gmail (1.3 → 1.4) · sau đó bước 5 (Đợt 14 chạy thử) |
+| Việc tiếp theo | **Đợt 19 + 20 (trang chủ mới, song ngữ)**: Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) + A-26 xác nhận ảnh / số liệu, A-27 duyệt bản dịch · Xem **§0.1** – ✅ bước 1 (trừ email), 2, 3.0 → 3.3 · ⏭ **bước 4 – Đợt 18** (thêm / sửa / xóa) · song song: theo dõi 14 ngày (3.4, tới 20/10), email khi chốt Gmail (1.3 → 1.4) · sau đó bước 5 (Đợt 14 chạy thử) |
 | Rủi ro còn mở cần chú ý | RK-54 (hydration trang quản trị trên workerd – CF-41), RK-55 (ảnh / số liệu trang chủ chờ A-26), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
 
 ## 0.1. Việc cần làm tiếp theo – từng bước (to-do)
@@ -133,6 +134,7 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, RK-53, A-18 → A-22 | 🟡 P0 → P4 ✅ (06/10: deploy tự động từ `main`, nghiệm thu) · P5 theo dõi tới 20/10 · P6 gỡ Vercel | — | TC-102, TC-103; checklist CF-01 → CF-41 (P4) | Node 99/99 · Workers 100/100 |
 | 18 | **Thêm / sửa / xóa bệnh nhân & khóa học** – §3.5 | QL-01 → QL-08, RK-51, RK-52 | 📝 Kế hoạch (04/10) – đã chốt Q-5 → Q-8, làm sau Đợt 17 P2 | — | TC-104 → TC-110 | — |
 | 19 | **Thiết kế lại trang chủ** (yêu cầu 17/10): chuyển động, câu chữ thu hút, hồ sơ + ảnh bác sĩ, bỏ phần trùng | UI-04 → UI-07, RK-55, RK-56, A-26 | ✅ code + E2E (nhánh `hv-dgquan-20261017`, chờ PR vào `main`) | 17/10/2026 | TC-111, TC-112 | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
+| 20 | **Song ngữ trang chủ VI ↔ EN + giao diện hiện đại hơn** (yêu cầu 17/10) | UI-08, UI-09, ADR-018, RK-57, RK-58 | ✅ code + E2E (nhánh `hv-dgquan-20261017`, chờ PR vào `main`) | 17/10/2026 | TC-113 (+ TC-111, TC-112 trên giao diện mới) | Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
 
 ### 1.2. Tổng hợp theo nguồn
 
@@ -144,10 +146,10 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | RK hạ tầng (RK-35 → 42) | 8 | 2 (RK-36, RK-38 chờ A-15) | 3 chấp nhận / theo dõi (RK-35, 37, 42) | 3 (RK-39, 40, 41 – giai đoạn 2) |
 | R (tính năng mở rộng, gồm R-00) | 14 | 7 (R-00, 02, 03, 04, 05, 09, 12) | 1 (R-07) | 6 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
-| UI (yêu cầu giao diện 29/09 + 17/10) | 7 | 7 | 0 | 0 |
+| UI (yêu cầu giao diện 29/09 + 17/10) | 9 | 9 | 0 | 0 |
 | RK chuyển hạ tầng & quản lý (RK-43 → 54) | 12 | 7 (RK-43 → 47, 50, 53) | 3 (RK-48, 49 – cấu hình P3 / P5; RK-54 – theo dõi) | 2 (RK-51, 52 – Đợt 18) |
 | QL (thêm / sửa / xóa – 04/10) | 8 | 1 (QL-01 có sẵn) | 0 | 7 |
-| RK trang chủ (RK-55, 56 – 17/10) | 2 | 1 (RK-56) | 1 (RK-55 – chờ A-26) | 0 |
+| RK trang chủ (RK-55 → 58 – 17/10) | 4 | 1 (RK-56) | 3 (RK-55 – chờ A-26; RK-57 – chấp nhận; RK-58 – đo Lighthouse sau deploy) | 0 |
 
 ## 2. Việc cần chủ dự án làm (không tự động hóa được)
 
@@ -178,6 +180,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-23 | Chốt các câu hỏi Đợt 18 (Q-5 → Q-8, §3.5) | RK-51, RK-52 | Trước khi code Đợt 18 | ✅ 04/10/2026 |
 | A-24 | **Tắt đăng ký công khai** của Supabase (Authentication › Sign In / Providers › Allow new users to sign up = tắt) | SEC-01 | §0.1 bước 1.2 | ✅ 06/10/2026 |
 | A-26 | Xác nhận được dùng **ảnh hoạt động** (có học viên / người tham dự) và **số liệu** trên trang chủ (10+ năm, 13.000+ người theo dõi, 3 cơ sở, quá trình công tác) – sửa ở `lib/site-config.ts`, `public/images/bac-si/` | RK-55 | Trước khi quảng bá | ⬜ |
+| A-27 | Duyệt **bản dịch tiếng Anh** trang chủ (`lib/i18n.ts` › `homeCopy.en`, `cardCopy.en`, `chromeCopy.en`) – thuật ngữ y khoa, tên trường, chức danh bác sĩ | RK-57 | Trước khi quảng bá bản `/en` | ⬜ |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 
@@ -345,6 +348,15 @@ hết gói → xóa được, đơn + doanh thu Tổng quan không đổi · TC-
 
 Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
 
+#### Đợt 20 – Song ngữ trang chủ + giao diện hiện đại hơn ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] Tham khảo nút chuyển ngữ irc.coach (`/en/`) + xu hướng thiết kế 2026 (bento grid, CSS scroll-driven animation, kinetic typography; tránh 3D/WebGL); không đổi schema (chủ dự án **không** cần chạy SQL)
+- [x] ADR-018: từ điển tĩnh `lib/i18n.ts`, `/en` dùng chung `components/home/HomePage.tsx`, ISR như `/`, hreflang; không widget dịch máy (giữ CSP)
+- [x] UI-08 `LangSwitch` VI | EN (chỉ trang chủ, giữ `#mục`), header / chân trang / thẻ khóa / bộ lọc theo ngôn ngữ; `/en` có 3 bước + nút mở form tiếng Việt; `<html lang>`
+- [x] UI-09 hero nền tối + lưới + tiêu đề hiện từng từ, viền conic xoay, 2 dải chéo ngược chiều, số liệu gradient, bento, cột ảnh bác sĩ dính + trích dẫn nguyên văn, đường thời gian tự vẽ, parallax + thanh tiến độ cuộn, ánh sáng theo con trỏ, vệt sáng nút, chân trang tối
+- [x] typecheck / lint / build · [x] E2E TC-113 + chạy lại toàn bộ (Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)) · [x] tài liệu (ADR-018, SRS FR-198 → 202, US-01.06, design-system §5 / §5.1, SCR-01 / SCR-01b, sitemap, API, system-architecture, source-structure, test-plan, project-review §7.12, README)
+- [ ] Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) · [ ] chủ dự án / người thạo tiếng Anh duyệt bản dịch (A-27)
+- Để lại / đề xuất: dịch tên – mô tả khóa (`title_en`…) và form đăng ký khi có khách nước ngoài thật (RK-57); Lighthouse mobile sau deploy (hiệu ứng nặng hơn – RK-58)
+
 #### Đợt 19 – Thiết kế lại trang chủ ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
 - [x] Tham khảo chuyển động irc.coach/dich-vu-dieu-tri + nội dung bác sĩ bsdomanhcuong.com/bac-si.html#chuyen-mon; không đổi schema (chủ dự án **không** cần chạy SQL)
 - [x] UI-04 chuyển động: hero so le, hiện dần khi cuộn (`RevealObserver`), số đếm (`CountUp`), dải chuyên môn chạy ngang, thẻ nổi, vệt màu nền, thẻ nhấc khi rê; giảm chuyển động / tắt JS vẫn đọc được
@@ -496,6 +508,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - Chuyển hạ tầng & quản lý (chi tiết ở [project-review §7.9](project-review.md#79-rà-soát-chuyển-hạ-tầng-sang-cloudflare-workers-04102026)):
   [x] RK-43 · [x] RK-44 · [x] RK-45 · [x] RK-46 (chờ thử thư thật CF-05) · [x] RK-47 · 🟡 RK-48 (P3) · 🟡 RK-49 (P3 / P5) · [x] RK-50 · [ ] RK-51 · [ ] RK-52 (Đợt 18) · [x] RK-53 · 🟡 RK-54 (kiểm lại CF-41)
   · 🟡 RK-55 (ảnh / số liệu trang chủ – A-26) · [x] RK-56 (hiệu ứng chạy liên tục làm treo thao tác Playwright – E2E cuộn bằng DOM) – Đợt 19
+  · 🟡 RK-57 (chỉ trang chủ có tiếng Anh – chấp nhận, A-27) · 🟡 RK-58 (hiệu ứng nặng hơn trên điện thoại yếu: blur, backdrop-blur – đo Lighthouse sau deploy) – Đợt 20
 
 ### 5.4. Tính năng mở rộng (R)
 - [x] R-00 Xử lý kết quả review (Đợt 1 → 5)
@@ -518,6 +531,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] UI-02 Menu quản trị dọc bên trái, thứ tự mới (Khóa học lên thứ 4), số đếm → Đợt 15
 - [x] UI-03 Vòng tròn % tiến độ → Đợt 15
 - [x] UI-04 Chuyển động trang chủ · [x] UI-05 Câu chữ thu hút + số liệu · [x] UI-06 Hồ sơ + ảnh bác sĩ, 3 cơ sở · [x] UI-07 Bỏ phần trùng → Đợt 19 (17/10/2026)
+- [x] UI-08 Nút chuyển ngữ VI | EN, trang chủ tiếng Anh `/en` · [x] UI-09 Giao diện hiện đại hơn (hero tối, bento, hiệu ứng theo cuộn) → Đợt 20 (17/10/2026)
 
 ### 5.6. Quản lý danh sách (QL) – 04/10/2026
 - [x] QL-01 Thêm bệnh nhân (có sẵn từ Đợt 11)

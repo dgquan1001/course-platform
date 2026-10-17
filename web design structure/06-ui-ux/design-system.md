@@ -144,6 +144,18 @@ Không thêm thư viện icon; icon mới thêm vào cùng file theo cùng kiể
 | `animate-blob` (Đợt 19) | Vệt màu `blur-3xl` di chuyển chậm 18s làm nền hero, Premium, khối tư vấn (`aria-hidden`, `pointer-events-none`) |
 | `animate-marquee` (Đợt 19) | Dải chuyên môn chạy ngang 40s, lặp danh sách 2 lần (bản lặp `aria-hidden`), rê chuột thì dừng |
 | `.card-lift` (Đợt 19) | Thẻ nhấc lên 4px + bóng `shadow-lg shadow-ocean-900/10` khi rê chuột (thẻ khóa học, lợi ích, chuyên môn); ảnh bìa / ảnh hoạt động phóng to nhẹ (`group-hover:scale-105/110`, 0.7s) |
+| **Đợt 20 – mạnh hơn** | |
+| `animate-word-in` | Tiêu đề hero hiện **từng từ** (0.9s, mờ nhòe 10px → rõ, trồi 0.55em, xoay 2°), mỗi từ trễ 70ms (`KineticTitle` trong `components/home/HomePage.tsx`) |
+| `data-reveal` mạnh hơn | Dịch 48px (trái / phải 64px, zoom .88) + `blur(8px)` → rõ trong 0.9s |
+| Parallax – `data-parallax` | CSS scroll-driven `animation-timeline: view()`: phần tử trôi `±var(--parallax, 40px)` khi cuộn qua (ảnh bác sĩ ở hero). Không dùng JS; chỉ bật trong `@supports (animation-timeline: scroll())` + `prefers-reduced-motion: no-preference` – trình duyệt chưa hỗ trợ (Firefox) đứng yên |
+| Thanh tiến độ cuộn `.scroll-progress` | Vạch 4px gradient vàng → xanh ở đỉnh màn hình, `scaleX` theo `animation-timeline: scroll(root)` (cùng điều kiện như parallax) |
+| `.timeline-fill` | Đường "Quá trình công tác" tự vẽ từ trên xuống khi cuộn tới (`view()`, `animation-range: entry 20% cover 60%`) |
+| `.spotlight` | Quầng sáng xanh 420px chạy theo con trỏ trong thẻ (biến `--mx`/`--my` do `RevealObserver` ghi khi `pointermove`) – thẻ khóa học, lợi ích, chuyên môn |
+| `.btn-shine` | Vệt sáng lướt qua nút vàng chính mỗi 3.5s (chỉ `::after` chuyển động – nút không xê dịch nên Playwright / người dùng bấm bình thường) |
+| `animate-spin-slow` | Viền gradient conic vàng – xanh xoay 14s quanh ảnh bác sĩ (lớp `-inset-1/2` trong khung `overflow-hidden`) |
+| `animate-glow` | Quầng sáng vàng thở 5s sau ảnh bác sĩ / khối bento |
+| `animate-marquee-reverse` | Dải chuyên môn thứ 2 (xanh, `aria-hidden`) chạy ngược chiều, hai dải đặt chéo ±2° đè lên đáy hero |
+| `animate-scroll-cue` | Biểu tượng chuột "Cuộn xuống" ở đáy hero (≥ lg) |
 | Nút nhấn | `active:scale-[0.97]` 150ms |
 | Thanh tiến trình | `NavigationProgress` trên đầu trang khi chuyển route |
 | Cuộn mượt | `scroll-behavior: smooth` |
@@ -151,7 +163,25 @@ Không thêm thư viện icon; icon mới thêm vào cùng file theo cùng kiể
 
 Nguyên tắc: chuyển động chỉ dùng `opacity` / `transform` (không gây dàn trang lại), không thêm thư viện animation (AOS, GSAP…),
 không tự chạy âm thanh/video; trang chủ là nơi duy nhất dùng hiệu ứng cuộn – trang học và quản trị giữ tĩnh để tập trung.
+Đợt 20: mọi hiệu ứng mới vẫn chỉ dùng `opacity` / `transform` / `filter`; `prefers-reduced-motion` tắt cả hiệu ứng theo cuộn (scroll-driven) và vệt sáng nút.
 Không đặt nút / link bên trong phần tử chạy liên tục (`animate-float`, `animate-marquee`): khó bấm và Playwright không bao giờ thấy "đứng yên" (RK-56).
+
+### 5.1. Bố cục trang chủ hiện đại (Đợt 20)
+
+Nghiên cứu xu hướng 2026: **bento grid** cho phần dịch vụ / lợi ích (6 – 9 ô, xếp 1 cột trên điện thoại), chuyển động **gắn với cuộn trang**
+(CSS scroll-driven, không thư viện), **kinetic typography** có chừng mực; tránh 3D / WebGL (nặng, hao pin điện thoại) – nguồn tham khảo ở project-review §7.12.
+
+| Thành phần | Mô tả |
+| --- | --- |
+| Hero tối | Nền `ocean-950` + 3 vệt màu `animate-blob` (ocean-500/40, gold-400/20, ocean-300/25) + lưới mờ `.bg-grid` (56px, mask hình elip); chữ trắng, từ nhấn `.text-gradient-light` (gold-300 → ocean-200); cao gần hết màn hình (`lg:min-h-[calc(100svh-4rem)]`) |
+| `.glass` | Kính mờ trên nền tối: `border-white/15 bg-white/10 backdrop-blur-md` (nút phụ, thẻ đau mỏi, bước đăng ký). Trên ảnh sáng dùng `bg-ocean-950/70` để chữ đủ tương phản |
+| `.eyebrow-dark` | Nhãn nhỏ trên nền tối (viền trắng 15%, chữ gold-200) |
+| Bento "Vấn đề → giải pháp" | Lưới 4 cột × 2 hàng (≥ lg): ô lớn 2×2 nền gradient ocean-900 → ocean-600 (tiêu đề, 4 nỗi đau dạng thẻ kính) + 4 ô lợi ích trắng `rounded-[2rem]`, icon xoay 6° và đổi nền khi rê |
+| Mục bác sĩ | Cột ảnh **dính khi cuộn** (`lg:sticky lg:top-24`) + trích dẫn nguyên văn của bác sĩ; cột hồ sơ cuộn bên cạnh (học vấn, chuyên môn 2×2, dòng thời gian tự vẽ); 4 ảnh hoạt động dọc `aspect-[4/5]`, chú thích trồi lên khi rê |
+| Số liệu | Số lớn `text-6xl` chữ gradient, ngăn bằng `divide-x` |
+| `.section-title` | `text-3xl sm:text-4xl lg:text-5xl`, `leading-[1.1] tracking-tight` |
+| Chân trang | Nền `ocean-950`, chữ ocean-100, nhấn gold-300 (mọi trang) |
+| Nút chuyển ngữ `LangSwitch` | Viên bo tròn nền ocean-50, biểu tượng quả địa cầu, 2 nút "VI" "EN" 40×32px; nền **vàng gold-400 trượt** (300ms) sang ngôn ngữ đang chọn; `aria-current`, `hrefLang`, `aria-label` "Tiếng Việt" / "English". Chỉ hiện ở trang chủ (ADR-018) |
 
 ## 6. Khả năng tiếp cận (checklist bắt buộc cho UI mới)
 

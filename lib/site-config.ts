@@ -7,7 +7,7 @@ export const siteConfig = {
     'Khóa học online nắn chỉnh, trị liệu cột sống - cơ xương khớp do Bác sĩ Đỗ Mạnh Cường trực tiếp hướng dẫn.',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
   hotline: '0973 027 017',
-  email: 'dgquan1001@gmail.com',
+  email: 'manhcuong0973027017@gmail.com',
   zaloUrl: 'https://zalo.me/0973027017',
   doctor: {
     name: 'Bác sĩ Đỗ Mạnh Cường',

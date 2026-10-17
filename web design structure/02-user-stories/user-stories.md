@@ -244,9 +244,22 @@ Tiêu chí chấp nhận (AC) viết theo Gherkin (Given / When / Then).
 - **AC1** Given bấm "Ẩn khóa học" Then badge "Đang ẩn", khóa biến mất khỏi trang chủ và ô chọn khóa.
 - **AC2** Given học viên đã được duyệt khóa đó When khóa bị ẩn Then học viên vẫn thấy khóa trong "Khóa học của tôi" và xem được bài học; khách/học viên chưa mua nhận 404.
 
-### US-07.04 – Xóa khóa học ✅ (1 SP)
-- BR: BR-23 · **AC1** Given bấm "Xóa khóa học" Then hỏi xác nhận (nêu rõ đơn và lịch sử thanh toán được giữ); đồng ý → xóa khóa và bài học.
+### US-07.04 – Xóa khóa học ✅ (1 SP · nâng cấp Đợt 24 – FR-211)
+- BR: BR-23 · **AC1** *(Đợt 24)* Given khóa còn học viên có gói còn hạn hoặc đơn chờ duyệt When mở vùng "Xóa khóa học" Then không có nút xóa, thấy lý do + gợi ý "Ẩn khóa học". Given khóa không còn ai học When gõ đúng tên khóa Then nút "Xóa vĩnh viễn khóa học" mở, bấm → xóa khóa, buổi – bài, gói, ảnh bìa và về danh sách (gõ sai tên: nút bị khóa).
 - **AC2** Then mọi đơn của khóa vẫn còn với tên khóa, học phí đã lưu; bảng admin hiện "(khóa học đã xóa)", không còn nút Duyệt; học viên vẫn thấy đơn trong lịch sử.
+
+### US-07.08 – Thao tác khóa học rõ ràng, thêm khóa từ đầu danh sách ✅ (3 SP · Đợt 24)
+**Là** admin, **tôi muốn** thấy ngay các nút Sửa / Ẩn / Buổi – bài / Xem / Xóa trên từng khóa và thêm khóa bằng một nút ở đầu trang, **để** quản lý khóa học không phải tìm mục bị giấu.
+- FR: FR-209, FR-210 · QL-06, QL-07 · Màn hình: SCR-12, SCR-12b, SCR-12c · TC-108, TC-110
+- **AC1** Given danh sách khóa Then mỗi thẻ có Sửa · Quản lý buổi – bài (trừ premium) · Ẩn khóa học / Hiển thị · Xem trang giới thiệu · Xóa.
+- **AC2** Given đang ở tab Premium When bấm "+ Thêm khóa học" Then trang tạo khóa chọn sẵn loại Premium; tạo xong chuyển sang trang sửa khóa vừa tạo.
+- **AC3** Given trang sửa chương trình Then form không có ô Giá; giá sửa ở bảng "Gói theo thời hạn" cùng trang.
+
+### US-16.01 – Trang quản trị hiện đại, dễ dùng ✅ (5 SP · Đợt 23)
+**Là** nhân viên / admin, **tôi muốn** khu quản trị có thanh bên rõ ràng, tiêu đề trang và số việc cần làm nổi bật, **để** làm việc nhanh trên máy tính lẫn điện thoại.
+- FR: FR-207, FR-208 · UI-10 · design-system §9
+- **AC1** Given máy tính Then menu là cột tối bên trái, mục đang mở sáng hơn + vạch vàng; điện thoại: hàng tab cuộn ngang.
+- **AC2** Given mỗi trang quản trị Then có tiêu đề + mô tả việc chính + nút chính; danh sách rỗng có hướng dẫn.
 
 ### US-07.07 – Dữ liệu nhập sai bị chặn ở server ✅ (2 SP)
 **Là** chủ trung tâm, **tôi muốn** hệ thống từ chối dữ liệu khóa học/bài học không hợp lệ kể cả khi bị gửi thẳng lên server, **để** website không hiển thị giá sai hay nhúng link lạ.

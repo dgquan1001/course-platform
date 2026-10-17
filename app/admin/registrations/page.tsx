@@ -6,6 +6,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { setRegistrationStatus } from '../actions'
+import PageHeader from '@/components/admin/PageHeader'
 
 const filters = [
   { key: 'pending', label: 'Chờ duyệt' },
@@ -152,7 +153,7 @@ export default async function AdminRegistrationsPage(props: { searchParams: Prom
   }
   counts.all = counts.pending + counts.approved + counts.rejected
 
-  // Ảnh chuyển khoản nằm trong bucket riêng tư: tạo link xem tạm thời 1 giờ.
+  // Ảnh chuyển khoản nằm trong bucket riêng tư: tạo link xem tạm thời 15 phút (SEC-17: link lộ ra ngoài hết hạn nhanh).
   // Lịch sử xử lý của các đơn đang hiển thị (ai đổi trạng thái, lúc nào, lý do).
   const proofUrls = new Map<string, string>()
   const eventsByRegistration = new Map<string, RegistrationEvent[]>()
@@ -160,7 +161,7 @@ export default async function AdminRegistrationsPage(props: { searchParams: Prom
     const [{ data: signed }, { data: events }] = await Promise.all([
       supabase.storage.from('payment-proofs').createSignedUrls(
         registrations.map((r) => r.payment_proof_path).filter((path): path is string => !!path),
-        3600
+        900
       ),
       supabase
         .from('registration_events')
@@ -176,26 +177,21 @@ export default async function AdminRegistrationsPage(props: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <PageHeader title="Đơn đăng ký" description="Duyệt đơn đăng ký trên website (xem ảnh chuyển khoản), từ chối hoặc thu hồi gói kèm lý do." />
+      <nav aria-label="Lọc theo trạng thái đơn" className="seg">
         {/* Tab "cần hoàn tiền" chỉ hiện khi có đơn, tô đỏ để admin chú ý */}
         {filters.filter((f) => f.key !== 'refund' || counts.refund > 0 || filter === 'refund').map((f) => (
           <Link
             key={f.key}
             href={f.key === 'pending' ? '/admin/registrations' : `/admin/registrations?status=${f.key}`}
             aria-current={filter === f.key ? 'page' : undefined}
-            className={`btn-sm btn whitespace-nowrap border ${
-              filter === f.key
-                ? 'border-ocean-500 bg-ocean-500 text-white'
-                : f.key === 'refund'
-                  ? 'border-red-200 bg-red-50 text-red-700 hover:border-red-300'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-            }`}
+            className={`seg-item ${f.key === 'refund' && filter !== f.key ? 'bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800' : ''}`}
           >
             {f.label}
-            <span className="opacity-80">({counts[f.key]})</span>
+            <span className="opacity-70">({counts[f.key]})</span>
           </Link>
         ))}
-      </div>
+      </nav>
 
       {/* Bảng cuộn ngang trên màn hình hẹp */}
       <div className="card overflow-x-auto">

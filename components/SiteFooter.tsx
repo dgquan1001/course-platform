@@ -8,9 +8,12 @@ import { MailIcon, MapPinIcon, PhoneIcon, SpineIcon } from './icons'
 
 // Chân trang (nền xanh đậm – Đợt 20); ở trang chủ tiếng Anh (/en) hiện bản tiếng Anh (ADR-018)
 export default function SiteFooter() {
-  const locale = localeOfPath(usePathname())
+  const pathname = usePathname()
+  const locale = localeOfPath(pathname)
   const t = chromeCopy[locale]
   const home = homeHref(locale)
+  // Khu quản trị (Đợt 23) là công cụ làm việc: không cần chân trang giới thiệu
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) return null
 
   return (
     <footer id="lien-he" lang={locale} className="relative isolate scroll-mt-16 overflow-hidden bg-ocean-950 text-ocean-100">

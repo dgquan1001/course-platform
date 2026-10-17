@@ -6,6 +6,7 @@ import SiteHeader from '@/components/SiteHeader'
 import Toaster from '@/components/Toaster'
 import SiteFooter from '@/components/SiteFooter'
 import LoginReminders from '@/components/LoginReminders'
+import SessionGuard from '@/components/SessionGuard'
 import { siteConfig } from '@/lib/site-config'
 import './globals.css'
 
@@ -54,6 +55,7 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <SiteFooter />
         <LoginReminders />
+        <SessionGuard />
       </body>
     </html>
   )

@@ -45,6 +45,11 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // Chỉ trồi lên (không mờ dần) – cho khối là phần tử LCP (thẻ đăng nhập) – PERF-09
+        rise: {
+          '0%': { transform: 'translateY(10px)' },
+          '100%': { transform: 'translateY(0)' },
+        },
         // Trang chủ: thẻ nổi bồng bềnh, nền loang chuyển động, dải chuyên môn chạy ngang
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
@@ -60,9 +65,11 @@ const config: Config = {
           '100%': { transform: 'translateX(-50%)' },
         },
         // Đợt 20: chữ tiêu đề hero hiện từng từ (mờ → rõ, trồi lên)
+        // PERF-09 (Đợt 22): không bắt đầu từ opacity 0 – tiêu đề hero là phần tử LCP, chữ mờ (blur) vẫn tính là đã hiện
+        // nên LCP = lúc vẽ đầu tiên thay vì chờ hết hiệu ứng (đo trước: 89% LCP là "render delay")
         'word-in': {
-          '0%': { opacity: '0', transform: 'translateY(0.55em) rotate(2deg)', filter: 'blur(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0) rotate(0)', filter: 'blur(0)' },
+          '0%': { transform: 'translateY(0.45em) rotate(2deg)', filter: 'blur(12px)' },
+          '100%': { transform: 'translateY(0) rotate(0)', filter: 'blur(0)' },
         },
         'scroll-cue': {
           '0%': { transform: 'translateY(0)', opacity: '1' },
@@ -76,6 +83,7 @@ const config: Config = {
       },
       animation: {
         'fade-up': 'fade-up 0.4s ease-out both',
+        rise: 'rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both',
         'fade-up-slow': 'fade-up 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both',
         float: 'float 6s ease-in-out infinite',
         blob: 'blob 18s ease-in-out infinite',

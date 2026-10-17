@@ -17,12 +17,12 @@ const tabs = [
   { href: '/admin/settings/consultation', label: 'Mẫu phiếu', icon: SettingsIcon, adminOnly: true },
 ]
 
-// Màn hình < lg: hàng tab gạch chân cuộn ngang; từ lg: cột dọc trong sidebar bên trái (layout.tsx).
-// counts: số việc cần xử lý theo href (server component bọc Suspense, truyền từ layout)
+// Màn hình < lg: hàng "viên" cuộn ngang trên dải tối; từ lg: cột dọc trong thanh bên tối (layout.tsx) – mục đang mở nền sáng hơn
+// + vạch vàng bên trái. counts: số việc cần xử lý theo href (server component bọc Suspense, truyền từ layout)
 export default function AdminNav({ isAdmin, counts = {} }: { isAdmin: boolean; counts?: Record<string, React.ReactNode> }) {
   const pathname = usePathname()
   return (
-    <nav aria-label="Menu quản trị" className="-mb-px flex gap-1 overflow-x-auto lg:mb-0 lg:flex-col lg:overflow-visible">
+    <nav aria-label="Menu quản trị" className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
       {tabs
         .filter((t) => isAdmin || !t.adminOnly)
         .map((t) => {
@@ -33,13 +33,13 @@ export default function AdminNav({ isAdmin, counts = {} }: { isAdmin: boolean; c
               key={t.href}
               href={t.href}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition lg:rounded-r-lg lg:border-b-0 lg:border-l-4 lg:px-3 lg:py-2.5 ${
+              className={`relative flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 lg:py-2.5 ${
                 active
-                  ? 'border-ocean-500 text-ocean-700 lg:bg-ocean-50'
-                  : 'border-transparent text-slate-500 hover:text-ocean-700 lg:hover:bg-slate-50'
+                  ? 'bg-white text-ocean-950 lg:bg-white/10 lg:text-white lg:before:absolute lg:before:inset-y-2 lg:before:left-0 lg:before:w-1 lg:before:rounded-r lg:before:bg-gold-400'
+                  : 'text-ocean-200 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <Icon className="hidden h-5 w-5 shrink-0 lg:block" />
+              <Icon className={`hidden h-[18px] w-[18px] shrink-0 lg:block ${active ? 'text-gold-300' : 'text-ocean-300'}`} />
               <span data-nav-label>{t.label}</span>
               {counts[t.href]}
             </Link>

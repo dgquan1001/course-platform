@@ -3,8 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { invalidateProfile, useProfile } from '@/lib/use-profile'
+import { useProfile } from '@/lib/use-profile'
 import { realEmail } from '@/lib/phone'
 import { siteConfig } from '@/lib/site-config'
 import { chromeCopy, homeHref, localeOfPath } from '@/lib/i18n'
@@ -20,6 +19,7 @@ import {
   UserIcon,
 } from './icons'
 import LangSwitch from './LangSwitch'
+import { signOutLocally } from './SessionGuard'
 import { toast } from './Toaster'
 
 type HeaderUser = { isStaff: boolean; name: string; subtitle: string } | null
@@ -31,6 +31,8 @@ export default function SiteHeader() {
   // Trang chủ tiếng Anh (/en): menu neo, nút khách bằng tiếng Anh; trang khác luôn tiếng Việt (ADR-018)
   const locale = localeOfPath(pathname)
   const isHome = pathname === '/' || pathname === '/en'
+  // Khu quản trị (Đợt 23): bỏ menu neo của trang chủ – trang quản trị có thanh bên riêng
+  const isAdminArea = pathname === '/admin' || pathname.startsWith('/admin/')
   const t = chromeCopy[locale]
   const navLinks = t.nav.map((n) => ({ href: `${homeHref(locale)}#${n.hash}`, label: n.label }))
   // Đọc phiên đăng nhập ở trình duyệt (dùng chung với hộp nhắc, có cache), nhờ vậy các trang công khai
@@ -72,13 +74,13 @@ export default function SiteHeader() {
 
   async function signOut() {
     setSigningOut(true)
-    const { error } = await createClient().auth.signOut()
+    // Đăng xuất mọi thiết bị (như trước) + xóa cookie mốc thời gian phiên (SEC-13)
+    const { error } = await signOutLocally('global')
     setSigningOut(false)
     if (error) {
       toast(`Đăng xuất không thành công: ${error.message}`, 'error')
       return
     }
-    invalidateProfile()
     setSignedOut(true)
     setAccountOpen(false)
     toast('Đã đăng xuất')
@@ -181,7 +183,7 @@ export default function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className={isAdminArea ? 'hidden' : 'hidden items-center gap-1 lg:flex'}>
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} className="btn-ghost px-3">
               {l.label}
@@ -203,7 +205,7 @@ export default function SiteHeader() {
           {user === null && <div className="hidden items-center gap-2 lg:flex">{guestLinks}</div>}
           {accountMenu}
           <button
-            className="btn-ghost -mr-2 px-3 lg:hidden"
+            className={`btn-ghost -mr-2 px-3 lg:hidden ${isAdminArea ? 'hidden' : ''}`}
             onClick={() => setNavOpen((v) => !v)}
             aria-label={navOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={navOpen}

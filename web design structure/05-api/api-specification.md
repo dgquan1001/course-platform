@@ -32,6 +32,8 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | `/admin/users` | Nhân viên, admin | `?q=`, `?role=team` | Động | Đường dẫn cũ → `/admin/patients` (giữ bộ lọc) |
 | `/admin/consultations` | Nhân viên, admin | `?status=new\|contacted\|done\|cancelled` | Động | Phiếu tham vấn (Đợt 12) |
 | `/admin/courses` | Admin | `?kind=program\|free\|premium` (mặc định: tất cả, chia nhóm) | Động | Khóa học theo loại, gói |
+| `/admin/courses/new` | Admin | `?kind=program\|free\|premium` (chọn sẵn loại) | Động | Thêm khóa học (Đợt 24) – tạo xong chuyển sang trang sửa |
+| `/admin/courses/[courseId]/edit` | Admin | `courseId: uuid` | Động | Sửa khóa, bảng gói, Ẩn / Hiện, xóa an toàn (Đợt 24) |
 | `/admin/courses/[courseId]` | Admin | `courseId: uuid` | Động | Buổi – bài của khóa |
 | `/admin/settings/consultation` | Admin | — | Động | Mẫu phiếu tham vấn (`/admin/settings` chuyển tới đây) |
 | `/icon.svg` | Công khai | — | Tĩnh | Favicon |
@@ -167,6 +169,7 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | `setLeadStatus` | `leadId`, `expected` (trạng thái đang thấy) | `status` ∈ new/contacted/converted/closed, `staff_note` ≤ 500 | update `leads` `.eq('status', expected)` (nhân viên, admin); 0 dòng → "Yêu cầu đã thay đổi (có thể người khác vừa xử lý)…" | "Đã ghi nhận: đã liên hệ khách."… |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
+| `deleteCourse(courseId, formData)` *(Đợt 24)* | Admin | `confirm_title` phải đúng tên khóa; chặn khi còn đơn đã duyệt còn hạn (`access_until` null hoặc > now) / đơn chờ (`courseUsage`, `app/admin/courses/usage.ts`) | Thành công: `redirectTo: /admin/courses`. `createCourse` thành công: `redirectTo: /admin/courses/<id>/edit` (`ActionResult.redirectTo`) |
 | `setUserRole` | `userId` (UUID, khác chính mình) | `role` ∈ user/staff/admin ("Vai trò không hợp lệ.") | update `profiles.role` (chỉ admin); trigger `profiles_guard_role` chặn người không phải admin, tự gỡ quyền, gỡ admin cuối cùng ("Chỉ admin được thay đổi vai trò tài khoản." / "Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã chuyển vai trò thành Nhân viên." / "Đã chuyển vai trò thành Học viên." |
 | `createLesson` | `courseId` | `title, video_url` (không bắt buộc từ Đợt 10), `description, sort_order`, `session_id` (trống = buổi cuối; chưa có buổi → tạo "Buổi 1") | insert `lessons` | `Đã thêm bài học "<title>".` |
 | `generateSkeleton` | `courseId` | `session_count` 1–200, `lessons_per_session` 1–20 | tạo "Buổi k" nối tiếp + "Bài 1…M" chưa có video (tối đa 500 buổi / khóa) – Đợt 10 | `Đã tạo N buổi × M bài.` |

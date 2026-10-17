@@ -9,17 +9,20 @@ export default function SubmitButton({
   className = 'btn-primary',
   confirmMessage,
   title,
+  disabled = false,
 }: {
   children: React.ReactNode
   className?: string
   confirmMessage?: string
   title?: string
+  // Chưa đủ điều kiện gửi (VD chưa gõ đúng tên khóa để xác nhận xóa)
+  disabled?: boolean
 }) {
   const { pending } = useFormStatus()
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       title={title}
       className={className}
       onClick={(e) => {

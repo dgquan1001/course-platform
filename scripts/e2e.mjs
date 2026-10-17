@@ -218,7 +218,10 @@ async function logoutViaMenu(page) {
 
 async function createCourseViaUI(page, course) {
   await page.goto(`${BASE}/admin/courses`)
-  const form = page.locator('section', { has: page.getByRole('heading', { name: 'Thêm khóa học mới' }) })
+  // QL-07 (Đợt 24): nút "+ Thêm khóa học" ở đầu danh sách mở trang tạo khóa
+  await page.getByRole('link', { name: 'Thêm khóa học', exact: true }).click()
+  await page.waitForURL((u) => u.pathname === '/admin/courses/new')
+  const form = page.getByRole('region', { name: 'Thông tin khóa học mới' })
   await form.locator('[name=title]').fill(course.title)
   await form.locator('[name=description]').fill('Khóa học kiểm thử tự động.')
   await form.locator('[name=price]').fill(course.price)
@@ -237,9 +240,11 @@ async function createCourseViaUI(page, course) {
   }
   await form.getByRole('button', { name: 'Thêm khóa học' }).click()
   await toast(page, 'Đã thêm khóa học')
+  // Tạo xong chuyển sang trang sửa khóa (thêm gói / buổi – bài tiếp)
+  await page.waitForURL((u) => /^\/admin\/courses\/[0-9a-f-]{36}\/edit$/.test(u.pathname))
   await page.getByRole('heading', { name: course.title }).waitFor()
-  assert((await form.locator('[name=title]').inputValue()) === '', 'Form thêm khóa học không được xóa trắng')
   const { data } = await db.from('courses').select('id, price, status, kind, category, cover_image').eq('title', course.title).single()
+  assert(page.url().includes(`/admin/courses/${data?.id}/edit`), `Không chuyển tới trang sửa khóa vừa tạo: ${page.url()}`)
   assert(
     data?.price === Number(course.price) && data.status === course.status && data.kind === (course.kind ?? 'program') &&
       data.category === (course.category ?? null),
@@ -666,8 +671,8 @@ try {
       await alert.waitFor({ state: 'detached', timeout: 8000 }) // chờ toast tắt để lần sau không nhầm
     }
 
-    await admin.goto(`${BASE}/admin/courses`)
-    const courseForm = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm khóa học mới' }) }).locator('form')
+    await admin.goto(`${BASE}/admin/courses/new`)
+    const courseForm = admin.getByRole('region', { name: 'Thông tin khóa học mới' }).locator('form')
     for (const [values, expected] of [
       [{ title: '   ', price: '100000' }, 'Vui lòng nhập tên khóa học'],
       [{ title: `[E2E] Sai giá ${stamp}`, price: '-5000' }, 'Học phí phải từ 0'],
@@ -724,6 +729,7 @@ try {
     const res = await fetch(cover.cover_image)
     assert(res.ok && res.headers.get('content-type')?.startsWith('image/'), `Ảnh bìa không mở được công khai: ${res.status}`)
     // Khóa premium không có trang quản lý bài học
+    await admin.goto(`${BASE}/admin/courses?kind=premium`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
     await card.getByText('không có bài học').waitFor()
     assert((await card.getByRole('link', { name: 'Quản lý buổi – bài' }).count()) === 0, 'Khóa premium vẫn có nút Quản lý bài học')
@@ -1406,7 +1412,11 @@ try {
     assert(data.full_name === STUDENT2.name, `Họ tên chưa cập nhật: ${data.full_name}`)
   })
 
-  await step('[Học viên] Đổi mật khẩu: sai mật khẩu hiện tại bị từ chối, đúng thì thành công', async () => {
+  await step('[Học viên] Đổi mật khẩu: sai mật khẩu hiện tại bị từ chối, đúng thì thành công; thiết bị khác bị đăng xuất (TC-116, SEC-15)', async () => {
+    // "Thiết bị khác" đang đăng nhập cùng tài khoản trước khi đổi mật khẩu
+    const otherCtx = await newContext()
+    const other = watch(await otherCtx.newPage(), 'thiet-bi-khac')
+    await login(other, STUDENT2.phone, STUDENT2.password)
     const form = student2.locator('form', { has: student2.locator('#currentPassword') })
     await form.locator('#currentPassword').fill('mat-khau-sai')
     await form.locator('#newPassword').fill('MoiDoi#2024')
@@ -1419,6 +1429,12 @@ try {
     await form.getByRole('button', { name: 'Đổi mật khẩu' }).click()
     await toast(student2, 'Đã đổi mật khẩu thành công')
     STUDENT2.password = 'MoiDoi#2024'
+    // Thiết bị đổi mật khẩu vẫn đăng nhập; thiết bị khác vào trang cần đăng nhập thì phải đăng nhập lại
+    await student2.reload()
+    assert(new URL(student2.url()).pathname === '/account', `Thiết bị đang dùng bị đăng xuất: ${student2.url()}`)
+    await other.goto(`${BASE}/courses`)
+    await other.waitForURL((u) => u.pathname === '/login')
+    await otherCtx.close()
   })
 
   await step('[Học viên] Đăng xuất qua menu, đăng nhập lại bằng số điện thoại + mật khẩu mới', async () => {
@@ -1569,18 +1585,35 @@ try {
     assert((await student.getByRole('link', { name: new RegExp(escape(COURSE_A.title)) }).count()) === 0, 'Khóa A vẫn nằm trong khóa đã mở')
   })
 
-  await step('[Admin] Xóa khóa B → đơn đăng ký và lịch sử thanh toán của khóa B vẫn được giữ', async () => {
-    const before = await db.from('registrations').select('id').eq('course_id', created.courseIds.B)
+  await step('[Admin] Hàng thao tác ở thẻ khóa; xóa khóa B còn đơn chờ bị chặn, xử lý xong + gõ đúng tên thì xóa được; đơn và lịch sử thanh toán vẫn giữ (TC-108, TC-109)', async () => {
+    const before = await db.from('registrations').select('id, status').eq('course_id', created.courseIds.B)
     assert(before.data.length === 2, `Khóa B phải có 2 đơn, đang có ${before.data.length}`)
     await admin.goto(`${BASE}/admin/courses`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_B.title }) })
-    await card.getByText('Sửa thông tin').click()
-    let dialogText = ''
-    admin.once('dialog', (d) => { dialogText = d.message(); d.accept() })
-    await card.getByRole('button', { name: 'Xóa khóa học' }).click()
+    // QL-06: thao tác hiện sẵn trên thẻ, không giấu trong mục thu gọn
+    for (const name of ['Sửa', 'Quản lý buổi – bài', 'Xem trang giới thiệu', 'Xóa']) await card.getByRole('link', { name, exact: true }).waitFor()
+    await card.getByRole('button', { name: 'Ẩn khóa học' }).waitFor()
+    await card.getByRole('link', { name: 'Xóa', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === `/admin/courses/${created.courseIds.B}/edit` && u.hash === '#xoa-khoa-hoc')
+    const zone = admin.getByRole('region', { name: 'Xóa khóa học' })
+    // QL-08 / Q-7: còn đơn chờ duyệt → không có nút xóa, gợi ý Ẩn
+    await zone.getByRole('note').filter({ hasText: '1 đơn chờ duyệt' }).waitFor()
+    assert((await zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' }).count()) === 0, 'Còn đơn chờ mà vẫn có nút xóa')
+    // Xử lý đơn chờ (từ chối) → được xóa; gõ sai tên thì nút bị khóa
+    const pendingIds = before.data.filter((r) => r.status === 'pending').map((r) => r.id)
+    await db.from('registrations').update({ status: 'rejected', review_note: 'Khóa ngừng mở' }).in('id', pendingIds)
+    created.orphanPendingIds = pendingIds
+    await admin.reload()
+    const confirmInput = zone.locator('#confirm_title')
+    const deleteButton = zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' })
+    await confirmInput.fill('sai tên khóa')
+    assert(await deleteButton.isDisabled(), 'Gõ sai tên vẫn bấm được Xóa')
+    await confirmInput.fill(COURSE_B.title)
+    await deleteButton.click()
     await toast(admin, 'Đã xóa khóa học')
-    assert(dialogText.includes('lịch sử thanh toán vẫn được giữ lại'), `Hộp xác nhận: ${dialogText}`)
-    await card.waitFor({ state: 'detached' })
+    await admin.waitForURL((u) => u.pathname === '/admin/courses')
+    await admin.getByRole('heading', { name: COURSE_A.title }).waitFor()
+    assert((await admin.getByRole('heading', { name: COURSE_B.title }).count()) === 0, 'Khóa B vẫn còn trong danh sách')
     delete created.courseIds.B
 
     const { data: regs } = await db.from('registrations').select('id, course_id, course_title, amount, status').in('id', before.data.map((r) => r.id))
@@ -1594,7 +1627,7 @@ try {
     const row = regCard(STUDENT2.phone, COURSE_B)
     await row.getByText('(khóa học đã xóa)').waitFor()
     await row.getByText('299.000đ').waitFor()
-    await row.getByText('Chờ duyệt', { exact: true }).waitFor()
+    await row.getByText('Từ chối', { exact: true }).first().waitFor()
     assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Vẫn có nút Duyệt cho khóa đã xóa')
     await admin.goto(`${BASE}/admin/patients?q=${STUDENT2.phone}`)
     await admin.locator('tr', { hasText: STUDENT2.phone }).locator('li', { hasText: COURSE_B.title }).getByText('(đã xóa)').waitFor()
@@ -1605,7 +1638,8 @@ try {
   })
 
   await step('[Admin] Đơn chờ duyệt của khóa đã xóa: tab "cần hoàn tiền", học viên được hướng dẫn liên hệ hoàn tiền', async () => {
-    // Học viên 2 đã chuyển khoản khóa B (đang chờ duyệt) trước khi khóa bị xóa
+    // Dữ liệu cũ (khóa xóa trước Đợt 24, khi chưa chặn xóa khóa còn đơn chờ): đơn của học viên 2 vẫn "Chờ duyệt"
+    await db.from('registrations').update({ status: 'pending', review_note: null }).in('id', created.orphanPendingIds)
     await student2.goto(`${BASE}/courses`)
     await student2.locator('.card', { hasText: COURSE_B.title }).getByText('Khóa học đã ngừng').waitFor()
 
@@ -1697,7 +1731,7 @@ try {
       `Menu của nhân viên: ${tabs}`
     )
     // Trang chỉ admin chuyển nhân viên về Tổng quan
-    for (const path of ['/admin/courses', '/admin/settings/consultation', `/admin/courses/${created.courseIds.A}`]) {
+    for (const path of ['/admin/courses', '/admin/courses/new', '/admin/settings/consultation', `/admin/courses/${created.courseIds.A}`, `/admin/courses/${created.courseIds.A}/edit`]) {
       await staff.goto(`${BASE}${path}`)
       await staff.waitForURL(`${BASE}/admin`).catch(() => {})
       assert(new URL(staff.url()).pathname === '/admin', `Nhân viên vào được ${path}: ${staff.url()}`)
@@ -1760,7 +1794,7 @@ try {
 
   await step('[Admin] Tạo chương trình có học phí → tự có gói 1 tháng (12 buổi); thêm gói 3 tháng; gói trùng và nhân viên thêm gói bị chặn', async () => {
     created.courseIds.plan = await createCourseViaUI(admin, COURSE_PLAN)
-    const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PLAN.title }) })
+    const card = admin.getByRole('region', { name: 'Gói theo thời hạn' })
     const addForm = card.locator('form', { has: admin.getByRole('button', { name: 'Thêm gói' }) })
     await addForm.locator('select[name=months]').selectOption('3')
     await addForm.locator('input[name=price]').fill(String(PLAN3_PRICE))
@@ -2078,19 +2112,24 @@ try {
     await admin.waitForURL(/kind=premium/)
     await admin.getByRole('heading', { name: COURSE_PREMIUM.title }).waitFor()
     assert((await admin.getByRole('heading', { name: COURSE_SEQ.title }).count()) === 0, 'Tab Premium vẫn có chương trình')
-    const form = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm khóa học mới' }) })
+    // TC-110: nút "+ Thêm khóa học" ở tab Premium mở trang tạo khóa đã chọn sẵn loại Premium
+    await admin.getByRole('link', { name: 'Thêm khóa học', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === '/admin/courses/new' && u.searchParams.get('kind') === 'premium')
+    const form = admin.getByRole('region', { name: 'Thông tin khóa học mới' })
     assert((await form.locator('[name=kind]').inputValue()) === 'premium', 'Form thêm khóa không chọn sẵn loại theo tab')
 
     // Sửa chương trình: không có ô Giá, lưu không đổi giá
     await admin.goto(`${BASE}/admin/courses?kind=program`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_SEQ.title }) })
-    await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-    // Form "Sửa thông tin" nằm trong khối <details>; bảng Gói phía trên có ô giá riêng của từng gói
-    const editForm = card.locator('details form').first()
+    await card.getByRole('link', { name: 'Sửa', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === `/admin/courses/${created.courseIds.seq}/edit`)
+    // Trang sửa: form thông tin (không có ô Giá) + bảng Gói riêng
+    const editForm = admin.getByRole('region', { name: 'Thông tin khóa học' }).locator('form')
     assert((await editForm.locator('[name=price]').count()) === 0, 'Form sửa chương trình vẫn có ô Giá')
-    await card.getByText('sửa ở bảng Gói theo thời hạn').waitFor()
+    await admin.getByText('sửa ở bảng Gói theo thời hạn').waitFor()
+    await admin.getByRole('region', { name: 'Gói theo thời hạn' }).waitFor()
     await editForm.locator('[name=summary]').fill('Chương trình kiểm thử buổi tập')
-    await card.getByRole('button', { name: 'Lưu thay đổi' }).click()
+    await editForm.getByRole('button', { name: 'Lưu thay đổi' }).click()
     await toast(admin, 'Đã lưu thông tin khóa học')
     const { data } = await db.from('courses').select('price, summary').eq('id', created.courseIds.seq).single()
     assert(data.price === Number(COURSE_SEQ.price) && data.summary === 'Chương trình kiểm thử buổi tập', `Sửa chương trình đổi giá: ${JSON.stringify(data)}`)
@@ -2105,11 +2144,11 @@ try {
       assert((await html(path)).includes(COURSE_FREE.title), `${path}: chưa có tên khóa ban đầu`)
     }
     const rename = async (from, to) => {
-      await admin.goto(`${BASE}/admin/courses?kind=free`)
-      const card = admin.locator('.card', { has: admin.getByRole('heading', { name: from, exact: true }) })
-      await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-      await card.locator('details form').first().locator('[name=title]').fill(to)
-      await card.getByRole('button', { name: 'Lưu thay đổi' }).click()
+      await admin.goto(`${BASE}/admin/courses/${created.courseIds.free}/edit`)
+      await admin.getByRole('heading', { name: from, exact: true }).waitFor()
+      const form = admin.getByRole('region', { name: 'Thông tin khóa học' }).locator('form')
+      await form.locator('[name=title]').fill(to)
+      await form.getByRole('button', { name: 'Lưu thay đổi' }).click()
       await toast(admin, 'Đã lưu thông tin khóa học')
     }
     const renamed = `${COURSE_FREE.title} (đổi tên)`
@@ -2136,7 +2175,7 @@ try {
   await step('[Nhân viên] Tạo bệnh nhân Zalo (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện 1 lần; database ghi nguồn, người tạo, người xử lý, lịch sử, hạn học', async () => {
     const plan = await seqPlan()
     await staff.goto(`${BASE}/admin/patients`)
-    await staff.getByRole('link', { name: '+ Tạo bệnh nhân' }).click()
+    await staff.getByRole('link', { name: 'Tạo bệnh nhân', exact: true }).click()
     await staff.waitForURL(`${BASE}/admin/patients/new`)
     await staff.fill('#fullName', ZALO.name)
     await staff.fill('#phone', ZALO.phone)
@@ -2496,12 +2535,12 @@ try {
   })
 
   await step('[Admin] Xóa khóa premium còn khách quan tâm, xóa tài khoản đã gửi phiếu tham vấn: lead / phiếu / đơn được giữ, khóa ngoại về null (RK-29)', async () => {
-    await admin.goto(`${BASE}/admin/courses?kind=premium`)
-    const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
-    await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-    admin.once('dialog', (d) => d.accept())
-    await card.getByRole('button', { name: 'Xóa khóa học' }).click()
+    await admin.goto(`${BASE}/admin/courses/${created.courseIds.premium}/edit`)
+    const zone = admin.getByRole('region', { name: 'Xóa khóa học' })
+    await zone.locator('#confirm_title').fill(COURSE_PREMIUM.title)
+    await zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' }).click()
     await toast(admin, 'Đã xóa khóa học')
+    await admin.waitForURL((u) => u.pathname === '/admin/courses')
     const { data: leads } = await db.from('leads').select('course_id, course_title').eq('phone', LEAD.phone)
     assert(leads.length === 1 && leads[0].course_id === null && leads[0].course_title === COURSE_PREMIUM.title, `Lead sau khi xóa khóa: ${JSON.stringify(leads)}`)
 
@@ -2594,6 +2633,105 @@ try {
       await ctx.close()
     })
   }
+
+  // ---------- Phiên đăng nhập (Đợt 21, SEC-13 → SEC-15) ----------
+  const authCookies = async (ctx) => (await ctx.cookies()).filter((x) => /^sb-.*-auth-token(\.\d+)?$/.test(x.name))
+  const cookieOf = async (ctx, name) => (await ctx.cookies()).find((x) => x.name === name)
+  const signIn = async (identifier, password, remember, label) => {
+    const ctx = await newContext()
+    const p = watch(await ctx.newPage(), label)
+    await p.goto(`${BASE}/login`)
+    await p.fill('#identifier', identifier)
+    await p.fill('#password', password)
+    if (remember) await p.check('input[name=remember]')
+    await Promise.all([p.waitForURL((u) => !u.pathname.startsWith('/login')), p.click('button[type=submit]')])
+    return { ctx, p }
+  }
+  // Ghi đè mốc thời gian phiên (giả lập đã lâu không thao tác / đăng nhập từ lâu)
+  const setActivity = async (ctx, { loginAgoMin = 0, idleMin = 0 }) => {
+    const flags = (await cookieOf(ctx, 'hv-activity')).value.split('.')[2] ?? ''
+    const now = Date.now()
+    await ctx.addCookies([{ name: 'hv-activity', value: `${now - loginAgoMin * 60_000}.${now - idleMin * 60_000}.${flags}`, url: BASE }])
+  }
+
+  await step('[Bảo mật] Phiên đăng nhập là cookie tạm (đóng trình duyệt là mất); học viên "Ghi nhớ" → 30 ngày; admin luôn cookie tạm (TC-114, SEC-13)', async () => {
+    const plain = await signIn(STUDENT.email, STUDENT.password, false, 'phien-tam')
+    const plainAuth = await authCookies(plain.ctx)
+    assert(plainAuth.length && plainAuth.every((x) => x.expires === -1), `Cookie phiên vẫn có hạn: ${plainAuth.map((x) => x.expires)}`)
+    const activity = await cookieOf(plain.ctx, 'hv-activity')
+    assert(activity && activity.expires === -1 && /^\d+\.\d+\.$/.test(activity.value), `hv-activity sai: ${JSON.stringify(activity)}`)
+    assert(!(await cookieOf(plain.ctx, 'hv-remember')), 'Không chọn ghi nhớ nhưng có hv-remember')
+    await plain.ctx.close()
+
+    const kept = await signIn(STUDENT.email, STUDENT.password, true, 'phien-ghi-nho')
+    const days = (x) => (x.expires * 1000 - Date.now()) / 86_400_000
+    const keptAuth = await authCookies(kept.ctx)
+    assert(keptAuth.length && keptAuth.every((x) => days(x) > 29 && days(x) <= 30.01), `Ghi nhớ không đúng 30 ngày: ${keptAuth.map(days)}`)
+    assert((await cookieOf(kept.ctx, 'hv-remember'))?.value === '1', 'Thiếu hv-remember')
+    // Ghi nhớ: 3 giờ không thao tác vẫn còn đăng nhập
+    await setActivity(kept.ctx, { idleMin: 180 })
+    await kept.p.goto(`${BASE}/courses`)
+    assert(new URL(kept.p.url()).pathname === '/courses', `Ghi nhớ mà vẫn bị đăng xuất: ${kept.p.url()}`)
+    await kept.ctx.close()
+
+    const staffLogin = await signIn(ADMIN.email, ADMIN.password, true, 'phien-admin')
+    const staffAuth = await authCookies(staffLogin.ctx)
+    assert(staffAuth.length && staffAuth.every((x) => x.expires === -1), 'Admin chọn ghi nhớ nhưng cookie vẫn có hạn')
+    assert((await cookieOf(staffLogin.ctx, 'hv-activity')).value.endsWith('.s'), 'hv-activity của admin thiếu cờ nhân viên')
+    await staffLogin.ctx.close()
+  })
+
+  await step('[Bảo mật] Tự đăng xuất: admin 30 phút không thao tác, học viên quá 12 giờ / 2 giờ (cả trang công khai, cả tab đang mở); cookie cũ không dùng lại được (TC-115)', async () => {
+    // Admin 31 phút không thao tác → vào trang quản trị bị chuyển về đăng nhập, cookie bị xóa
+    const a = await signIn(ADMIN.email, ADMIN.password, false, 'het-gio-admin')
+    await a.p.goto(`${BASE}/admin`)
+    const stolen = await authCookies(a.ctx)
+    await setActivity(a.ctx, { idleMin: 31 })
+    await a.p.goto(`${BASE}/admin/registrations`)
+    await a.p.waitForURL((u) => u.pathname === '/login' && u.searchParams.get('error') === 'timeout')
+    await alertText(a.p, 'lâu không thao tác')
+    assert(!(await authCookies(a.ctx)).length && !(await cookieOf(a.ctx, 'hv-activity')), 'Hết giờ nhưng cookie phiên chưa bị xóa')
+    // Phiên đã bị thu hồi ở Supabase: gắn lại cookie cũ (giả lập cookie bị đánh cắp) vẫn không vào được
+    await a.ctx.addCookies(stolen.map(({ name, value }) => ({ name, value, url: BASE })))
+    await a.ctx.addCookies([{ name: 'hv-activity', value: `${Date.now()}.${Date.now()}.s`, url: BASE }])
+    await a.p.goto(`${BASE}/admin`)
+    await a.p.waitForURL((u) => u.pathname === '/login')
+    await a.ctx.close()
+
+    // Học viên đăng nhập từ 13 giờ trước (trình duyệt khôi phục cookie tạm) → trang chủ hiện như khách
+    const s = await signIn(STUDENT.email, STUDENT.password, false, 'het-han-12h')
+    await setActivity(s.ctx, { loginAgoMin: 13 * 60 })
+    await s.p.goto(`${BASE}/`)
+    await s.p.getByRole('banner').getByRole('link', { name: 'Đăng nhập' }).waitFor()
+    assert(!(await authCookies(s.ctx)).length, 'Quá 12 giờ nhưng cookie phiên còn')
+    await s.ctx.close()
+
+    // Tab đang mở, học viên 2 giờ không thao tác → trình duyệt tự đăng xuất (SessionGuard) khi quay lại tab
+    const t = await signIn(STUDENT.email, STUDENT.password, false, 'het-gio-tab')
+    await t.p.goto(`${BASE}/`)
+    await t.p.getByRole('button', { name: 'Tài khoản' }).first().waitFor()
+    await setActivity(t.ctx, { idleMin: 121 })
+    await t.p.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await alertText(t.p, 'Phiên đăng nhập đã hết hạn')
+    await t.p.getByRole('banner').getByRole('link', { name: 'Đăng nhập' }).waitFor()
+    assert(!(await authCookies(t.ctx)).length, 'Tab tự đăng xuất nhưng cookie phiên còn')
+    await t.ctx.close()
+  })
+
+  await step('[Bảo mật] Trang đăng nhập không hiển thị chữ lấy từ link (?error=...), chỉ thông báo theo mã (TC-116, SEC-14)', async () => {
+    const ctx = await newContext()
+    const p = watch(await ctx.newPage(), 'chen-chu')
+    const fake = 'Tài khoản bị khóa, gọi ngay 0900000000'
+    await p.goto(`${BASE}/login?error=${encodeURIComponent(fake)}`)
+    await p.locator('#identifier').waitFor()
+    assert(!(await p.getByText(fake).count()), 'Trang vẫn hiển thị chữ chèn từ URL')
+    // (Next.js luôn có next-route-announcer role=alert – chỉ kiểm hộp lỗi của trang)
+    assert(!(await p.locator('main .alert-error').count()), 'Mã lỗi lạ vẫn hiện hộp lỗi')
+    // Mã hợp lệ vẫn hiện đúng câu
+    await p.goto(`${BASE}/login?error=timeout`)
+    await p.locator('main .alert-error').filter({ hasText: 'lâu không thao tác' }).waitFor()
+    await ctx.close()
+  })
 
   // =====================================================================
   phase('11. HỆ THỐNG – tổng kết')

@@ -19,6 +19,8 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-10 | Admin – Đơn đăng ký | `/admin/registrations` | US-05.x |
 | SCR-11 | Admin – Học viên | `/admin/users` | US-06.x |
 | SCR-12 | Admin – Khóa học | `/admin/courses` | US-07.01–07.04, 07.06 |
+| SCR-12b | Admin – Thêm khóa học (Đợt 24) | `/admin/courses/new` | US-07.08 |
+| SCR-12c | Admin – Sửa khóa học + gói + xóa (Đợt 24) | `/admin/courses/:id/edit` | US-07.02, 07.04, 07.08 |
 | SCR-13 | Admin – Bài học | `/admin/courses/:id` | US-07.05 |
 | SCR-14 | 404 | (bất kỳ) | — |
 | SCR-15 | *(v0.2)* Trang chủ – khóa theo nhóm | `/#khoa-hoc` | US-11.01 |
@@ -327,16 +329,50 @@ Mobile (< md): mỗi tài khoản là một thẻ, nút quyền ở cuối thẻ
 Admin đổi vai trò bằng ô chọn Học viên / Nhân viên / Admin + [Lưu vai trò] (hộp xác nhận nêu quyền từng vai trò); dòng của chính mình không có ô chọn.
 Nhân viên xem trang này nhưng cột Vai trò chỉ hiện nhãn, không đổi được.
 
-## SCR-12 – Admin: Khóa học
+## SCR-12 – Admin: Khóa học (Đợt 24 – QL-06, QL-07)
 
 ```text
-┌ Danh sách (trái) ───────────────────────────────┐ ┌ Thêm khóa học mới (sticky) ┐
-│ Khóa A [Đang hiển thị]      [Quản lý bài học]   │ │ Tên khóa học *             │
-│ 1.500.000đ                  [Ẩn khóa học]       │ │ Mô tả                      │
-│ 📖 12 bài học  👥 40 học viên · 3 chờ duyệt      │ │ Giá (VNĐ, 0 = Liên hệ) | Thứ tự│
-│ Sửa thông tin ▸ (mở: form + [Lưu thay đổi]       │ │ Trạng thái [Hiển thị ▾]    │
-│                 ┄┄ [Xóa khóa học] (xác nhận))    │ │ [Thêm khóa học]            │
-└─────────────────────────────────────────────────┘ └────────────────────────────┘
+Khóa học                                                    [+ Thêm khóa học] (gold → /admin/courses/new?kind=<tab>)
+Chương trình phục hồi (bán theo gói), khóa miễn phí, premium…
+( Tất cả (8) | Chương trình (4) | Miễn phí (2) | Premium (2) )      ← .seg
+Chương trình phục hồi (4) – Trả phí theo gói tháng…
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [ảnh 16:10]  [Chương trình · Cong vẹo cột sống] [Đang hiển thị]           │
+│              Tên khóa (link → trang sửa)                                  │
+│              Mô tả ngắn…                                                  │
+│              Từ 1.500.000đ · 1 tháng, 3 tháng                             │
+│              📖 36 bài · 2 chưa có video   👥 40 học viên · 3 chờ duyệt   │
+├──────────────────────────────────────────────────────────────────────────┤
+│ [✎ Sửa] [Quản lý buổi – bài] [Ẩn khóa học] [↗ Xem trang giới thiệu]  [🗑 Xóa]│
+└──────────────────────────────────────────────────────────────────────────┘
+Nhóm rỗng: ⌧ "Chưa có khóa nào." [+ Thêm khóa miễn phí]
+```
+
+"Xóa" mở trang sửa ở vùng `#xoa-khoa-hoc` (không xóa ngay từ danh sách).
+
+## SCR-12b – Admin: Thêm khóa học `/admin/courses/new` (Đợt 24)
+
+Tiêu đề "Thêm khóa học mới" + "← Tất cả khóa học"; thẻ form (`CourseFields isNew`: tên, loại – chọn sẵn theo `?kind=`, nhóm bệnh, ảnh bìa, khung buổi tập nhanh,
+mô tả ngắn, "Bạn sẽ đạt được", giới thiệu, giá, thứ tự, trạng thái) + [Thêm khóa học] [Hủy]. Thành công → toast "Đã thêm khóa học …" → chuyển `/admin/courses/<id>/edit`.
+
+## SCR-12c – Admin: Sửa khóa học `/admin/courses/:id/edit` (Đợt 24 – QL-06, QL-08)
+
+```text
+← Tất cả khóa học
+Tên khóa                                                          [↗ Xem trang giới thiệu]
+[Chương trình] [Đang hiển thị] 40 học viên đang học · 3 đơn chờ duyệt
+( Thông tin & gói | Buổi – bài )
+┌ Thông tin khóa học ─────────────────────┐ ┌ Hiển thị trên website ─────────┐
+│ CourseFields (chương trình: không ô Giá) │ │ Đang hiện / đang ẩn + giải thích│
+│ [Lưu thay đổi]                           │ │ [Ẩn khóa học] / [Hiển thị]      │
+└──────────────────────────────────────────┘ └────────────────────────────────┘
+┌ Gói theo thời hạn (chỉ chương trình) ───┐ ┌ ⚠ Xóa khóa học (viền đỏ) ──────┐
+│ 1 tháng · giá · số buổi · đang bán [Lưu] │ │ Bị chặn: "Không xóa được: khóa  │
+│ [+ Thêm gói 3/6/12 tháng]                │ │ còn 40 học viên… Hãy Ẩn…"       │
+└──────────────────────────────────────────┘ │ Hoặc: Gõ lại tên khóa [_______] │
+                                             │ [🗑 Xóa vĩnh viễn khóa học]      │
+                                             │ (chỉ mở khi gõ đúng tên)         │
+                                             └────────────────────────────────┘
 ```
 
 ## SCR-13 – Admin: Bài học của khóa

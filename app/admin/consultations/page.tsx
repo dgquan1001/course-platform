@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { setConsultationStatus } from '../actions'
+import PageHeader from '@/components/admin/PageHeader'
 
 export const metadata: Metadata = { title: 'Phiếu tham vấn' }
 
@@ -50,20 +51,19 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <PageHeader title="Phiếu tham vấn" description="Phiếu bệnh nhân gửi cho bác sĩ: liên hệ hẹn lịch, ghi chú nội bộ và cập nhật trạng thái." />
+      <nav aria-label="Lọc theo trạng thái phiếu" className="seg">
         {CONSULT_STATUSES.map((s, i) => (
           <Link
             key={s.value}
             href={s.value === 'new' ? '/admin/consultations' : `/admin/consultations?status=${s.value}`}
             aria-current={status === s.value ? 'page' : undefined}
-            className={`btn-sm btn whitespace-nowrap border ${
-              status === s.value ? 'border-ocean-500 bg-ocean-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-            }`}
+            className="seg-item"
           >
-            {s.label} <span className="opacity-80">({counts[i].count ?? 0})</span>
+            {s.label} <span className="opacity-70">({counts[i].count ?? 0})</span>
           </Link>
         ))}
-      </div>
+      </nav>
 
       <div className="space-y-3">
         {items.map((c) => {

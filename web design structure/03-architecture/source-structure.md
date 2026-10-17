@@ -27,7 +27,7 @@ course-platform/
 │  │  ├─ consultation/ {page, ConsultationForm (client)}  # Phiếu tham vấn (Đợt 12)
 │  │  └─ [courseId]/ {page, [lessonId]/page}              # Trang khóa, trình học theo buổi (Đợt 10)
 │  └─ admin/                         # Nhân viên + admin (layout gọi requireStaffPage)
-│     ├─ layout.tsx, AdminNav.tsx, error.tsx (bỏ loading.tsx ở Đợt 17 – RK-53)
+│     ├─ layout.tsx, AdminNav.tsx, NavCount.tsx, error.tsx (bỏ loading.tsx ở Đợt 17 – RK-53) – khung thanh bên tối (Đợt 23)
 │     ├─ actions.ts                  # Action quản trị dùng chung: đơn, lead, phiếu tham vấn, mẫu phiếu, phân quyền, khóa – gói – buổi – bài
 │     ├─ page.tsx                    # Tổng quan / dashboard (Đợt 13); /admin?status= → registrations
 │     ├─ registrations/page.tsx      # Đơn đăng ký (Đợt 7)
@@ -42,7 +42,10 @@ course-platform/
 │     ├─ leads/page.tsx              # Khách quan tâm premium (Đợt 8)
 │     ├─ settings/ {page → consultation, consultation/page}  # Mẫu phiếu tham vấn (chỉ admin)
 │     └─ courses/                    # Chỉ admin
-│        ├─ page.tsx                 # Khóa theo loại (Chương trình / Miễn phí / Premium), gói
+│        ├─ page.tsx                 # Danh sách khóa theo loại, hàng thao tác trên thẻ (Đợt 24 – QL-06)
+│        ├─ new/page.tsx             # Thêm khóa (Đợt 24 – QL-07)
+│        ├─ [courseId]/edit/page.tsx # Sửa khóa + bảng gói + Ẩn / Hiện + xóa an toàn (Đợt 24)
+│        ├─ DeleteCourse.tsx (client), CourseTabs.tsx, usage.ts (courseUsage – server-only, QL-08)
 │        ├─ fields.tsx, CoverInput.tsx, PlanTable.tsx
 │        └─ [courseId]/page.tsx      # Buổi – bài (Đợt 10)
 ├─ components/                       # UI dùng chung (không chứa nghiệp vụ)
@@ -56,6 +59,8 @@ course-platform/
 │  ├─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
 │  ├─ home/HomePage.tsx              # Trang chủ dùng chung vi / en: hero tối, bento, hồ sơ bác sĩ, khóa 3 nhóm, đăng ký, FAQ (Đợt 19 → 20)
 │  ├─ LangSwitch.tsx (client)        # Nút VI | EN trên header (Đợt 20)
+│  ├─ SessionGuard.tsx (client)      # Tự đăng xuất tab đang mở khi hết phiên; signOutLocally() (Đợt 21)
+│  ├─ admin/PageHeader.tsx           # Tiêu đề trang quản trị (Đợt 23)
 │  ├─ HtmlLang.tsx (client)          # Đổi <html lang> khi ở /en (Đợt 20)
 │  ├─ RevealObserver.tsx (client)    # Hiện dần khi cuộn [data-reveal] + ánh sáng theo con trỏ .spotlight (Đợt 19 → 20)
 │  └─ CountUp.tsx (client)           # Số đếm tăng khi cuộn tới (Đợt 19)
@@ -63,6 +68,9 @@ course-platform/
 │  ├─ site-config.ts                 # Thương hiệu, liên hệ, hồ sơ bác sĩ (học vấn, chuyên môn, công tác), 3 cơ sở, ngân hàng, vietQrUrl, formatPrice
 │  ├─ reveal.ts                      # revealDelay(i) – độ trễ so le cho hiệu ứng hiện dần (Đợt 19)
 │  ├─ i18n.ts                        # Song ngữ trang chủ: homeCopy, cardCopy, chromeCopy, localeOfPath (Đợt 20, ADR-018)
+│  ├─ session-policy.ts              # Chính sách phiên (cookie tạm, hết hạn khi không thao tác / quá 12 giờ, ghi nhớ) – Đợt 21, SEC-13
+│  ├─ session.ts                     # startSession() sau khi đăng nhập (server-only) – Đợt 21
+│  ├─ browser-cookies.ts             # Đọc / ghi cookie ở trình duyệt, tải Supabase khi cần (PERF-08) – Đợt 22
 │  ├─ auth.ts                        # getCurrentUser (cache theo request), requireAdmin/Staff, requireUserPage/StaffPage/AdminPage
 │  ├─ use-profile.ts                 # 'use client' – profile dùng chung cho header + hộp nhắc (cache 60s)
 │  ├─ accounts.ts                    # findAccount, isPhoneTaken, isEmailTaken (service role)

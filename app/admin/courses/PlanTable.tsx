@@ -8,11 +8,12 @@ import { createPlan, deletePlan, updatePlan } from '../actions'
 export default function PlanTable({ courseId, plans }: { courseId: string; plans: Plan[] }) {
   const missing = PLAN_MONTHS.filter((m) => !plans.some((p) => p.months === m))
   return (
-    <section aria-label="Gói theo thời hạn" className="mt-3 border-t border-slate-100 pt-3">
-      <p className="text-sm font-semibold text-ocean-900">
-        Gói theo thời hạn {!plans.length && <span className="font-normal text-red-600">– chưa có gói, chương trình chưa nhận đăng ký</span>}
-      </p>
-      <ul className="mt-2 space-y-2">
+    <section aria-label="Gói theo thời hạn">
+      <h3 className="text-lg font-bold text-ocean-950">
+        Gói theo thời hạn {!plans.length && <span className="text-sm font-normal text-red-600">– chưa có gói, chương trình chưa nhận đăng ký</span>}
+      </h3>
+      <p className="mt-0.5 text-sm text-slate-500">Giá bán của chương trình nằm ở đây (RK-18). Bỏ chọn &quot;Đang bán&quot; để tạm ngừng một gói.</p>
+      <ul className="mt-3 space-y-2">
         {plans.map((p) => (
           <li key={p.id} className="flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-2.5 text-sm">
             <ActionForm

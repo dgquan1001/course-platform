@@ -62,8 +62,8 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-`nav aria-label="Menu quản trị"` (Đợt 15 – UI-02): màn hình ≥ 1024px là **cột dọc bên trái** (sidebar dính khi cuộn, icon + nhãn),
-nhỏ hơn là hàng tab gạch chân cuộn ngang. Thứ tự: **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`, số đơn chờ duyệt) ·
+`nav aria-label="Menu quản trị"` (Đợt 15 – UI-02, giao diện mới Đợt 23 – UI-10): màn hình ≥ 1024px là **thanh bên tối** bên trái (dính khi cuộn, icon + nhãn, số việc màu vàng, "Xem website" ở đáy),
+nhỏ hơn là dải tối với hàng tab "viên" cuộn ngang. Trong khu quản trị header ẩn menu neo trang chủ (vẫn có "Quản trị" + menu Tài khoản), không có chân trang. Thứ tự: **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`, số đơn chờ duyệt) ·
 **Bệnh nhân** (`/admin/patients`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Phiếu tham vấn** (`/admin/consultations`, số phiếu mới) ·
 **Khách quan tâm** (`/admin/leads`, số khách mới để lại SĐT) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
 Số đếm là truy vấn `count` riêng (stream qua `Suspense`, không chặn trang), làm mới sau mỗi thao tác quản trị.
@@ -115,7 +115,9 @@ flowchart TB
   end
 
   subgraph Chỉ admin
-    aco["/admin/courses"] --> acd["/admin/courses/:id (gói, buổi – bài)"]
+    aco["/admin/courses"] --> acn["/admin/courses/new (Đợt 24)"]
+    aco --> ace["/admin/courses/:id/edit (thông tin, gói, xóa – Đợt 24)"]
+    ace <--> acd["/admin/courses/:id (buổi – bài)"]
     ast["/admin/settings/consultation"]
   end
 

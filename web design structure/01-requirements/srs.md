@@ -42,7 +42,7 @@ Trạng thái: ✅ đã triển khai · 🟡 một phần · ⬜ chưa làm.
 | FR-011 | SĐT được chuẩn hóa: chấp nhận khoảng trắng, dấu `.`/`-`/`()`, tiền tố `+84`/`84` | M | ✅ |
 | FR-012 | Sai thông tin → thông báo chung "Email/số điện thoại hoặc mật khẩu không đúng." (không tiết lộ tài khoản có tồn tại) | M | ✅ |
 | FR-013 | Sau đăng nhập chuyển tới tham số `next` (chỉ đường dẫn nội bộ), mặc định `/courses` | M | ✅ |
-| FR-014 | Đăng xuất từ menu Tài khoản, hiện toast, về trang chủ | M | ✅ |
+| FR-014 | Đăng xuất từ menu Tài khoản, hiện toast, về trang chủ (thu hồi phiên mọi thiết bị; tự đăng xuất khi hết hạn – FR-204) | M | ✅ |
 | FR-015 | Truy cập `/courses*`, `/account*` khi chưa đăng nhập → chuyển tới `/login?next=<path>` | M | ✅ |
 | FR-016 | Truy cập `/admin*` khi không phải nhân viên / admin → chuyển tới `/courses`; nhân viên vào trang chỉ-admin → `/admin` (Đợt 7) | M | ✅ |
 
@@ -300,16 +300,42 @@ Tham khảo nút chuyển ngữ của irc.coach (bản tiếng Anh ở `/en/`); 
 | FR-201 | SEO / truy cập: hreflang vi / en + canonical, title / mô tả / Open Graph tiếng Anh ở `/en`, `<html lang="en">` khi ở `/en` | S | 20 | ✅ TC-113 |
 | FR-202 | Giao diện hiện đại hơn, chuyển động mạnh hơn, giữ màu xanh nước biển – trắng – vàng: hero nền tối + tiêu đề hiện từng từ, 2 dải chuyên môn chéo ngược chiều, bento "Vấn đề → giải pháp", cột ảnh bác sĩ dính khi cuộn, parallax + thanh tiến độ cuộn (CSS scroll-driven), ánh sáng theo con trỏ, vệt sáng nút chính, chân trang tối (UI-09) | M | 20 | ✅ TC-111, TC-112 |
 
+### 2.24. Phiên đăng nhập an toàn (yêu cầu chủ dự án 17/10/2026 – Đợt 21)
+
+Lỗi chủ dự án báo: đăng nhập → tắt website → mở lại vẫn còn đăng nhập (cookie phiên mặc định 400 ngày – SEC-13).
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-203 | Mặc định phiên đăng nhập **hết khi đóng trình duyệt** (cookie tạm); học viên có ô "Ghi nhớ đăng nhập 30 ngày trên thiết bị này" (mặc định tắt); tài khoản nhân viên / admin không được ghi nhớ | M | 21 | ✅ TC-114 |
+| FR-204 | Tự đăng xuất khi không thao tác: nhân viên / admin **30 phút**, học viên **2 giờ**; mỗi lần đăng nhập tối đa **12 giờ** (ghi nhớ: 30 ngày). Áp dụng cả trang công khai và tab đang mở (trình duyệt tự kiểm tra mỗi 30 giây / khi quay lại tab); trang cần đăng nhập chuyển về `/login` kèm thông báo "Phiên đăng nhập đã hết hạn do lâu không thao tác" | M | 21 | ✅ TC-115 |
+| FR-205 | Đăng xuất / hết hạn **thu hồi phiên ở Supabase** (cookie cũ bị lộ không dùng lại được); đổi mật khẩu, đặt lại mật khẩu → **đăng xuất mọi thiết bị khác** | M | 21 | ✅ TC-115, TC-116 |
+| FR-206 | Trang đăng nhập chỉ hiển thị thông báo lỗi theo **mã** (`?error=invalid` …), không hiển thị chữ tùy ý lấy từ đường dẫn | M | 21 | ✅ TC-116 |
+
+### 2.25. Giao diện quản trị mới (yêu cầu chủ dự án 17/10/2026 – Đợt 23, UI-10)
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-207 | Khung quản trị riêng: thanh bên tối (thương hiệu "Bảng quản trị", vai trò + tên, menu có icon, số việc cần làm màu vàng, "Xem website"), nội dung nền xám nhạt; điện thoại: dải tối + hàng tab cuộn ngang. Header bỏ menu neo trang chủ, khu quản trị không có chân trang | M | 23 | ✅ E2E |
+| FR-208 | Mọi trang quản trị có tiêu đề thống nhất (tên trang, mô tả việc chính, nút chính bên phải); bộ lọc trạng thái dạng "viên"; trạng thái rỗng có icon + nút hành động; thẻ KPI Tổng quan có icon và chữ "Cần xử lý / Cần chú ý" | M | 23 | ✅ E2E |
+
+### 2.26. Thêm / sửa / xóa khóa học (Đợt 24 – QL-06 → QL-08, thay FR-090 → FR-092 phần giao diện)
+
+| ID | Yêu cầu | Ưu tiên | Đợt | Trạng thái |
+| --- | --- | --- | --- | --- |
+| FR-209 | Nút "+ Thêm khóa học" ở đầu danh sách (chọn sẵn loại theo tab đang xem) mở trang `/admin/courses/new`; tạo xong chuyển sang trang sửa khóa | M | 24 | ✅ TC-110 |
+| FR-210 | Mỗi thẻ khóa có hàng thao tác luôn hiện: Sửa · Quản lý buổi – bài · Ẩn / Hiển thị · Xem trang giới thiệu · Xóa; giá hiển thị "Từ … · các gói"; trang sửa `/admin/courses/[id]/edit` gồm thông tin + ảnh bìa, bảng gói (chương trình), hiển thị trên website, vùng xóa; tab "Thông tin & gói" / "Buổi – bài" | M | 24 | ✅ TC-108 |
+| FR-211 | Xóa khóa an toàn: **chặn** khi còn học viên có gói còn hạn hoặc đơn chờ duyệt (gợi ý "Ẩn khóa học" – Q-7); phải gõ đúng tên khóa (server kiểm tra lại); xóa luôn ảnh bìa; đơn cũ giữ tên khóa + học phí (BR-23) | M | 24 | ✅ TC-109 |
+
 ## 3. Yêu cầu phi chức năng (NFR)
 
 | ID | Nhóm | Yêu cầu | Cách đáp ứng hiện tại |
 | --- | --- | --- | --- |
-| NFR-01 | Hiệu năng | Trang chủ tải nhanh trên 4G (LCP < 2,5s) | ISR tĩnh, `next/image` (blur, `sizes`), font `swap`, header đọc phiên ở client |
+| NFR-01 | Hiệu năng | Trang chủ tải nhanh trên 4G (LCP < 2,5s) | ISR tĩnh, `next/image` (blur, `sizes`), font `swap`, header đọc phiên ở client. Đợt 22: khách không tải thư viện Supabase (PERF-08), phần tử LCP không có hiệu ứng mờ dần (PERF-09); đo bằng `scripts/perf.mjs` (project-review §7.14) |
 | NFR-02 | Hiệu năng | Upload ảnh chuyển khoản nhanh | Nén ảnh client (~0,5MB), giới hạn body server action 6MB |
 | NFR-03 | Khả dụng | Dùng tốt trên điện thoại (mobile-first) | Tailwind responsive, nút ≥ 44px, `inputMode="tel"`, thanh CTA cố định |
 | NFR-04 | Khả năng tiếp cận | WCAG 2.1 AA cơ bản | `label` cho input, `role="alert"/"status"`, `aria-live`, `aria-current`, `prefers-reduced-motion` (Đợt 19: hiệu ứng trang chủ hiện ngay, không đếm số, dải chữ đứng yên) |
 | NFR-05 | Bảo mật | Học viên chỉ thấy dữ liệu của mình; bài học chỉ mở theo khóa đã duyệt | RLS trên mọi bảng, service role chỉ ở server |
-| NFR-06 | Bảo mật | Ảnh chuyển khoản không công khai | Bucket private, chỉ admin đọc, signed URL 1 giờ |
+| NFR-06 | Bảo mật | Ảnh chuyển khoản không công khai | Bucket private, chỉ nhân viên / admin đọc, signed URL 15 phút (SEC-17, Đợt 21) |
 | NFR-07 | Bảo mật | Mã đặt lại mật khẩu an toàn | Băm SHA-256, so sánh `timingSafeEqual`, TTL, giới hạn thử |
 | NFR-08 | Toàn vẹn | Không để lại dữ liệu rác khi đăng ký lỗi | Rollback thủ công (xóa ảnh, xóa user) |
 | NFR-09 | Bảo trì | Schema chạy lại an toàn (idempotent) | `if not exists`, `drop policy if exists`, `on conflict do nothing` |

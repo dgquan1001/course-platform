@@ -18,11 +18,13 @@
 | --- | --- |
 | Nhà cung cấp | Supabase Auth, email + password |
 | Định danh | Email thật **hoặc** SĐT (tra qua `profiles`, xem ADR-003) |
-| Phiên | Cookie HTTP do `@supabase/ssr` quản lý; middleware làm mới token bằng `getSession()` (không gọi mạng khi token còn hạn) – ADR-016 |
+| Phiên | Cookie HTTP do `@supabase/ssr` quản lý; middleware làm mới token bằng `getSession()` (không gọi mạng khi token còn hạn) – ADR-016. **Đợt 21 (SEC-13)**: thư viện luôn ghi Max-Age 400 ngày → tự ghi lại cookie ở middleware, server (`lib/supabase/server.ts`) và trình duyệt (`lib/supabase/client.ts`) theo `lib/session-policy.ts`: **cookie tạm** (đóng trình duyệt là mất), `Secure` khi chạy HTTPS, `SameSite=Lax`; học viên chọn "Ghi nhớ" → 30 ngày (nhân viên / admin không được) |
+| Hết hạn phiên (Đợt 21) | Cookie `hv-activity` = "đăng nhập lúc . thao tác cuối . cờ" (ghi khi đăng nhập – `lib/session.ts` `startSession`). Không thao tác: nhân viên / admin **30 phút**, học viên **2 giờ**; tối đa **12 giờ** / lần đăng nhập (ghi nhớ: 30 ngày). Middleware chạy mọi trang (trừ file tĩnh): hết hạn hoặc thiếu cookie mốc → `signOut({ scope: 'local' })` (thu hồi refresh token ở Supabase) + xóa cookie; tab đang mở: `components/SessionGuard.tsx` kiểm tra mỗi 30 giây / khi quay lại tab và ghi "thao tác cuối" khi bấm / gõ / cuộn. Cookie mốc JS đọc được – sửa nó chỉ kéo dài phiên của chính người đó; quyền thật vẫn do Supabase Auth + RLS |
+| Đăng xuất | Menu Tài khoản: `signOut({ scope: 'global' })` – thu hồi phiên mọi thiết bị, xóa cookie phiên + mốc |
 | Kiểm tra phiên ở server | Mọi quyết định quyền dùng `auth.getUser()` (xác minh với Supabase) qua `getCurrentUser()` (cache theo request) và `requireUserPage` / `requireStaffPage` / `requireAdminPage`. Middleware chỉ dùng `getSession()` để **chuyển hướng** khách chưa đăng nhập – cookie giả qua được middleware nhưng bị chặn ở trang + RLS (ADR-016) |
 | Ở client | `getSession()` + `lib/use-profile.ts` chỉ dùng để hiển thị (header, hộp nhắc), không dùng để quyết định quyền |
 | Mật khẩu | ≥ 8 ký tự (RV-03). Mật khẩu nhân viên cấp: 8 ký tự CSPRNG (`lib/generate-password.ts`), hiện một lần, nhắc đổi (BR-95, BR-96) |
-| Đổi mật khẩu | Bắt buộc xác minh mật khẩu cũ bằng client tách biệt (không ghi đè phiên) |
+| Đổi mật khẩu | Bắt buộc xác minh mật khẩu cũ bằng client tách biệt (không ghi đè phiên); đổi xong → `signOut({ scope: 'others' })` đăng xuất mọi thiết bị khác (Đợt 21, SEC-15). Đặt lại mật khẩu qua mã email cũng vậy |
 | Quên mật khẩu | Mã 6 số, SHA-256, TTL 10', 5 lần thử, 60s gửi lại, dùng 1 lần (ADR-007) |
 | Open redirect | `safeNext()` chỉ nhận path bắt đầu `/` và không `//` |
 | Thông báo lỗi đăng nhập | Chung chung, không tiết lộ tài khoản có tồn tại |
@@ -124,6 +126,9 @@
 | T28 *(v0.2)* | Lộ dữ liệu sức khỏe (phiếu tham vấn, tiến độ) | Information disclosure | ✅ Đợt 12: RLS `consultations` chỉ staff / admin; bệnh nhân đọc phiếu mình qua `my_consultations()`; không có trang công khai; đồng ý xử lý dữ liệu (E2E: bệnh nhân khác, khách không đọc được) | Thấp–Trung bình |
 | T29 *(v0.2)* | Spam lead / phiếu tham vấn | DoS | ✅ Đợt 8: rate limit 20 lead/giờ/IP (`lead:<IP>`); ✅ Đợt 12: 5 phiếu/ngày/tài khoản (`consult:<user_id>`); Turnstile nếu bật | Thấp |
 | T31 *(v0.2)* | Bệnh nhân sửa giá gói ở trình duyệt / gửi gói của chương trình khác | Tampering | ✅ Đợt 9: server lấy giá từ `course_plans` đúng chương trình, gói phải đang bán (TC-75) | Thấp |
+| T33 *(Đợt 21)* | Người khác dùng máy / trình duyệt sau khi chủ tài khoản rời đi (phiên còn mãi – SEC-13) | Spoofing | ✅ Cookie tạm, tự đăng xuất khi không thao tác (30 phút / 2 giờ), tối đa 12 giờ, thu hồi phiên khi hết hạn (TC-114, TC-115) | Thấp – còn rủi ro trong khoảng thời gian chờ (đóng tab nhưng chưa đóng trình duyệt) |
+| T34 *(Đợt 21)* | Link giả `/login?error=<chữ tùy ý>` hiện thông báo lừa đảo trong hộp lỗi của website (SEC-14) | Spoofing | ✅ Chỉ hiển thị theo mã lỗi (`app/login/errors.ts`, TC-116) | — |
+| T35 *(Đợt 21)* | Mật khẩu lộ: đổi mật khẩu nhưng kẻ gian vẫn giữ phiên trên máy khác (SEC-15) | Spoofing | ✅ Đổi / đặt lại mật khẩu đăng xuất mọi thiết bị khác (TC-116) | — |
 | T32 *(v0.2)* | Kéo dài hạn học trái phép | Elevation | ✅ Đợt 9: hạn học chỉ do trigger tính khi duyệt; người có phiên đăng nhập không ghi được `access_*` (TC-76) | Thấp |
 | T30 *(v0.2)* | Upload file lạ làm ảnh bìa (bucket public) | Tampering | ✅ Đợt 8: chỉ admin (RLS storage, E2E khách / nhân viên bị chặn); kiểm tra magic bytes, ≤ 2MB; MIME theo nội dung | Thấp |
 | T31 *(v0.2)* | Cookie phiên giả / hết hạn vượt qua middleware (middleware chỉ đọc cookie – ADR-016) | Spoofing | ✅ Mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (xác thực `getUser()`); RLS là lớp cuối | Thấp – không lộ dữ liệu, chỉ bị chuyển trang ở bước render |

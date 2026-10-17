@@ -7,6 +7,8 @@ import { formatDay } from '@/lib/format'
 import ProgressRing from '@/components/ProgressRing'
 import StatusBadge from '@/components/StatusBadge'
 import RoleForm, { type RoleTarget } from './RoleForm'
+import PageHeader from '@/components/admin/PageHeader'
+import { InboxIcon, PlusIcon } from '@/components/icons'
 
 export const metadata: Metadata = { title: 'Bệnh nhân' }
 
@@ -97,20 +99,13 @@ function Tabs({ team, isAdmin, teamCount }: { team: boolean; isAdmin: boolean; t
   const tabs = [{ href: '/admin/patients', label: 'Bệnh nhân', active: !team }]
   if (isAdmin) tabs.push({ href: '/admin/patients?role=team', label: `Nhân viên & Admin (${teamCount})`, active: team })
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
+    <nav aria-label="Loại tài khoản" className="seg">
       {tabs.map((t) => (
-        <Link
-          key={t.href}
-          href={t.href}
-          aria-current={t.active ? 'page' : undefined}
-          className={`btn-sm btn whitespace-nowrap border ${
-            t.active ? 'border-ocean-500 bg-ocean-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-          }`}
-        >
+        <Link key={t.href} href={t.href} aria-current={t.active ? 'page' : undefined} className="seg-item">
           {t.label}
         </Link>
       ))}
-    </div>
+    </nav>
   )
 }
 
@@ -193,12 +188,16 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs team={false} isAdmin={me.isAdmin} teamCount={teamCount ?? 0} />
-        <Link href="/admin/patients/new" className="btn-gold">
-          + Tạo bệnh nhân
-        </Link>
-      </div>
+      <PageHeader
+        title="Bệnh nhân"
+        description="Tài khoản bệnh nhân (tự đăng ký trên web hoặc nhân viên tạo từ Zalo), gói đang học và tiến độ tập."
+        actions={
+          <Link href="/admin/patients/new" className="btn-gold">
+            <PlusIcon className="h-4 w-4" /> Tạo bệnh nhân
+          </Link>
+        }
+      />
+      <Tabs team={false} isAdmin={me.isAdmin} teamCount={teamCount ?? 0} />
       {search}
       <p className="text-sm text-slate-500">{patients.length} bệnh nhân{patients.length === 200 && ' (hiển thị 200 người mới nhất – hãy lọc hoặc tìm để thu hẹp)'}</p>
 
@@ -259,7 +258,12 @@ export default async function AdminPatientsPage(props: { searchParams: Promise<{
         ))}
       </div>
 
-      {!patients.length && <p className="card p-10 text-center text-slate-500">Không tìm thấy bệnh nhân.</p>}
+      {!patients.length && (
+        <div className="card grid place-items-center gap-2 p-10 text-center text-slate-500">
+          <InboxIcon className="h-8 w-8 text-slate-300" />
+          <p>Không tìm thấy bệnh nhân.</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -289,6 +293,7 @@ async function TeamList({ q, me, teamCount, search }: { q: string; me: { id: str
 
   return (
     <div className="space-y-5">
+      <PageHeader title="Nhân viên & Admin" description="Những tài khoản đang có quyền vào trang quản trị và người đã cấp quyền." />
       <Tabs team isAdmin={me.isAdmin} teamCount={teamCount} />
       {search}
       <div className="card overflow-x-auto">

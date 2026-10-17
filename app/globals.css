@@ -115,6 +115,32 @@
     @apply bg-gradient-to-r from-gold-300 via-gold-200 to-ocean-200 bg-clip-text text-transparent;
   }
 
+  /* ---------- Khu quản trị (Đợt 23 – UI-10) ---------- */
+  /* Nhóm nút lọc dạng "viên" (tab trạng thái, loại khóa, bệnh nhân / nhân viên) */
+  .seg {
+    @apply inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-[0_1px_2px_rgba(23,42,61,0.05)];
+  }
+  .seg-item {
+    @apply inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-ocean-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ocean-100;
+  }
+  .seg-item[aria-current='page'] {
+    @apply bg-ocean-600 text-white shadow-sm hover:bg-ocean-600 hover:text-white;
+  }
+
+  /* Bảng dữ liệu trong khu quản trị: tiêu đề cột đậm nhẹ, dòng sáng lên khi rê */
+  .admin-shell table thead {
+    @apply bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+  }
+  .admin-shell table thead th {
+    @apply border-b border-slate-200;
+  }
+  .admin-shell table tbody tr {
+    @apply transition-colors hover:bg-ocean-50/40;
+  }
+  .admin-shell .card {
+    @apply border-slate-200/70 shadow-[0_1px_2px_rgba(23,42,61,0.04),0_4px_16px_-8px_rgba(23,42,61,0.08)];
+  }
+
   /* Thẻ nhấc lên khi rê chuột (trang chủ) */
   .card-lift {
     @apply transition duration-300 hover:-translate-y-1.5 hover:border-ocean-200 hover:shadow-xl hover:shadow-ocean-900/10;

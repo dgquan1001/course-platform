@@ -122,7 +122,7 @@ Nguồn token: `tailwind.config.ts` · class dùng chung: `app/globals.css`.
 
 ### Bảng (admin)
 
-- Bọc trong `.card overflow-x-auto`; `min-w-[960px]`; header `bg-ocean-50/70 uppercase text-xs`.
+- Bọc trong `.card overflow-x-auto`; `min-w-[960px]`; header `bg-ocean-50/70 uppercase text-xs`. Đợt 23: trong `.admin-shell` tiêu đề cột `text-[11px]` đậm nhẹ + viền dưới, dòng sáng `bg-ocean-50/40` khi rê (CSS chung, không sửa từng bảng).
 - Cột thao tác `sticky right-0` có bóng trái; hàng hover `bg-ocean-50/40`.
 - Ngày giờ 2 dòng (ngày / giờ nhạt). Ô trống hiển thị `—`.
 - Dưới `md`: danh sách học viên chuyển sang dạng thẻ.
@@ -227,3 +227,17 @@ Nghiên cứu xu hướng 2026: **bento grid** cho phần dịch vụ / lợi í
 
 UX writing v0.2: gọi người dùng là "bạn" trên giao diện bệnh nhân; trong quản trị gọi là "bệnh nhân"; nút hành động học tập luôn
 nói rõ buổi/bài ("Tiếp tục Buổi 4 – Bài 2"), tránh chữ chung chung "Tiếp tục".
+
+## 9. Khu quản trị (Đợt 23 – UI-10)
+
+| Thành phần | Mô tả | Mã nguồn |
+| --- | --- | --- |
+| Khung | ≥ lg: lưới `15rem | 1fr`; thanh bên `bg-ocean-950` dính khi cuộn (cao `100vh - 4rem`), nội dung nền `bg-slate-100/70`, rộng tối đa 1400px. < lg: dải tối phía trên + hàng tab cuộn ngang | `app/admin/layout.tsx` (`.admin-shell`) |
+| Menu | Mục: icon `ocean-300` + chữ `ocean-200`; rê: `bg-white/5`; đang mở: `bg-white/10` chữ trắng, icon `gold-300`, vạch vàng 4px bên trái. Điện thoại: mục đang mở nền trắng chữ `ocean-950` | `app/admin/AdminNav.tsx` |
+| Số việc cần làm | Viên `bg-gold-400 text-ocean-950` cạnh mục menu (đơn chờ, phiếu mới, khách mới) | `app/admin/NavCount.tsx` |
+| Tiêu đề trang | H2 `text-2xl` + mô tả `text-sm slate-500` (≤ 2 dòng) + nút chính bên phải (`btn-gold` cho "Tạo / Thêm") + dòng "← quay lại" khi là trang con | `components/admin/PageHeader.tsx` |
+| Bộ lọc dạng viên | `.seg` (khung trắng viền nhạt) + `.seg-item`; mục đang chọn `aria-current="page"` nền `ocean-600` chữ trắng. Dùng cho tab trạng thái đơn, phiếu, khách, loại khóa, bệnh nhân / nhân viên, tab trong trang khóa | `app/globals.css` |
+| Thẻ KPI | Nhãn chữ hoa nhỏ + ô icon 36px (màu theo mức: xanh / vàng "Cần chú ý" / đỏ "Cần xử lý" – luôn kèm chữ) + số `text-3xl` + dòng phụ; nhấc nhẹ khi rê | `components/StatCard.tsx` |
+| Thẻ khóa học | Ảnh bìa 16:10 trái + nhãn loại / trạng thái + tên (link tới trang sửa) + giá "Từ … · gói" + số bài / học viên; **hàng thao tác dưới thẻ** (nền `slate-50`): Sửa (primary) · Buổi – bài · Ẩn / Hiển thị · Xem trang ↗ · Xóa (đỏ, căn phải) | `app/admin/courses/page.tsx` |
+| Vùng nguy hiểm | Thẻ viền đỏ, tiêu đề đỏ có icon cảnh báo; bị chặn → `.alert-warning role="note"`; được xóa → ô gõ lại tên + nút đỏ chỉ mở khi gõ đúng | `app/admin/courses/DeleteCourse.tsx` |
+| Trạng thái rỗng | Icon `InboxIcon` xám nhạt + câu ngắn + nút hành động (nếu có) | các trang danh sách |

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getCurrentUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { isEmailTaken, isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
@@ -79,9 +80,18 @@ export async function changePasswordAction(formData: FormData): Promise<ActionRe
   const { error: wrong } = await verifier.auth.signInWithPassword({ email: user.authEmail, password: current })
   if (wrong) return fail('Mật khẩu hiện tại không đúng.')
 
+  // Đổi bằng chính phiên đang đăng nhập (không dùng admin API: updateUserById thu hồi mọi phiên, kể cả máy đang dùng),
+  // rồi đăng xuất mọi thiết bị khác, giữ phiên hiện tại (SEC-15)
+  const supabase = await createClient()
+  const { error } = await supabase.auth.updateUser({ password: next })
+  if (error) {
+    if (error.code === 'same_password') return fail('Mật khẩu mới phải khác mật khẩu hiện tại.')
+    if (error.code === 'weak_password') return fail('Mật khẩu mới quá yếu, vui lòng chọn mật khẩu khác.')
+    console.error('[account] đổi mật khẩu', error.code, error.message)
+    return fail('Không đổi được mật khẩu, vui lòng đăng nhập lại rồi thử lại.')
+  }
+  await supabase.auth.signOut({ scope: 'others' })
   const admin = createAdminClient()
-  const { error } = await admin.auth.admin.updateUserById(user.id, { password: next })
-  if (error) return fail(error.message)
   // Mật khẩu do nhân viên cấp đã được đổi: tắt hộp nhắc đổi mật khẩu (BR-96)
   if (user.mustChangePassword) {
     await admin.from('profiles').update({ must_change_password: false }).eq('id', user.id)

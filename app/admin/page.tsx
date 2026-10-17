@@ -6,6 +6,8 @@ import { requireStaffPage } from '@/lib/auth'
 import { daysLeft } from '@/lib/courses'
 import { formatDateTime, formatDay, paymentLabel, registrationSourceLabel } from '@/lib/format'
 import StatCard from '@/components/StatCard'
+import PageHeader from '@/components/admin/PageHeader'
+import { AlertIcon, ClipboardIcon, ClockIcon, LayersIcon, PlusIcon, StarIcon, StethoscopeIcon, TrendingIcon, UsersIcon } from '@/components/icons'
 import ProgressRing from '@/components/ProgressRing'
 
 export const metadata: Metadata = { title: 'Tổng quan' }
@@ -69,34 +71,37 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">Tổng quan</h2>
-        <Link href="/admin/patients/new" className="btn-gold">
-          + Tạo bệnh nhân
-        </Link>
-      </div>
+      <PageHeader
+        title="Tổng quan"
+        description={`Chào ${me.fullName || 'bạn'} – số liệu bệnh nhân, đơn đăng ký và việc cần làm hôm nay${me.isAdmin ? ', doanh thu tháng' : ''}.`}
+        actions={
+          <Link href="/admin/patients/new" className="btn-gold">
+            <PlusIcon className="h-4 w-4" /> Tạo bệnh nhân
+          </Link>
+        }
+      />
 
-      <section aria-label="Chỉ số" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Bệnh nhân" value={s.patients} hint={`Mới 7 ngày: Web ${s.new_7d_web} · Zalo ${s.new_7d_zalo}`} href="/admin/patients" />
-        <StatCard label="Mới 30 ngày" value={s.new_30d_web + s.new_30d_zalo} hint={`Web ${s.new_30d_web} · Zalo ${s.new_30d_zalo}`} href="/admin/patients?new=30" />
+      <section aria-label="Chỉ số" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <StatCard label="Bệnh nhân" value={s.patients} icon={<UsersIcon className="h-5 w-5" />} hint={`Mới 7 ngày: Web ${s.new_7d_web} · Zalo ${s.new_7d_zalo}`} href="/admin/patients" />
+        <StatCard label="Mới 30 ngày" icon={<TrendingIcon className="h-5 w-5" />} value={s.new_30d_web + s.new_30d_zalo} hint={`Web ${s.new_30d_web} · Zalo ${s.new_30d_zalo}`} href="/admin/patients?new=30" />
         <StatCard
-          label="Đơn chờ duyệt"
+          label="Đơn chờ duyệt" icon={<ClipboardIcon className="h-5 w-5" />}
           value={s.pending_registrations}
           hint={sinceText(s.oldest_pending_at) || 'Không có đơn chờ'}
           href="/admin/registrations"
           tone={s.pending_registrations ? 'warning' : 'default'}
         />
-        <StatCard label="Gói đang hiệu lực" value={s.active_plans} hint={`${s.active_patients} bệnh nhân đang học`} href="/admin/patients?status=active" />
-        <StatCard label="Sắp hết hạn (7 ngày)" value={s.expiring_7d} hint="Gọi nhắc gia hạn" href="/admin/patients?status=expiring" tone={s.expiring_7d ? 'warning' : 'default'} />
-        <StatCard label="Đã hết hạn" value={s.expired} hint="Chưa gia hạn" href="/admin/patients?status=expired" />
+        <StatCard label="Gói đang hiệu lực" icon={<LayersIcon className="h-5 w-5" />} value={s.active_plans} hint={`${s.active_patients} bệnh nhân đang học`} href="/admin/patients?status=active" />
+        <StatCard label="Sắp hết hạn (7 ngày)" icon={<ClockIcon className="h-5 w-5" />} value={s.expiring_7d} hint="Gọi nhắc gia hạn" href="/admin/patients?status=expiring" tone={s.expiring_7d ? 'warning' : 'default'} />
+        <StatCard label="Đã hết hạn" icon={<AlertIcon className="h-5 w-5" />} value={s.expired} hint="Chưa gia hạn" href="/admin/patients?status=expired" />
         <StatCard
-          label="Phiếu tham vấn mới"
+          label="Phiếu tham vấn mới" icon={<StethoscopeIcon className="h-5 w-5" />}
           value={s.consultations_new}
           hint="Cần hẹn bác sĩ"
           href="/admin/consultations"
           tone={s.consultations_new ? 'critical' : 'default'}
         />
-        <StatCard label="Khách premium mới" value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
+        <StatCard label="Khách premium mới" icon={<StarIcon className="h-5 w-5" />} value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
       </section>
 
       <div className="grid gap-5 xl:grid-cols-2">

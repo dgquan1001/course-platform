@@ -39,7 +39,8 @@
 
 ## 3. Danh mục test case E2E & kết quả
 
-**Lần chạy gần nhất**: **17/10/2026** · sau Đợt 20 song ngữ + giao diện hiện đại (project-review §7.12) · Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
+**Lần chạy gần nhất**: **17/10/2026** · sau Đợt 21 bảo mật phiên đăng nhập (project-review §7.13) · Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
+· sau Đợt 20 song ngữ + giao diện hiện đại (§7.12) · Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
 · sau Đợt 19 (§7.11): Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
 · trước đó 05/10/2026: Node 99/99, Workers 100/100 (17 lỗi hydration ghi nhận riêng – RK-54) · Chrome · Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm (chưa có staging) · dữ liệu test dọn sạch.
 
@@ -57,6 +58,7 @@
 | 05/10/2026 | Rà soát performance & security | Node 99/99 · Workers 100/100 (17 lỗi RK-54 ghi riêng) |
 | 17/10/2026 | Đợt 19 (trang chủ mới) | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
 | 17/10/2026 | Đợt 20 (song ngữ, giao diện hiện đại) | Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
+| 17/10/2026 | Đợt 21 (bảo mật phiên đăng nhập) | Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) |
 
 Ghi chú lần chạy 26/09/2026 (Đợt 4 – 5): dữ liệu test đã dọn sạch
 (0 khóa `[E2E]`, 0 tài khoản `e2e-*`, 0 đơn test, 0 khóa `rate_limits` của lần chạy; 1 dòng `role_events` còn lại là thao tác thật của admin lúc 09:21 UTC, không phải dữ liệu test).
@@ -195,6 +197,12 @@ Dữ liệu test mới (gói, buổi, tiến độ, phiếu, lead, ảnh bìa `[
 | TC-111 | 19 | Khách | ✅ PASS – Trang chủ mới (máy tính): số liệu dừng đúng "10+ · 13.000+ · 3 · 1:1"; dải chuyên môn lặp 2 lần, bản lặp `aria-hidden`; `#bac-si` có "Học vấn & chứng chỉ" (Schroth SSOL), `#chuyen-mon` đủ 4 lĩnh vực, "Quá trình công tác" 3 mốc, 6 ảnh tải được (`naturalWidth > 0`, không bị CSP chặn); chân trang 3 cơ sở; trong `<main>` không còn banner `trung-tam-hv.jpg` và khối "Sẵn sàng chăm sóc cột sống"; tên bác sĩ chỉ là tiêu đề H2 một lần; ảnh `desktop-home-bac-si.png` | FR-195 → FR-197, UI-05 → UI-07 |
 | TC-112 | 19 | Khách | ✅ PASS – `html.reveal-ready` sau khi tải; khối FAQ cuối trang chưa `is-visible` → cuộn tới thì `is-visible` + `opacity: 1`; hero hiện ngay. Ngữ cảnh `reducedMotion: 'reduce'`: mọi `[data-reveal]` hiện ngay, không gắn `reveal-ready`, dải chuyên môn `animation-name: none` | FR-194, UI-04, NFR-04 |
 | TC-113 | 20 | Khách | ✅ PASS – `/`: nav "Chọn ngôn ngữ", VI `aria-current`; bấm "English" → `/en`, H1 "Holistic spine…", `<html lang="en">`, `<main lang="en">`, hreflang vi / en; menu "Doctor" → `/en#bac-si`, "Sign in"; list "Areas of expertise", H2 "Dr. Do Manh Cuong", `#chuyen-mon` có "Scoliosis"; thẻ khóa A: nhãn "Lumbar scoliosis", "Register" → `/?course=<A>#dang-ky`; lọc "Thoracic scoliosis" chỉ còn khóa B, "All" hiện lại; `#dang-ky` không có form, có nút → `/#dang-ky`; chân trang "Our clinics" 3 cơ sở; ảnh `desktop-home-en.png`. Từ `/en#bac-si` bấm "Tiếng Việt" → `/#bac-si`, `lang="vi"`. `/login` không có nút chuyển ngữ | FR-198 → FR-201, UI-08, ADR-018 |
+| TC-114 | 21 | Học viên, admin | ✅ PASS – đăng nhập không chọn ghi nhớ: cookie `sb-*-auth-token` và `hv-activity` là cookie tạm (`expires = -1`), không có `hv-remember`; học viên chọn "Ghi nhớ": cookie phiên hạn 30 ngày + `hv-remember=1`, 3 giờ không thao tác vẫn vào `/courses`; admin chọn "Ghi nhớ" vẫn là cookie tạm, `hv-activity` có cờ `s` | FR-203, SEC-13 |
+| TC-115 | 21 | Admin, học viên | ✅ PASS – admin 31 phút không thao tác → `/admin/registrations` chuyển `/login?error=timeout` + thông báo, cookie bị xóa; gắn lại cookie cũ (giả lập bị đánh cắp) → vẫn về `/login` (phiên đã thu hồi); học viên đăng nhập từ 13 giờ trước → trang chủ hiện như khách, cookie bị xóa; tab đang mở 121 phút không thao tác → sự kiện focus → toast "Phiên đăng nhập đã hết hạn", header hiện "Đăng nhập" | FR-204, FR-205 |
+| TC-116 | 21 | Khách, học viên | ✅ PASS – `/login?error=<chữ tùy ý>` không hiện chữ đó, không có hộp lỗi; học viên đổi mật khẩu: thiết bị đang dùng vẫn đăng nhập, thiết bị khác vào `/courses` bị chuyển `/login` (bước đổi mật khẩu ở phần 8) | FR-205, FR-206, SEC-14, SEC-15 |
+| TC-108 | 24 | Admin | ✅ PASS – thẻ khóa B ở `/admin/courses` có link Sửa · Quản lý buổi – bài · Xem trang giới thiệu · Xóa và nút "Ẩn khóa học"; "Sửa" chương trình → `/admin/courses/<id>/edit`: form không có ô Giá, có bảng "Gói theo thời hạn", lưu mô tả ngắn không đổi giá | FR-210, QL-06 |
+| TC-109 | 24 | Admin | ✅ PASS – "Xóa" khóa B (còn 1 đơn chờ) → `edit#xoa-khoa-hoc`: ghi chú "… 1 đơn chờ duyệt …", không có nút xóa; từ chối đơn → tải lại: gõ sai tên → nút khóa; gõ đúng → "Đã xóa khóa học", về danh sách, khóa B biến mất; 2 đơn giữ `course_title`, học phí; bảng đơn hiện "(khóa học đã xóa)", không có nút Duyệt. Xóa khóa premium (không đơn) bằng gõ tên → lead giữ tên khóa | FR-211, QL-08 |
+| TC-110 | 24 | Admin | ✅ PASS – tab Premium → "+ Thêm khóa học" → `/admin/courses/new?kind=premium`, ô Loại = premium; mọi lần tạo khóa trong E2E đi qua nút này và chuyển tới `/admin/courses/<id>/edit`; nhân viên vào `/admin/courses/new`, `…/edit` bị chuyển về `/admin` | FR-209, QL-07 |
 
 Kết quả Đợt 7 (27/09/2026, Chrome, Supabase theo `.env.local` với `E2E_SUPABASE_REF` đặt tạm, schema mới đã chạy): **67/67 bước PASS**, dữ liệu test đã dọn.
 Lần chạy đầu đỏ 1 bước (TC-66) do test đọc URL trước khi trang `/admin` chuyển tiếp phía trình duyệt – đã sửa test chờ URL cuối.
@@ -232,6 +240,8 @@ Kết quả Workers (`npm run test:e2e:workers`): lần 1 – server không kh�
 
 Đợt 19 (17/10/2026, không đổi schema): TC-111 ↔ "[Khách] Trang chủ mới: số liệu đếm tăng, dải chuyên môn, hồ sơ bác sĩ…", TC-112 ↔ "[Khách] Hiệu ứng hiện dần khi cuộn; bật giảm chuyển động…" (đặt ngay sau bước trang chủ của phase 4). **Không sửa bước cũ nào** – TC-11 (tiêu đề H1 "Trị liệu cột sống", H2 tên bác sĩ, FAQ, box 3 bước), TC-69 (3 nhóm, lọc), TC-12 ("Đăng ký" chọn sẵn khóa), TC-103 (ISR) chạy nguyên trên bố cục mới.
 Mã TC-104 → TC-110 giữ cho Đợt 18 (roadmap §3.5).
+Đợt 22 → 24 (17/10/2026, không đổi schema): TC-108 → TC-110 (mã giữ từ kế hoạch Đợt 18) ↔ bước "[Admin] Hàng thao tác ở thẻ khóa…", "Tạo / sửa khóa"; các bước tạo khóa đi qua trang mới. Đo hiệu năng: `scripts/perf.mjs` (§5). Lần chạy: Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
+Đợt 21 (17/10/2026, không đổi schema): TC-114 → TC-116 ↔ phần "10. HỆ THỐNG – bảo mật" ([Bảo mật] …) + bước đổi mật khẩu ở phần 8. Lần chạy: Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
 Đợt 20 (17/10/2026, không đổi schema): TC-113 ↔ "[Khách] Chuyển ngữ VI ↔ EN ở trang chủ…" (sau TC-112). TC-111, TC-112 và các bước cũ chạy nguyên trên giao diện mới (không sửa). Lần chạy: E2E: Node 102/102, Workers 103/103 (17/10/2026). Lần chạy Node đầu dừng ở TC-113 vì script so hreflang `vi` với chuỗi kết thúc "/" trong khi Next ghi URL gốc không có "/" cuối – trang đúng, sửa script so theo pathname Lần chạy: Node lần 1 – 16/17 (TC-111: `scrollIntoViewIfNeeded` chờ ảnh bồng bềnh "đứng yên" – lỗi của test, RK-56), lần 2 – 16/17 (test bắt nhầm `og:image` trong `<head>`), lần 3 – 100/101 (**lỗi thật nhỏ**: Chrome xin `/favicon.ico` → 404 trong console; thêm `public/favicon.ico`), **lần 4 – 101/101 PASS**; **Workers 102/102 PASS** ngay lần đầu (14 lỗi #418 ở `/admin/**` ghi riêng – RK-54, như trước). Dữ liệu test dọn sạch.
 
 **TC cũ phải sửa khi triển khai v0.2**: TC-01 (bảng/cột mới), TC-10 (RLS: đề cương công khai, `video_url` ẩn), TC-07/TC-08 (form khóa có loại, bài thuộc buổi),
@@ -269,7 +279,7 @@ TC-24/TC-28 (`/admin/registrations`, cột gói/nguồn), TC-29/TC-55/TC-58 (`/a
 - [ ] Video YouTube & TikTok phát được trên điện thoại.
 - [ ] Admin xem ảnh chuyển khoản, duyệt, học viên thấy khóa mở ngay.
 - [ ] Bàn phím: Tab qua menu, form; focus nhìn thấy.
-- [ ] Lighthouse mobile trang chủ: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 90.
+- [ ] Lighthouse mobile trang chủ: Performance ≥ 85, Accessibility ≥ 90, SEO ≥ 90. Đo tự động nhiều trang (cả trang đăng nhập): `E2E_SUPABASE_REF=<ref> PERF_BASE=<url> PERF_LABEL=<nhãn> node scripts/perf.mjs` (Lighthouse 3 lần / trang, điện thoại + máy tính, tạo / xóa admin tạm) – kết quả `test-results/perf-<nhãn>.json`, bảng Markdown in ra màn hình (Đợt 22).
 - [ ] Trên Cloudflare (từ Đợt 17): checklist nghiệm thu CF-01 → CF-41 ở [cloudflare-migration.md §5](../09-operations/cloudflare-migration.md#5-checklist-nghiệm-thu-inspection).
 
 ## 6. Tiêu chí hoàn thành (Definition of Done)

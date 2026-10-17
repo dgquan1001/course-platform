@@ -13,9 +13,10 @@ Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Stor
 - **Chức năng**: phiên bản 0.2 đầy đủ – chương trình tập phục hồi chức năng cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng,
   khóa miễn phí công khai, khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo, lộ trình **buổi → bài tập** mở lần lượt + checklist + % tiến độ,
   phiếu tham vấn bác sĩ, vai trò **bệnh nhân / nhân viên / admin**, nhân viên tạo tài khoản cho khách Zalo, dashboard quản trị.
-- **Kiểm thử**: E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) (17/10/2026, sau Đợt 20); sau Đợt 19: Node 101/101 · Workers 102/102; trước đó Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
+- **Kiểm thử**: E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) (17/10/2026, sau Đợt 21 → 24); sau Đợt 19: Node 101/101 · Workers 102/102; trước đó Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
 - **Đợt 19 (17/10/2026)**: thiết kế lại trang chủ – chuyển động (hiện dần khi cuộn, số đếm, dải chuyên môn), hồ sơ + ảnh hoạt động của bác sĩ, 3 cơ sở, bỏ phần trùng; nhánh `hv-dgquan-20261017` chờ Pull Request vào `main`.
 - **Đợt 20 (17/10/2026)**: nút chuyển ngữ **VI | EN** ở trang chủ – bản tiếng Anh tại `/en` (ADR-018); giao diện hiện đại hơn: hero nền tối, tiêu đề hiện từng từ, bento, cột ảnh bác sĩ dính khi cuộn, parallax / thanh tiến độ cuộn (CSS), ánh sáng theo con trỏ, chân trang tối.
+- **Đợt 21 → 24 (17/10/2026)**: phiên đăng nhập **hết khi đóng trình duyệt**, tự đăng xuất khi không thao tác (nhân viên 30 phút, học viên 2 giờ, tối đa 12 giờ; học viên có "Ghi nhớ 30 ngày"), đổi mật khẩu đăng xuất máy khác; hiệu năng điện thoại 90 – 94 điểm (`scripts/perf.mjs`); **giao diện quản trị mới** (thanh bên tối, tiêu đề trang, KPI); **thêm / sửa / xóa khóa học** (nút "+ Thêm khóa học", trang sửa riêng, xóa an toàn).
 - **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) – tiếp theo là **Đợt 18** (thêm / sửa / xóa
   bệnh nhân & khóa học); song song theo dõi Cloudflare tới 20/10 rồi gỡ Vercel; email quên mật khẩu khi chốt Gmail trung tâm; sau đó Đợt 14 chạy thử MVP.
 - Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
@@ -34,6 +35,7 @@ Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Stor
 | 06/10/2026 | Tắt đăng ký công khai Supabase, nghiệm thu trên website thật; **deploy tự động từ `main` qua Workers Builds** (PR #8) | Workers Builds ✅ |
 | 17/10/2026 | Đợt 19: thiết kế lại trang chủ (chuyển động, hồ sơ bác sĩ, bỏ phần trùng) | E2E Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
 | 17/10/2026 | Đợt 20: song ngữ trang chủ VI ↔ EN (`/en`), giao diện hiện đại hơn | E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
+| 17/10/2026 | Đợt 21 → 24: bảo mật phiên đăng nhập, hiệu năng, giao diện quản trị mới, thêm / sửa / xóa khóa học | E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) |
 
 Chi tiết từng lần cập nhật tài liệu: [`web design structure/README.md`](web%20design%20structure/README.md) › "Lịch sử tài liệu".
 

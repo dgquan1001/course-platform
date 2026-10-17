@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { setFlash } from '@/lib/flash'
+import { startSession } from '@/lib/session'
 import { isPhoneTaken } from '@/lib/accounts'
 import { isValidEmail, normalizePhone, phoneToAuthEmail, realEmail } from '@/lib/phone'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
@@ -124,7 +125,8 @@ export async function registerAction(
           error: 'Email này đã có tài khoản. Vui lòng đăng nhập trước, sau đó đăng ký thêm khóa học.',
         }
       }
-      return { error: `Không tạo được tài khoản: ${error?.message}` }
+      console.error('[register] tạo tài khoản', error?.message)
+      return { error: 'Không tạo được tài khoản, vui lòng thử lại hoặc gọi hotline.' }
     }
     userId = data.user.id
     createdNewUser = true
@@ -146,7 +148,8 @@ export async function registerAction(
     .upload(proofPath, proof, { contentType })
   if (uploadError) {
     await rollbackUser()
-    return { error: `Không tải được ảnh chuyển khoản: ${uploadError.message}` }
+    console.error('[register] tải ảnh chuyển khoản', uploadError.message)
+    return { error: 'Không tải được ảnh chuyển khoản, vui lòng thử lại.' }
   }
 
   const { error: insertError } = await admin.from('registrations').insert({
@@ -170,12 +173,15 @@ export async function registerAction(
     await rollbackUser()
     // 23505: vi phạm unique index registrations_active_key (gửi 2 đơn cùng lúc cho cùng khóa)
     if (insertError.code === '23505') return { error: 'Bạn đã đăng ký khóa này và đang chờ xác nhận.' }
-    return { error: `Không gửi được đơn đăng ký: ${insertError.message}` }
+    // SEC-16: không lộ lỗi database cho khách
+    console.error('[register] lưu đơn', insertError.message)
+    return { error: 'Không gửi được đơn đăng ký, vui lòng thử lại hoặc gọi hotline.' }
   }
 
   // Đăng nhập luôn để học viên theo dõi trạng thái đơn
   if (createdNewUser) {
-    await supabase.auth.signInWithPassword({ email: authEmail, password })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: authEmail, password })
+    if (!signInError) await startSession({ staff: false })
   }
 
   revalidatePath('/admin/registrations')

@@ -481,6 +481,134 @@ xanh nước biển – trắng – vàng và các chức năng chính; dev tự
 Ghi nhận khi làm: build `next build` trên Windows có lần worker thoát mã `3221226505` (0xC0000409) ở bước "Generating static pages" – chạy lại thì qua, không do mã nguồn (Workers Builds chạy Linux).
 `npx opennextjs-cloudflare build` khi `npm run dev` đang chạy cùng thư mục làm hỏng `.next` (lỗi `Invariant: no direct app page entry found for /account`, dev server trả 500) → build workers ở bản sao riêng (test-plan §2); đã xóa `.next` hỏng ở thư mục chính, `npm run dev` tự tạo lại.
 
+### 7.13. Đợt 21 – Rà soát bảo mật + phiên đăng nhập (17/10/2026)
+
+Yêu cầu chủ dự án 17/10: "đăng nhập vào, tắt website đi nhưng lúc sau vào vẫn đang lưu session – fix lỗi bảo mật này; rà soát thật kỹ các lỗi bảo mật có thể có".
+**Phạm vi**: `middleware.ts`, `lib/supabase/*`, mọi server action (`'use server'`), trang quản trị, `supabase/schema.sql` (RLS, Storage), file `.env*` trong git, `npm audit`;
+so với lượt rà soát 04/10 (§7.10). Không đổi schema – chủ dự án **không** cần chạy SQL.
+
+| ID | Mức | Phát hiện | Bằng chứng | Xử lý |
+| --- | --- | --- | --- | --- |
+| SEC-13 | 🔴 | **Phiên đăng nhập sống 400 ngày**: `@supabase/ssr` 0.12.7 luôn ghi cookie với Max-Age 400 ngày (bỏ qua `cookieOptions.maxAge`) – tắt trình duyệt, máy dùng chung, quên đăng xuất ở máy trung tâm → người sau vào thẳng tài khoản (kể cả admin) | 🔬 `node_modules/@supabase/ssr/dist/main/cookies.js` (`maxAge: DEFAULT_COOKIE_OPTIONS.maxAge`); `utils/constants.js` 400 × 24 × 60 × 60 | ✅ `lib/session-policy.ts`: cookie tạm + tự đăng xuất (30 phút nhân viên / 2 giờ học viên, tối đa 12 giờ), "Ghi nhớ 30 ngày" chỉ học viên; middleware chạy mọi trang, thu hồi phiên ở Supabase khi hết hạn; `SessionGuard` cho tab đang mở (TC-114, TC-115). **Mọi người đang đăng nhập phải đăng nhập lại 1 lần sau khi deploy** |
+| SEC-14 | 🟠 | Trang đăng nhập hiển thị nguyên văn `?error=` → kẻ gian gửi link `/login?error=Tài khoản bị khóa, gọi 09…` hiện chữ lừa đảo trong hộp lỗi đỏ của website (không phải XSS – React đã thoát ký tự) | 📖 `app/login/page.tsx` | ✅ Chỉ nhận mã (`app/login/errors.ts`), mã lạ không hiện gì (TC-116) |
+| SEC-15 | 🟡 | Đổi mật khẩu dùng admin API `updateUserById` – E2E cho thấy Supabase thu hồi **mọi** phiên, kể cả máy đang đổi: thiết bị khác bị đăng xuất (đúng) nhưng người đang đổi cũng âm thầm mất phiên ở lần tải trang sau (lỗi trải nghiệm, trước đây test không phát hiện vì không tải lại trang) | 🔬 E2E Đợt 21 lần 1: `/account` → `/login?next=%2Faccount` sau khi đổi | ✅ Đổi bằng phiên của chính người dùng (`auth.updateUser`) + `signOut({ scope: 'others' })`: máy đang dùng giữ phiên, máy khác bị đăng xuất (TC-116); đặt lại mật khẩu qua mã email: thu hồi mọi phiên rồi đăng nhập mới. Nhân viên cấp lại mật khẩu bệnh nhân (`updateUserById`) cũng thu hồi mọi phiên của bệnh nhân |
+| SEC-16 | 🟡 | Form đăng ký công khai trả nguyên văn lỗi kỹ thuật (tạo tài khoản, tải ảnh, lưu đơn) – sót từ SEC-02 | 📖 `app/register/actions.ts` | ✅ Thông báo chung + `console.error` (Workers Logs) |
+| SEC-17 | 🔵 | Link xem ảnh chuyển khoản (chứng từ tài chính) sống 1 giờ – lộ link là người ngoài xem được | 📖 `app/admin/registrations/page.tsx` | ✅ Giảm còn 15 phút |
+| SEC-18 | 🟡 | `npm audit` (gói chạy thật): `sharp` (wrangler / miniflare), `source-map-js` có bản sửa | 🔬 `npm audit --omit=dev` | ✅ `npm audit fix` (không nâng major); còn `postcss` trong Next = SEC-08 (chỉ lúc build, chờ Next 16) |
+| SEC-19 | 🔵 | Bucket công khai `course-covers` cho liệt kê tên file (policy select toàn bucket) | 📖 `schema.sql` | Chấp nhận – ảnh bìa vốn công khai, tên file là UUID |
+
+**Đã kiểm tra – đạt**: 9 file `'use server'` – mọi action quản trị qua `run()` (`requireAdmin` / `requireStaff`), action học viên gọi `getUser()`, action công khai có giới hạn tần suất (đăng nhập, đăng ký + Turnstile, quên mật khẩu, lead); 10/12 trang `/admin/**` gọi `requireStaffPage` / `requireAdminPage` (2 trang còn lại chỉ chuyển hướng; layout `/admin` cũng kiểm tra); không có `dangerouslySetInnerHTML` / `eval`; bucket `payment-proofs` riêng tư, chỉ nhân viên đọc; `profiles`: học viên không tự sửa vai trò (không có policy tự sửa, trigger `guard_role_change`); `.env.production` trong git chỉ có biến công khai; CSP / header (§7.10 SEC-07) giữ nguyên.
+
+**Còn mở**: SEC-08 (Next 16), SEC-09, SEC-10 (A-25), SEC-11 Turnstile (A-4), SEC-12.
+
+| Mã | Mức | Rủi ro | Xử lý |
+| --- | --- | --- | --- |
+| RK-59 | 🟡 | Sau deploy Đợt 21, mọi người đang đăng nhập bị đăng xuất 1 lần (chưa có cookie mốc thời gian) | Chấp nhận – báo trước nhân viên; chưa có bệnh nhân thật |
+| RK-60 | 🔵 | Bệnh nhân xem video dài trên điện thoại không chạm màn hình > 2 giờ bị đăng xuất | Chấp nhận (2 giờ đủ 1 buổi tập); học viên dùng máy riêng chọn "Ghi nhớ" |
+
+Kiểm thử: TC-114 → TC-116 + E2E toàn bộ – Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18).
+
+### 7.14. Đợt 22 – Đo và sửa hiệu năng (17/10/2026)
+
+**Cách đo**: `scripts/perf.mjs` (mới) – Lighthouse 12.8 chế độ mặc định (điện thoại: CPU chậm 4×, mạng 4G chậm mô phỏng; máy tính: preset desktop),
+**3 lần / trang, lấy trung vị**, 10 trang gồm trang cần đăng nhập (tạo admin tạm, gửi cookie). Server: `next start` bản production trên máy dev
+(Supabase ở Singapore nên TTFB trang đăng nhập cao hơn trên Cloudflare – PERF-03). Kết quả chi tiết: `test-results/perf-truoc.json`, `perf-sau.json`.
+
+**Trước khi sửa**
+
+| Chế độ | Trang | Điểm | FCP (s) | LCP (s) | TBT (ms) | CLS | Speed Index (s) | TTFB (ms) | Tải về (kB) | JS (kB) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Điện thoại | `/` | 86 | 2.12 | 3.83 | 24 | 0.002 | 2.14 | 8 | 527 | 219 |
+| Điện thoại | `/en` | 89 | 1.83 | 3.64 | 19 | 0.002 | 2.02 | 6 | 498 | 219 |
+| Điện thoại | `/login` | 88 | 1.97 | 3.63 | 57 | 0.000 | 1.97 | 9 | 389 | 227 |
+| Điện thoại | `/register` | 88 | 1.97 | 3.64 | 97 | 0.001 | 1.97 | 4 | 430 | 219 |
+| Điện thoại | `/khoa-hoc/[id]` | 87 | 1.98 | 3.58 | 125 | 0.000 | 2.76 | 6 | 415 | 223 |
+| Điện thoại | `/courses` | 81 | 2.02 | 3.36 | 327 | 0.000 | 3.06 | 1088 | 380 | 219 |
+| Điện thoại | `/admin` | 76 | 2.20 | 3.58 | 444 | 0.020 | 3.05 | 726 | 396 | 225 |
+| Điện thoại | `/admin/registrations` | 78 | 2.17 | 3.52 | 382 | 0.001 | 3.34 | 1115 | 630 | 230 |
+| Điện thoại | `/admin/patients` | 86 | 2.18 | 3.29 | 177 | 0.000 | 3.17 | 1120 | 409 | 227 |
+| Điện thoại | `/admin/courses` | 71 | 2.21 | 3.73 | 643 | 0.003 | 3.41 | 813 | 422 | 230 |
+| Máy tính | `/` | 98 | 0.53 | 1.01 | 4 | 0.023 | 0.90 | 13 | 716 | 221 |
+| Máy tính | `/en` | 99 | 0.50 | 0.94 | 5 | 0.014 | 1.00 | 12 | 687 | 221 |
+| Máy tính | `/login` | 100 | 0.48 | 0.78 | 14 | 0.002 | 0.51 | 13 | 396 | 228 |
+| Máy tính | `/register` | 100 | 0.48 | 0.77 | 0 | 0.014 | 0.50 | 7 | 430 | 219 |
+| Máy tính | `/khoa-hoc/[id]` | 98 | 0.55 | 0.92 | 69 | 0.002 | 1.08 | 19 | 429 | 225 |
+| Máy tính | `/courses` | 99 | 0.54 | 0.83 | 41 | 0.002 | 1.10 | 643 | 398 | 221 |
+| Máy tính | `/admin` | 98 | 0.59 | 0.89 | 37 | 0.002 | 1.29 | 739 | 411 | 226 |
+| Máy tính | `/admin/registrations` | 98 | 0.58 | 0.89 | 56 | 0.003 | 1.39 | 975 | 635 | 230 |
+| Máy tính | `/admin/patients` | 99 | 0.52 | 0.70 | 0 | 0.005 | 1.03 | 982 | 436 | 230 |
+| Máy tính | `/admin/courses` | 99 | 0.50 | 0.72 | 0 | 0.003 | 0.97 | 947 | 434 | 231 |
+
+**Phân tích**
+
+| ID | Mức | Phát hiện | Bằng chứng | Xử lý |
+| --- | --- | --- | --- | --- |
+| PERF-08 | 🟠 | Thư viện Supabase phía trình duyệt (**68 kB gzip**) tải ở **mọi trang**, kể cả khách chưa đăng nhập (header đọc phiên) – "First Load JS" của Next không tính phần layout nên con số build báo thấp hơn thực tế (~200 kB gzip mỗi trang) | 🔬 `app-build-manifest.json`: chunk `322-…`, `44530001-…` (supabase/ssr, auth-js) nằm trong `/layout` | ✅ `lib/browser-cookies.ts`: kiểm tra cookie phiên trước, chỉ `import()` Supabase khi đã đăng nhập (header, hộp nhắc, form đăng ký, hộp lead, đăng xuất) |
+| PERF-09 | 🟠 | **LCP điện thoại 3,3 – 3,8 giây** ở mọi trang dù HTML / CSS nhỏ: phần tử LCP (tiêu đề hero, thẻ đăng nhập) có hiệu ứng hiện dần **từ opacity 0** → trình duyệt chỉ tính là "đã vẽ" khi hiệu ứng chạy (render delay 87 – 89% LCP) | 🔬 Lighthouse `largest-contentful-paint-element`: `/` H1 render delay 3,57 s; `/login` render delay 3,20 s | ✅ `word-in` (tiêu đề hero) chỉ trồi + bớt mờ (không đổi opacity), thẻ đăng nhập / quên mật khẩu dùng `animate-rise` (chỉ trồi lên) – giữ chuyển động, chữ hiện ngay từ lần vẽ đầu |
+| PERF-10 | 🟡 | Trang cần đăng nhập: `getCurrentUser` gọi Supabase **tuần tự** (xác thực → profile) trước mọi truy vấn của trang; TTFB 0,7 – 1,1 s trên máy dev | 📖 `lib/auth.ts` | ✅ Gửi truy vấn profile song song với `getUser()` (id lấy từ JWT, chỉ dùng khi `getUser` xác nhận đúng người) – bớt 1 lượt gọi mạng mỗi trang |
+| PERF-11 | 🔵 | `/admin/registrations` tải 630 kB: ô ảnh chuyển khoản 48 px dùng ảnh gốc (đã nén ≤ 1600 px khi tải lên) | 🔬 Lighthouse tổng tải về | Chấp nhận – đã `loading="lazy"`; ảnh thu nhỏ cần Supabase Image Transformation (gói Pro) hoặc tạo ảnh nhỏ khi tải lên – để backlog |
+| PERF-12 | 🟡 | TBT điện thoại trang quản trị 177 – 643 ms (`/admin/courses` cao nhất: mỗi khóa có form sửa + bảng gói ẩn trong thẻ → nhiều component phải hydrate) | 🔬 Lighthouse | ✅ Đợt 24: form sửa + bảng gói chuyển sang trang sửa riêng, danh sách chỉ còn nút |
+
+**Sau khi sửa** (cùng máy, cùng cách đo)
+
+| Chế độ | Trang | Điểm | FCP (s) | LCP (s) | TBT (ms) | CLS | Speed Index (s) | TTFB (ms) | Tải về (kB) | JS (kB) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Điện thoại | `/` | 90 | 2.13 | 3.38 | 18 | 0.002 | 2.13 | 9 | 457 | 149 |
+| Điện thoại | `/en` | 91 | 1.82 | 3.27 | 18 | 0.002 | 1.99 | 6 | 428 | 149 |
+| Điện thoại | `/login` | 94 | 1.97 | 2.81 | 41 | 0.000 | 1.97 | 8 | 319 | 157 |
+| Điện thoại | `/register` | 92 | 1.97 | 3.17 | 45 | 0.001 | 1.97 | 5 | 360 | 149 |
+| Điện thoại | `/khoa-hoc/[id]` | 94 | 1.97 | 2.80 | 43 | 0.000 | 1.97 | 4 | 345 | 152 |
+| Điện thoại | `/courses` | 94 | 1.97 | 2.81 | 50 | 0.000 | 1.98 | 494 | 311 | 149 |
+| Điện thoại | `/admin` | 93 | 2.12 | 2.84 | 35 | 0.001 | 2.12 | 530 | 331 | 155 |
+| Điện thoại | `/admin/registrations` | 93 | 2.12 | 2.95 | 34 | 0.000 | 2.34 | 809 | 547 | 159 |
+| Điện thoại | `/admin/patients` | 93 | 2.12 | 2.79 | 28 | 0.000 | 2.51 | 947 | 341 | 159 |
+| Điện thoại | `/admin/courses` | 93 | 2.12 | 2.95 | 41 | 0.001 | 2.44 | 892 | 340 | 159 |
+| Máy tính | `/` | 100 | 0.50 | 0.72 | 0 | 0.024 | 0.66 | 6 | 646 | 151 |
+| Máy tính | `/en` | 100 | 0.46 | 0.68 | 0 | 0.015 | 0.66 | 7 | 618 | 151 |
+| Máy tính | `/login` | 100 | 0.46 | 0.58 | 0 | 0.002 | 0.46 | 9 | 326 | 159 |
+| Máy tính | `/register` | 100 | 0.46 | 0.59 | 0 | 0.014 | 0.46 | 4 | 361 | 149 |
+| Máy tính | `/khoa-hoc/[id]` | 100 | 0.47 | 0.58 | 0 | 0.002 | 0.47 | 6 | 359 | 155 |
+| Máy tính | `/courses` | 99 | 0.52 | 0.65 | 7 | 0.002 | 1.06 | 925 | 328 | 151 |
+| Máy tính | `/admin` | 100 | 0.54 | 0.62 | 0 | 0.000 | 0.86 | 681 | 347 | 156 |
+| Máy tính | `/admin/registrations` | 99 | 0.55 | 0.69 | 0 | 0.001 | 1.20 | 950 | 559 | 161 |
+| Máy tính | `/admin/patients` | 98 | 0.59 | 0.75 | 21 | 0.025 | 1.50 | 1334 | 360 | 161 |
+| Máy tính | `/admin/courses` | 100 | 0.53 | 0.62 | 0 | 0.009 | 0.81 | 714 | 363 | 160 |
+
+| So sánh (điện thoại, trung vị 3 lần) | Trước | Sau |
+| --- | --- | --- |
+| Điểm Performance | 71 – 89 | **90 – 94** |
+| LCP | 3,29 – 3,83 s | 2,79 – 3,38 s |
+| TBT trang quản trị | 177 – 643 ms | **28 – 41 ms** |
+| JS tải về (gzip, cả layout) | 219 – 230 kB | **149 – 159 kB** |
+| Máy tính: điểm / LCP | 98 – 100 / 0,70 – 1,01 s | 98 – 100 / 0,58 – 0,75 s |
+
+| ID | Mức | Còn lại | Xử lý |
+| --- | --- | --- | --- |
+| PERF-13 | 🟡 | LCP điện thoại (mô phỏng 4G chậm) còn 2,8 – 3,4 s > 2,5 s: render delay do **12 file font** Be Vietnam Pro (4 độ đậm × latin / latin-ext / vietnamese, ~110 kB, ưu tiên cao) tải trước khi vẽ chữ bằng font chính. Thử nghiệm bỏ hẳn hiệu ứng tiêu đề hero chỉ bớt ~0,14 s → không phải do hiệu ứng | Chưa sửa (ảnh hưởng nhận diện chữ): phương án – bỏ độ đậm 500 (dùng 400 / 600), hoặc chỉ preload độ đậm 700 + 400; đo lại trên Cloudflare thật sau deploy (mạng thật nhanh hơn mô phỏng) – roadmap backlog |
+| PERF-03 | 🔵 | TTFB trang đăng nhập 0,5 – 1,3 s trên máy dev (gọi Supabase Singapore từ Việt Nam) | Trên Cloudflare ~35 ms / lượt gọi (Smart Placement); PERF-10 đã bớt 1 lượt |
+
+### 7.15. Đợt 23 – 24: Giao diện quản trị mới + thêm / sửa / xóa khóa học (17/10/2026)
+
+Yêu cầu chủ dự án 17/10: "rà soát roadmap để thực hiện thêm tính năng thêm sửa xóa cho khóa học" + "thiết kế lại trang quản trị sao cho hiện đại, dễ dùng và chuyên nghiệp hơn".
+Roadmap đã có thiết kế QL-06 → QL-08 (Đợt 18, chủ dự án chốt Q-7: còn học viên thì chặn xóa) → làm phần khóa học trên giao diện mới; phần bệnh nhân
+(QL-02 → QL-05, cần đổi schema) để Đợt 25. Không đổi schema – chủ dự án **không** cần chạy SQL.
+
+| Hạng mục | Kết quả |
+| --- | --- |
+| UI-10 khung quản trị | Thanh bên tối `ocean-950` (thương hiệu, vai trò + tên, menu icon, số việc cần làm vàng, "Xem website"), nội dung nền xám nhạt, tối đa 1400 px; điện thoại: dải tối + tab cuộn ngang; header bỏ menu neo trang chủ, ẩn chân trang trong khu quản trị (design-system §9) |
+| Tiêu đề + bộ lọc | `PageHeader` cho 10 trang (tên, mô tả việc chính, nút chính); bộ lọc dạng viên `.seg` cho đơn, phiếu, khách, loại khóa, bệnh nhân / nhân viên; trạng thái rỗng có icon + nút |
+| Tổng quan | Thẻ KPI có icon theo mức + chữ "Cần xử lý / Cần chú ý" (không chỉ dựa vào màu), lời chào theo tên |
+| QL-06 | Thẻ khóa: ảnh 16:10, nhãn, giá "Từ … · gói", số bài / học viên; **hàng thao tác luôn hiện** Sửa · Quản lý buổi – bài · Ẩn / Hiển thị · Xem trang ↗ · Xóa; trang sửa riêng (thông tin, bảng gói, hiển thị, xóa) + tab "Thông tin & gói" / "Buổi – bài" |
+| QL-07 | Nút "+ Thêm khóa học" đầu danh sách, chọn sẵn loại theo tab → `/admin/courses/new` → tạo xong chuyển sang trang sửa (`ActionResult.redirectTo`) |
+| QL-08 | Xóa: chặn khi còn đơn đã duyệt còn hạn (hoặc không hạn – dữ liệu cũ) / đơn chờ (`courseUsage`), thông báo + gợi ý Ẩn; phải gõ đúng tên khóa (nút khóa tới khi đúng, server kiểm tra lại); xóa ảnh bìa; đơn cũ giữ tên khóa + học phí |
+
+| Mã | Mức | Rủi ro | Xử lý |
+| --- | --- | --- | --- |
+| RK-61 | 🟡 | Điều kiện chặn xóa khóa chỉ kiểm ở server action – admin gọi thẳng API Supabase (`delete from courses`) vẫn xóa được khóa còn học viên | Chấp nhận – chỉ admin có quyền xóa (RLS), không phải lỗ hổng cho người ngoài; nếu cần chặt hơn: trigger `before delete` trong schema (Đợt 25 cùng QL-03 / QL-04) |
+| RK-62 | 🔵 | Đổi giao diện quản trị → nhân viên quen bố cục cũ cần làm quen (menu cùng thứ tự UI-02, chỉ đổi màu / vị trí nút) | Báo nhân viên khi deploy; tên menu, thứ tự giữ nguyên |
+
+Kiểm thử: TC-108 → TC-110 + mọi bước E2E cũ chạy trên giao diện mới (bước tạo khóa đi qua nút "+ Thêm khóa học"; bước "đơn chờ của khóa đã xóa" chuyển thành kiểm tra dữ liệu cũ). Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
+
 ## 8. Kế hoạch xử lý đề xuất
 
 | Đợt | Hạng mục | Ước lượng |

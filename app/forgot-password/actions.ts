@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { findAccount } from '@/lib/accounts'
 import { resetCodeEmail, sendMail } from '@/lib/mailer'
 import { setFlash } from '@/lib/flash'
+import { startSession } from '@/lib/session'
 import { siteConfig } from '@/lib/site-config'
 import { MIN_PASSWORD_LENGTH, passwordTooShort } from '@/lib/password'
 import { clientIp, LIMITS, withinLimit } from '@/lib/rate-limit'
@@ -152,8 +153,13 @@ async function verifyCode(prev: ForgotState, formData: FormData): Promise<Forgot
     return fail('Không đặt lại được mật khẩu, vui lòng thử lại.')
   }
 
-  // Đăng nhập luôn bằng mật khẩu mới
-  await (await createClient()).auth.signInWithPassword({ email: account.authEmail, password })
+  // Đăng nhập luôn bằng mật khẩu mới, đăng xuất mọi thiết bị khác (SEC-15)
+  const supabase = await createClient({ remember: false })
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: account.authEmail, password })
+  if (!signInError) {
+    await supabase.auth.signOut({ scope: 'others' })
+    await startSession({ staff: account.isStaff })
+  }
   await setFlash('Đặt lại mật khẩu thành công!')
   redirect('/courses')
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { hasSessionCookie, loadBrowserClient } from '@/lib/browser-cookies'
 
 // Profile của người đang đăng nhập, đọc ở trình duyệt để các trang công khai vẫn cache tĩnh được.
 // Header và hộp nhắc (đồng ý chính sách, đổi mật khẩu) dùng chung một bản: mỗi lần chuyển trang tối đa 1 truy vấn,
@@ -24,7 +24,12 @@ let inflight: { userId: string; promise: Promise<ClientProfile> } | null = null
 const needsReminder = (p: NonNullable<ClientProfile>) => p.role === 'user' && (!p.consent_at || p.must_change_password)
 
 export async function loadProfile(): Promise<ClientProfile> {
-  const supabase = createClient()
+  // Khách (không có cookie phiên): không tải thư viện Supabase (PERF-08)
+  if (!hasSessionCookie()) {
+    cached = null
+    return null
+  }
+  const supabase = await loadBrowserClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -55,15 +60,27 @@ export async function loadProfile(): Promise<ClientProfile> {
   return promise
 }
 
-// Đăng xuất / vừa cập nhật: lần đọc sau lấy dữ liệu mới
+const subscribers = new Set<() => void>()
+
+// Đăng xuất / vừa cập nhật: bỏ cache và báo mọi nơi đang hiển thị (header, hộp nhắc) đọc lại ngay –
+// kể cả khi tự đăng xuất do hết phiên mà không chuyển trang (SessionGuard, SEC-13)
 export function invalidateProfile() {
   cached = null
+  subscribers.forEach((reload) => reload())
 }
 
 // undefined = đang tải, null = chưa đăng nhập
 export function useProfile(): ClientProfile | undefined {
   const pathname = usePathname()
   const [profile, setProfile] = useState<ClientProfile | undefined>(undefined)
+  const [version, setVersion] = useState(0)
+  useEffect(() => {
+    const reload = () => setVersion((v) => v + 1)
+    subscribers.add(reload)
+    return () => {
+      subscribers.delete(reload)
+    }
+  }, [])
   useEffect(() => {
     let cancelled = false
     loadProfile().then((p) => {
@@ -72,6 +89,6 @@ export function useProfile(): ClientProfile | undefined {
     return () => {
       cancelled = true
     }
-  }, [pathname])
+  }, [pathname, version])
   return profile
 }

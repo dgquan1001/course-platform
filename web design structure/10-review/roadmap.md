@@ -59,6 +59,12 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - [ ] **0.5b** (chủ dự án) mở Pull Request `hv-dgquan-20261017` → `main` (nhánh đã push) → merge (tự deploy) → **A-28** · (dev) đo lại hiệu năng trên website thật: `PERF_BASE=https://hv-web.bsdomanhcuong.workers.dev` (cần tài khoản admin thật – chỉ đo trang công khai: chạy Lighthouse tay)
 - [ ] **0.6 Đợt 25** (dev, sau 0.5b) – phần khách hàng của Đợt 18: ~~QL-02 sửa nhanh ở danh sách~~, ~~QL-04 xóa khách hàng~~ (→ **Đợt 26 ✅ 18/10**, nhân viên cũng được xóa), còn QL-03 khóa / mở khóa tài khoản, QL-05 sửa gói; trigger chặn xóa khóa còn học viên ở database (RK-61) → **chủ dự án chạy `supabase/schema.sql`**
 
+### Bước 0c – Sửa lỗi build Cloudflare (26/10/2026) – RK-71 🔴
+
+- [x] (dev) `npm run build:cf` = `opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion`; CI, `deploy:win`, `preview` / `deploy` dùng chung; thử build sạch (`npm ci`) trên bản sao → PASS ✅ 26/10
+- [ ] **(chủ dự án – A-33)** Cloudflare › Workers › hv-web › Settings › Build › **Build command** = `npm run build:cf` → Save → Deployments › Retry build
+- [ ] **Đợt 27 (dev)** nâng Next 16 (OpenNext 1.20.13 hỗ trợ `next >= 16.4.1`) để nhận lại bản vá bảo mật, rồi bỏ cờ – chạy E2E Node + Workers
+
 ### Bước 0b – Đợt 26 (yêu cầu chủ dự án 18/10/2026) – kế hoạch §3.7
 
 - [x] **0b.1** Đổi "bệnh nhân" → "khách hàng" toàn bộ giao diện, thông báo, kiểm thử, tài liệu; `/admin/patients` → `/admin/customers` (link cũ tự chuyển) ✅ 18/10
@@ -216,6 +222,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-30 | **Chạy `supabase/schema.sql`** (Supabase › SQL Editor › dán toàn bộ › Run) sau Đợt 26: nhật ký xóa tài khoản (`account_events` cho phép `deleted`), trigger chặn xóa admin cuối cùng, lời báo lỗi "khách hàng". Chưa chạy: mọi chức năng vẫn dùng được, chỉ chưa lưu nhật ký xóa | RK-65 | Ngay (trước khi merge) | ✅ 18/10/2026 |
 | A-31 | **Xóa project Vercel** (Vercel › project › Settings › Delete) + **gỡ app Vercel khỏi repo** (GitHub › Settings › Applications › Vercel › Configure) – runbook §4.1 | RK-35, RK-66 | Khi tiện (mã nguồn đã gỡ 18/10) | ⬜ |
 | A-32 | Báo nhân viên: menu "Bệnh nhân" → **"Khách hàng"**, nhân viên được **xóa khách hàng** (chỉ khi hết gói, gõ SĐT xác nhận, không hoàn tác); admin quản lý tài khoản nhân viên ở menu **"Nhân viên"**; tài khoản nhân viên nên có SĐT để đăng nhập | RK-63 | Sau deploy | ⬜ |
+| A-33 | **Đổi Build command** của Workers Builds thành `npm run build:cf` (Workers › hv-web › Settings › Build) rồi Retry build – Next 15 hết hỗ trợ 21/10/2026, OpenNext chặn build nếu thiếu cờ (runbook §8) | RK-71 | Ngay (đang chặn deploy) | ⬜ |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 
@@ -632,6 +639,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
   [x] RK-43 · [x] RK-44 · [x] RK-45 · [x] RK-46 (chờ thử thư thật CF-05) · [x] RK-47 · 🟡 RK-48 (P3) · 🟡 RK-49 (P3 / P5) · [x] RK-50 · [ ] RK-51 · [ ] RK-52 (Đợt 18) · [x] RK-53 · 🟡 RK-54 (kiểm lại CF-41)
   · 🟡 RK-55 (ảnh / số liệu trang chủ – A-26) · [x] RK-56 (hiệu ứng chạy liên tục làm treo thao tác Playwright – E2E cuộn bằng DOM) – Đợt 19
   · 🟡 RK-59 (đăng nhập lại 1 lần sau deploy – A-28) · 🔵 RK-60 (xem video > 2 giờ không chạm bị đăng xuất – chấp nhận) · 🟡 RK-61 (chặn xóa khóa chỉ ở server action – Đợt 25) · 🔵 RK-62 (làm quen giao diện quản trị mới) – Đợt 21 → 24
+  · 🔴 RK-71 (Next 15 hết hỗ trợ 21/10/2026 → OpenNext chặn build; tạm dùng cờ – A-33, nâng Next 16 ở Đợt 27) – 26/10
   · 🟡 RK-63 (xóa khách hàng không hoàn tác) · [x] RK-64 (nhân viên đã xóa: "Tạo bởi" của khách hàng mất tên – chấp nhận) · [x] RK-65 (schema Đợt 26 đã chạy 18/10) · 🟡 RK-66 (project / app Vercel còn trên tài khoản – A-31) – Đợt 26
   · 🟡 RK-57 (chỉ trang chủ có tiếng Anh – chấp nhận, A-27) · 🟡 RK-58 (hiệu ứng nặng hơn trên điện thoại yếu: blur, backdrop-blur – đo Lighthouse sau deploy) – Đợt 20
 

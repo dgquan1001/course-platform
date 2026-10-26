@@ -215,7 +215,7 @@ Lần chạy gần nhất: 04/10/2026, sau Đợt 17 P0 → P2 – **Node 99/99*
     npm run build
     npm run test:e2e                     # Node (next start)
 
-    npx opennextjs-cloudflare build
+    npm run build:cf                     # OpenNext build (có cờ cho Next 15 – RK-71)
     npm run test:e2e:workers             # Cloudflare Workers (workerd) – giống production
 
 Nếu đang chạy `npm run dev` (dev server ghi đè thư mục `.next`), build và test vào thư mục riêng:

@@ -385,7 +385,7 @@ const DEV_VARS = `${ROOT}.dev.vars`
 let server
 if (ON_WORKERS) {
   if (!existsSync(`${ROOT}.open-next/worker.js`)) {
-    console.error('Chưa có bản build Cloudflare. Hãy chạy: npx opennextjs-cloudflare build')
+    console.error('Chưa có bản build Cloudflare. Hãy chạy: npm run build:cf')
     process.exit(1)
   }
   // Biến lúc chạy cho workerd (xóa khi kết thúc). NEXT_PUBLIC_* đã được nhúng lúc build.

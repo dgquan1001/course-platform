@@ -62,14 +62,14 @@ const COURSE_PREMIUM = {
   summary: 'Kèm riêng 1:1', outcomes: 'Lộ trình riêng\nBác sĩ theo dõi sát', cover: true,
 }
 const FREE_LESSON_TITLE = 'Bài 1: Thở cơ hoành'
-// v0.2 – Đợt 9: chương trình bán theo gói tháng, bệnh nhân gia hạn (không có email)
+// v0.2 – Đợt 9: chương trình bán theo gói tháng, khách hàng gia hạn (không có email)
 const COURSE_PLAN = { title: `[E2E] Chương trình gói tháng ${stamp}`, price: '300000', status: 'published', category: 'veo_lung' }
 const PLAN3_PRICE = 800000
 // v0.2 – Đợt 10: chương trình tạo kèm khung 3 buổi × 2 bài, gói 1 tháng chỉ mở 2 buổi
 const COURSE_SEQ = { title: `[E2E] Chương trình buổi tập ${stamp}`, price: '250000', status: 'published', category: 'veo_nguc', sessions: '3', lessonsPerSession: '2' }
-const RENEW = { phone: `03${tail}`, password: 'Giahan#123', name: 'Bệnh Nhân Gia Hạn' }
-// v0.2 – Đợt 11: bệnh nhân chốt qua Zalo, nhân viên tạo tài khoản (không email) + cấp gói tiền mặt
-const ZALO = { phone: `05${tail}`, name: 'Bệnh Nhân Zalo E2E', note: 'Khách Zalo, ưu tiên gọi buổi tối', newPassword: 'Zalo#doi123' }
+const RENEW = { phone: `03${tail}`, password: 'Giahan#123', name: 'Khách Hàng Gia Hạn' }
+// v0.2 – Đợt 11: khách hàng chốt qua Zalo, nhân viên tạo tài khoản (không email) + cấp gói tiền mặt
+const ZALO = { phone: `05${tail}`, name: 'Khách Hàng Zalo E2E', note: 'Khách Zalo, ưu tiên gọi buổi tối', newPassword: 'Zalo#doi123' }
 // v0.2 – Đợt 12: câu hỏi thêm vào mẫu phiếu tham vấn (xóa khi kết thúc)
 const QUESTION = `Mức độ mỏi cơ sau tập (E2E ${stamp})`
 // Cộng số tháng theo lịch (giống make_interval(months => n) của Postgres)
@@ -87,6 +87,11 @@ const ADMIN2 = { email: `e2e-admin2-${stamp}@example.com`, password: 'Admin2#123
 const RACE = {} // đơn dùng cho kịch bản 2 admin cùng xử lý
 // Nhân viên (vai trò staff, v0.2) được admin chuyển vai trò trên giao diện
 const STAFF = { email: `e2e-staff-${stamp}@example.com`, password: 'Staff#123456', name: 'Nhân Viên E2E' }
+// Đợt 26: nhân viên do admin tạo trên trang Nhân viên; khách hàng không còn gói để nhân viên xóa
+const NEW_STAFF = { name: 'Nhân Viên Mới E2E', phone: `06${tail}`, email: `e2e-nvmoi-${stamp}@example.com` }
+const DEL_CUSTOMER = { name: 'Khách Hàng Xóa E2E', phone: `04${tail}` }
+// Ghi chú khi database chưa chạy schema mới nhất (không làm đỏ test, in ở cuối)
+const schemaNotices = []
 
 const OUT = fileURLToPath(new URL('../test-results/', import.meta.url))
 const OUTBOX = `${OUT}mail-outbox`
@@ -103,8 +108,10 @@ const thirdPartyErrors = [] // lỗi trong iframe bên thứ ba: chỉ ghi nhậ
 // Vấn đề đã biết RK-54: React #418 (hydration) lác đác ở /admin/** khi chạy trên workerd của wrangler dev – React tự dựng lại,
 // chức năng vẫn đúng. Ghi nhận và in số lượng, không làm đỏ test; kiểm lại trên Cloudflare thật (checklist CF-41).
 const knownIssues = []
+// Đường dẫn bước test cố ý mở để nhận 404 (VD nhân viên mở hồ sơ admin – Đợt 26): lỗi console 404 của đúng trang đó không tính
+const expected404 = new Set()
 let currentStep = '' // bước đang chạy, ghi kèm lỗi JavaScript để dễ tìm nguyên nhân
-const created = { userIds: [], courseIds: {}, registrationIds: [] }
+const created = { userIds: [], courseIds: {}, registrationIds: [], deletedNames: [] }
 
 function phase(title) {
   console.log(`\n${title}`)
@@ -163,7 +170,8 @@ function watch(page, label) {
     // Bỏ qua thông báo từ iframe bên thứ ba (YouTube/TikTok), chỉ bắt lỗi của website
     const url = m.location()?.url ?? ''
     const thirdParty = (url && !url.startsWith(BASE)) || m.text().includes('Permissions policy violation')
-    if (m.type() === 'error' && !thirdParty) pageErrors.push(`[${label}] console: ${m.text()} ${url ? `[${url.replace(BASE, '')}] ` : ''}(bước: ${currentStep})`)
+    const expectedNotFound = m.text().includes('404') && expected404.has(url.replace(BASE, ''))
+    if (m.type() === 'error' && !thirdParty && !expectedNotFound) pageErrors.push(`[${label}] console: ${m.text()} ${url ? `[${url.replace(BASE, '')}] ` : ''}(bước: ${currentStep})`)
   })
   return page
 }
@@ -218,7 +226,10 @@ async function logoutViaMenu(page) {
 
 async function createCourseViaUI(page, course) {
   await page.goto(`${BASE}/admin/courses`)
-  const form = page.locator('section', { has: page.getByRole('heading', { name: 'Thêm khóa học mới' }) })
+  // QL-07 (Đợt 24): nút "+ Thêm khóa học" ở đầu danh sách mở trang tạo khóa
+  await page.getByRole('link', { name: 'Thêm khóa học', exact: true }).click()
+  await page.waitForURL((u) => u.pathname === '/admin/courses/new')
+  const form = page.getByRole('region', { name: 'Thông tin khóa học mới' })
   await form.locator('[name=title]').fill(course.title)
   await form.locator('[name=description]').fill('Khóa học kiểm thử tự động.')
   await form.locator('[name=price]').fill(course.price)
@@ -237,9 +248,11 @@ async function createCourseViaUI(page, course) {
   }
   await form.getByRole('button', { name: 'Thêm khóa học' }).click()
   await toast(page, 'Đã thêm khóa học')
+  // Tạo xong chuyển sang trang sửa khóa (thêm gói / buổi – bài tiếp)
+  await page.waitForURL((u) => /^\/admin\/courses\/[0-9a-f-]{36}\/edit$/.test(u.pathname))
   await page.getByRole('heading', { name: course.title }).waitFor()
-  assert((await form.locator('[name=title]').inputValue()) === '', 'Form thêm khóa học không được xóa trắng')
   const { data } = await db.from('courses').select('id, price, status, kind, category, cover_image').eq('title', course.title).single()
+  assert(page.url().includes(`/admin/courses/${data?.id}/edit`), `Không chuyển tới trang sửa khóa vừa tạo: ${page.url()}`)
   assert(
     data?.price === Number(course.price) && data.status === course.status && data.kind === (course.kind ?? 'program') &&
       data.category === (course.category ?? null),
@@ -249,17 +262,16 @@ async function createCourseViaUI(page, course) {
   return data.id
 }
 
-// Admin đổi vai trò tài khoản ở trang Học viên (ô chọn vai trò + xác nhận), trả về nội dung hộp xác nhận
+// Admin đổi vai trò tài khoản (ô chọn vai trò + xác nhận), trả về nội dung hộp xác nhận.
+// Đợt 26: khách hàng đổi ở hồ sơ khách hàng (mục Phân quyền), nhân viên / admin ở hồ sơ nhân viên (mục Vai trò)
 async function setRoleViaUI(page, email, role, message) {
-  // Tài khoản bệnh nhân ở tab "Bệnh nhân", nhân viên / admin ở tab "Nhân viên & Admin"
-  const { data: current } = await db.from('profiles').select('role').eq('email', email).single()
-  const tab = current?.role === 'user' ? '' : '&role=team'
-  await page.goto(`${BASE}/admin/patients?q=${encodeURIComponent(email)}${tab}`)
-  const row = page.locator('tr', { hasText: email })
-  await row.locator('select[name=role]').selectOption(role)
+  const { data: current } = await db.from('profiles').select('id, role').eq('email', email).single()
+  await page.goto(`${BASE}/admin/${current.role === 'user' ? 'customers' : 'staff'}/${current.id}`)
+  const form = page.locator('form', { has: page.locator('select[name=role]') })
+  await form.locator('select[name=role]').selectOption(role)
   let dialogText = ''
   page.once('dialog', (d) => { dialogText = d.message(); d.accept() })
-  await row.getByRole('button', { name: 'Lưu vai trò' }).click()
+  await form.getByRole('button', { name: 'Lưu vai trò' }).click()
   await toast(page, message)
   return dialogText
 }
@@ -323,6 +335,8 @@ async function cleanup() {
   // Xóa tài khoản không còn xóa đơn (RK-03): xóa đơn của dữ liệu test trước
   if (created.userIds.length) await db.from('registrations').delete().in('user_id', created.userIds)
   if (created.registrationIds.length) await db.from('registrations').delete().in('id', created.registrationIds)
+  // Nhật ký xóa tài khoản (user_id = null, lưu tên) của dữ liệu test
+  if (created.deletedNames.length) await db.from('account_events').delete().eq('action', 'deleted').in('user_name', created.deletedNames)
   // Nhật ký phân quyền giữ lại khi xóa tài khoản: xóa phần của dữ liệu test
   if (created.userIds.length) await db.from('role_events').delete().in('user_id', created.userIds)
   // Khách quan tâm của khóa premium test (khóa bị xóa thì course_id về null nên xóa trước)
@@ -371,7 +385,7 @@ const DEV_VARS = `${ROOT}.dev.vars`
 let server
 if (ON_WORKERS) {
   if (!existsSync(`${ROOT}.open-next/worker.js`)) {
-    console.error('Chưa có bản build Cloudflare. Hãy chạy: npx opennextjs-cloudflare build')
+    console.error('Chưa có bản build Cloudflare. Hãy chạy: npm run build:cf')
     process.exit(1)
   }
   // Biến lúc chạy cho workerd (xóa khi kết thúc). NEXT_PUBLIC_* đã được nhúng lúc build.
@@ -487,7 +501,7 @@ try {
       const { error: tableError } = await db.from(t).select('*', { head: true })
       assert(!tableError, `Thiếu bảng ${t}: ${tableError?.message} (hãy chạy lại supabase/schema.sql)`)
     }
-    // v0.2 – Đợt 11 – 13: bệnh nhân từ Zalo, phiếu tham vấn, dashboard
+    // v0.2 – Đợt 11 – 13: khách hàng từ Zalo, phiếu tham vấn, dashboard
     for (const t of ['account_events', 'patient_notes', 'consult_questions', 'consultations']) {
       const { error: tableError } = await db.from(t).select('*', { head: true })
       assert(!tableError, `Thiếu bảng ${t}: ${tableError?.message} (hãy chạy lại supabase/schema.sql)`)
@@ -529,8 +543,8 @@ try {
   // =====================================================================
   phase('2. KHÁCH – trang cần đăng nhập')
   // =====================================================================
-  await step('[Khách] Vào /admin, /courses, /account, phiếu tham vấn, trang bệnh nhân bị chuyển tới trang đăng nhập', async () => {
-    for (const path of ['/admin', '/courses', '/account', '/courses/consultation', '/admin/patients']) {
+  await step('[Khách] Vào /admin, /courses, /account, phiếu tham vấn, trang khách hàng bị chuyển tới trang đăng nhập', async () => {
+    for (const path of ['/admin', '/courses', '/account', '/courses/consultation', '/admin/customers', '/admin/staff']) {
       await guest.goto(`${BASE}${path}`)
       const url = new URL(guest.url())
       assert(url.pathname === '/login' && url.searchParams.get('next') === path, `${path} → ${guest.url()}`)
@@ -572,7 +586,7 @@ try {
   })
 
   await step('[Admin] Menu quản trị: cột dọc bên trái đúng thứ tự (máy tính), hàng tab cuộn ngang (điện thoại); số đơn chờ khớp database', async () => {
-    const order = ['Tổng quan', 'Đơn đăng ký', 'Bệnh nhân', 'Khóa học', 'Phiếu tham vấn', 'Khách quan tâm', 'Mẫu phiếu']
+    const order = ['Tổng quan', 'Đơn đăng ký', 'Khách hàng', 'Khóa học', 'Phiếu tham vấn', 'Khách quan tâm', 'Nhân viên', 'Mẫu phiếu']
     const labels = await navLabels(admin)
     assert(JSON.stringify(labels) === JSON.stringify(order), `Thứ tự menu: ${labels}`)
     const nav = admin.getByRole('navigation', { name: 'Menu quản trị' })
@@ -598,7 +612,7 @@ try {
     await ctx.close()
   })
 
-  await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; tab "Nhân viên & Admin" ghi người cấp; không tự đổi quyền mình', async () => {
+  await step('[Admin] Cấp quyền admin cho tài khoản thứ 2 trên giao diện; danh mục "Nhân viên" ghi người cấp; không tự đổi quyền / tự xóa mình', async () => {
     const { data, error } = await db.auth.admin.createUser({
       email: ADMIN2.email, password: ADMIN2.password, email_confirm: true, user_metadata: { full_name: ADMIN2.name },
     })
@@ -615,13 +629,22 @@ try {
       `Nhật ký phân quyền sai: ${JSON.stringify(events)}`
     )
 
-    // Tab "Nhân viên & Admin": có cả 2 admin test, ghi "Cấp quyền bởi Admin E2E"; dòng của chính mình không có ô đổi vai trò
-    await admin.goto(`${BASE}/admin/patients?role=team&q=e2e-admin`)
-    await admin.getByRole('link', { name: /^Nhân viên & Admin \(\d+\)/ }).and(admin.locator('[aria-current=page]')).waitFor()
+    // Danh mục "Nhân viên" (Đợt 26; link cũ tab "Nhân viên & Admin" vẫn dẫn tới): có cả 2 admin test, ghi "Cấp quyền bởi Admin E2E";
+    // dòng của chính mình không có nút Xóa, hồ sơ của mình không có ô đổi vai trò / xóa
+    await admin.goto(`${BASE}/admin/customers?role=team&q=e2e-admin`)
+    await admin.waitForURL(`${BASE}/admin/staff?q=e2e-admin`)
+    await admin.getByRole('link', { name: 'Nhân viên', exact: true }).and(admin.locator('[aria-current=page]')).waitFor()
     await admin.locator('tr', { hasText: ADMIN2.email }).getByText('Cấp quyền bởi Admin E2E').waitFor()
     const me = admin.locator('tr', { hasText: ADMIN.email })
-    await me.getByText('Tài khoản của bạn').waitFor()
-    assert((await me.getByRole('button').count()) === 0 && (await me.locator('select').count()) === 0, 'Dòng của chính mình vẫn đổi được vai trò')
+    await me.getByText('(bạn)').waitFor()
+    assert((await me.getByRole('link', { name: /^Xóa / }).count()) === 0, 'Dòng của chính mình có nút Xóa')
+    await admin.goto(`${BASE}/admin/staff/${ADMIN.id}`)
+    await admin.getByText('Bạn không thể tự đổi vai trò hay tự xóa tài khoản của mình').waitFor()
+    assert((await admin.locator('select[name=role]').count()) === 0, 'Hồ sơ của chính mình vẫn đổi được vai trò')
+    assert((await admin.getByRole('region', { name: 'Xóa nhân viên' }).count()) === 0, 'Hồ sơ của chính mình có vùng Xóa')
+    // Khách hàng không nằm trong danh mục Nhân viên
+    await admin.goto(`${BASE}/admin/staff?q=${encodeURIComponent(STUDENT.email)}`)
+    await admin.getByText('Không tìm thấy tài khoản').waitFor()
 
     // Database chặn tự gỡ quyền kể cả khi gọi thẳng API bằng phiên admin
     ADMIN.session = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
@@ -666,8 +689,8 @@ try {
       await alert.waitFor({ state: 'detached', timeout: 8000 }) // chờ toast tắt để lần sau không nhầm
     }
 
-    await admin.goto(`${BASE}/admin/courses`)
-    const courseForm = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm khóa học mới' }) }).locator('form')
+    await admin.goto(`${BASE}/admin/courses/new`)
+    const courseForm = admin.getByRole('region', { name: 'Thông tin khóa học mới' }).locator('form')
     for (const [values, expected] of [
       [{ title: '   ', price: '100000' }, 'Vui lòng nhập tên khóa học'],
       [{ title: `[E2E] Sai giá ${stamp}`, price: '-5000' }, 'Học phí phải từ 0'],
@@ -724,6 +747,7 @@ try {
     const res = await fetch(cover.cover_image)
     assert(res.ok && res.headers.get('content-type')?.startsWith('image/'), `Ảnh bìa không mở được công khai: ${res.status}`)
     // Khóa premium không có trang quản lý bài học
+    await admin.goto(`${BASE}/admin/courses?kind=premium`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
     await card.getByText('không có bài học').waitFor()
     assert((await card.getByRole('link', { name: 'Quản lý buổi – bài' }).count()) === 0, 'Khóa premium vẫn có nút Quản lý bài học')
@@ -781,6 +805,118 @@ try {
     assert((await box.locator('#email').getAttribute('required')) === null, 'Email vẫn đang bắt buộc')
     await registerButton(box).waitFor()
     await guest.screenshot({ path: `${OUT}mobile-home.png` })
+  })
+
+  await step('[Khách] Trang chủ mới: số liệu đếm tăng, dải chuyên môn, hồ sơ bác sĩ (chuyên môn, công tác, hoạt động), 3 cơ sở; bỏ phần trùng (TC-111)', async () => {
+    await guest2.goto(BASE)
+    // Số liệu: server render sẵn giá trị cuối, khi hiện trên màn hình đếm từ 0 lên rồi dừng đúng số
+    const STATS = ['10+', '13.000+', '3', '1:1']
+    await guest2
+      .waitForFunction((want) => {
+        const t = [...document.querySelectorAll('main dl dd')].map((d) => d.textContent)
+        return want.every((s) => t.includes(s))
+      }, STATS, { timeout: 8000 })
+      .catch(async () => assert(false, `Số liệu: ${await guest2.locator('main dl dd').allTextContents()}`))
+    const marquee = guest2.getByRole('list', { name: 'Lĩnh vực chuyên môn' })
+    assert((await marquee.getByText('Phương pháp Schroth').count()) === 2, 'Dải chuyên môn không lặp 2 lần (chạy vòng)')
+    assert((await marquee.locator('li[aria-hidden="true"]').count()) === (await marquee.locator('li').count()) / 2, 'Bản lặp của dải chuyên môn chưa ẩn với trình đọc màn hình')
+
+    const doctor = guest2.locator('#bac-si')
+    await doctor.getByRole('heading', { name: 'Học vấn & chứng chỉ' }).waitFor()
+    assert((await doctor.getByText('Schroth (SSOL)', { exact: false }).count()) >= 1, 'Thiếu chứng nhận Schroth')
+    const expertise = await guest2.locator('#chuyen-mon h4').allTextContents()
+    assert(expertise.length === 4 && expertise.includes('Cong vẹo cột sống') && expertise.includes('Phục hồi chấn thương thể thao'), `Chuyên môn: ${expertise}`)
+    await doctor.getByRole('heading', { name: 'Quá trình công tác' }).waitFor()
+    assert((await doctor.locator('ol li').count()) === 3, 'Quá trình công tác không đủ 3 mốc')
+    // Ảnh bác sĩ + hoạt động chuyên môn (lưu trong public/, tải được, không bị CSP chặn)
+    const imgs = doctor.locator('img')
+    assert((await imgs.count()) === 6, `#bac-si có ${await imgs.count()} ảnh`)
+    for (const img of await imgs.all()) {
+      // Cuộn bằng DOM: ảnh chứng nhận có hiệu ứng bồng bềnh liên tục nên không bao giờ "đứng yên" theo cách Playwright chờ
+      await img.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+      await guest2.waitForFunction((el) => el.complete && el.naturalWidth > 0, await img.elementHandle())
+    }
+    await guest2.waitForTimeout(900) // chờ hiệu ứng hiện dần xong để ảnh chụp rõ
+    await guest2.screenshot({ path: `${OUT}desktop-home-bac-si.png` })
+
+    const branches = guest2.getByRole('list', { name: 'Cơ sở trị liệu' })
+    assert((await branches.locator('li').count()) === 3, 'Chân trang thiếu địa chỉ cơ sở')
+    // Bỏ phần trùng: banner trung tâm (lặp lại tiểu sử bác sĩ) và khối CTA cuối trang lặp lại hero
+    // (banner vẫn là ảnh chia sẻ og:image trong <head> – chỉ kiểm tra phần nội dung <main>)
+    const main = guest2.locator('main')
+    assert((await main.locator('img[src*="trung-tam-hv"]').count()) === 0, 'Trang chủ còn banner trung tâm lặp tiểu sử')
+    assert(!(await main.textContent()).includes('Sẵn sàng chăm sóc cột sống'), 'Trang chủ còn khối CTA cuối trang lặp hero')
+    assert((await guest2.getByRole('heading', { level: 2, name: 'Bác sĩ Đỗ Mạnh Cường' }).count()) === 1, 'Tên bác sĩ làm tiêu đề nhiều lần')
+  })
+
+  await step('[Khách] Hiệu ứng hiện dần khi cuộn; bật "giảm chuyển động" thì nội dung hiện ngay, không chạy hiệu ứng (TC-112)', async () => {
+    await guest2.goto(BASE)
+    await guest2.waitForFunction(() => document.documentElement.classList.contains('reveal-ready'))
+    // Phần tử ở cuối trang chưa hiện; cuộn tới thì hiện (class is-visible, opacity về 1)
+    const faq = guest2.locator('section', { has: guest2.getByRole('heading', { name: 'Bạn còn thắc mắc?' }) }).locator('[data-reveal]').first()
+    assert(!(await faq.evaluate((el) => el.classList.contains('is-visible'))), 'Phần tử cuối trang hiện sẵn trước khi cuộn tới')
+    await faq.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await guest2.waitForFunction((el) => el.classList.contains('is-visible') && getComputedStyle(el).opacity === '1', await faq.elementHandle())
+    // Hero hiện ngay khi tải (không chờ cuộn)
+    await guest2.getByRole('heading', { level: 1 }).waitFor({ state: 'visible' })
+
+    const ctx = await newContext({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' })
+    const p = watch(await ctx.newPage(), 'giam-chuyen-dong')
+    await p.goto(BASE)
+    await p.waitForFunction(() => document.querySelectorAll('[data-reveal]').length > 0 && !document.querySelector('[data-reveal]:not(.is-visible)'))
+    assert(!(await p.evaluate(() => document.documentElement.classList.contains('reveal-ready'))), 'Giảm chuyển động vẫn ẩn nội dung chờ hiệu ứng')
+    const anim = await p.locator('ul[aria-label="Lĩnh vực chuyên môn"]').evaluate((el) => getComputedStyle(el).animationName)
+    assert(anim === 'none', `Giảm chuyển động vẫn chạy dải chữ: ${anim}`)
+    await ctx.close()
+  })
+
+  await step('[Khách] Chuyển ngữ VI ↔ EN ở trang chủ: /en tiếng Anh đầy đủ, giữ lọc / nút Đăng ký / mục đang xem; trang khác không có nút (TC-113)', async () => {
+    await guest2.goto(BASE)
+    const lang = guest2.getByRole('navigation', { name: 'Chọn ngôn ngữ' })
+    assert((await lang.getByRole('link', { name: 'Tiếng Việt' }).getAttribute('aria-current')) === 'true', 'VI chưa được chọn ở "/"')
+    await lang.getByRole('link', { name: 'English' }).click()
+    await guest2.waitForURL(`${BASE}/en`)
+    await guest2.getByRole('heading', { level: 1, name: /Holistic spine/ }).waitFor()
+    await guest2.waitForFunction(() => document.documentElement.lang === 'en')
+    assert((await guest2.locator('main').getAttribute('lang')) === 'en', '<main> thiếu lang="en"')
+    // SEO: liên kết bản ngôn ngữ (hreflang) ở cả 2 trang
+    // (Next ghi URL tuyệt đối theo NEXT_PUBLIC_SITE_URL, trang gốc không có "/" cuối → so theo pathname)
+    const alt = async (l) => new URL((await guest2.locator(`link[rel=alternate][hreflang=${l}]`).getAttribute('href')) ?? 'x:').pathname
+    assert(['/', ''].includes(await alt('vi')) && (await alt('en')) === '/en', `hreflang sai: vi=${await alt('vi')} en=${await alt('en')}`)
+    // Header, số liệu, dải chuyên môn, hồ sơ bác sĩ bằng tiếng Anh
+    assert((await guest2.getByRole('link', { name: 'Doctor', exact: true }).getAttribute('href')) === '/en#bac-si', 'Menu neo chưa trỏ /en#…')
+    await guest2.getByRole('link', { name: 'Sign in' }).first().waitFor()
+    await guest2.getByRole('list', { name: 'Areas of expertise' }).getByText('Schroth Method').first().waitFor()
+    await guest2.locator('#bac-si').getByRole('heading', { level: 2, name: 'Dr. Do Manh Cuong' }).waitFor()
+    assert((await guest2.locator('#chuyen-mon h4').allTextContents()).includes('Scoliosis'), 'Chuyên môn chưa dịch')
+    // Thẻ khóa: nhãn / nút tiếng Anh, tên khóa giữ nguyên; lọc theo nhóm bệnh vẫn chạy; "Register" mở form tiếng Việt chọn sẵn khóa
+    const programs = guest2.locator('#khoa-hoc')
+    const cardA = programs.locator('.card', { has: guest2.getByRole('heading', { name: COURSE_A.title }) })
+    assert((await cardA.getByRole('link', { name: 'Register' }).getAttribute('href')) === `/?course=${created.courseIds.A}#dang-ky`, 'Nút Register sai')
+    await cardA.getByText('Lumbar scoliosis').waitFor()
+    await programs.getByRole('button', { name: 'Thoracic scoliosis' }).click()
+    await programs.getByRole('heading', { name: COURSE_B.title }).waitFor()
+    assert((await programs.getByRole('heading', { name: COURSE_A.title }).count()) === 0, 'Lọc Thoracic vẫn hiện khóa Vẹo lưng')
+    await programs.getByRole('button', { name: 'All' }).click()
+    // Đăng ký: bản tiếng Anh không có form (form chỉ tiếng Việt) – có nút mở form tiếng Việt
+    const enroll = guest2.locator('#dang-ky')
+    assert((await enroll.locator('#fullName').count()) === 0, '/en vẫn nhúng form tiếng Việt')
+    assert((await enroll.getByRole('link', { name: /Open the registration form/ }).getAttribute('href')) === '/#dang-ky', 'Thiếu nút mở form')
+    assert((await guest2.getByRole('list', { name: 'Our clinics' }).locator('li').count()) === 3, 'Chân trang chưa dịch')
+    await guest2.evaluate(() => scrollTo(0, 0))
+    await guest2.waitForTimeout(1500) // chờ tiêu đề hiện từng từ xong để ảnh chụp rõ
+    await guest2.screenshot({ path: `${OUT}desktop-home-en.png` })
+
+    // Chuyển về tiếng Việt giữ mục đang xem (#bac-si)
+    await guest2.goto(`${BASE}/en#bac-si`)
+    await guest2.getByRole('navigation', { name: 'Choose language' }).getByRole('link', { name: 'Tiếng Việt' }).click()
+    await guest2.waitForURL(`${BASE}/#bac-si`)
+    await guest2.getByRole('heading', { level: 1, name: /Trị liệu cột sống/ }).waitFor()
+    await guest2.waitForFunction(() => document.documentElement.lang === 'vi')
+    // Trang khác (đăng nhập…) chỉ có tiếng Việt: không hiện nút chuyển ngữ
+    await guest2.goto(`${BASE}/login`)
+    await guest2.locator('#identifier').waitFor()
+    assert((await guest2.getByRole('navigation', { name: 'Chọn ngôn ngữ' }).count()) === 0, 'Trang đăng nhập có nút chuyển ngữ')
   })
 
   await step('[Khách] Trang chủ chia 3 nhóm: Miễn phí, Chương trình (lọc vẹo lưng / vẹo ngực), Premium', async () => {
@@ -1157,14 +1293,17 @@ try {
     await admin.screenshot({ path: `${OUT}desktop-admin-table.png`, fullPage: true })
   })
 
-  await step('[Admin] Danh sách bệnh nhân hiển thị đúng trạng thái từng khóa; đường dẫn cũ /admin/users chuyển sang /admin/patients', async () => {
+  await step('[Admin] Danh sách khách hàng hiển thị đúng trạng thái từng khóa; đường dẫn cũ /admin/users, /admin/patients chuyển sang /admin/customers', async () => {
     await admin.goto(`${BASE}/admin/users?q=${encodeURIComponent(STUDENT.email)}`)
-    await admin.waitForURL(/\/admin\/patients\?q=/)
+    await admin.waitForURL(/\/admin\/customers\?q=/)
+    // Đường dẫn cũ /admin/patients (trước Đợt 26) vẫn dùng được
+    await admin.goto(`${BASE}/admin/patients?q=${encodeURIComponent(STUDENT.email)}`)
+    await admin.waitForURL(/\/admin\/customers\?q=/)
     const row = admin.locator('tr', { hasText: STUDENT.email })
     await row.getByText(STUDENT.phone).waitFor()
     await row.locator('li', { hasText: COURSE_A.title }).getByText('Đã duyệt').waitFor()
     await row.locator('li', { hasText: COURSE_B.title }).getByText('Từ chối').waitFor()
-    await admin.goto(`${BASE}/admin/patients?q=${STUDENT2.phone}`)
+    await admin.goto(`${BASE}/admin/customers?q=${STUDENT2.phone}`)
     await admin.locator('tr', { hasText: STUDENT2.phone }).getByText('Không có email').waitFor()
   })
 
@@ -1294,7 +1433,11 @@ try {
     assert(data.full_name === STUDENT2.name, `Họ tên chưa cập nhật: ${data.full_name}`)
   })
 
-  await step('[Học viên] Đổi mật khẩu: sai mật khẩu hiện tại bị từ chối, đúng thì thành công', async () => {
+  await step('[Học viên] Đổi mật khẩu: sai mật khẩu hiện tại bị từ chối, đúng thì thành công; thiết bị khác bị đăng xuất (TC-116, SEC-15)', async () => {
+    // "Thiết bị khác" đang đăng nhập cùng tài khoản trước khi đổi mật khẩu
+    const otherCtx = await newContext()
+    const other = watch(await otherCtx.newPage(), 'thiet-bi-khac')
+    await login(other, STUDENT2.phone, STUDENT2.password)
     const form = student2.locator('form', { has: student2.locator('#currentPassword') })
     await form.locator('#currentPassword').fill('mat-khau-sai')
     await form.locator('#newPassword').fill('MoiDoi#2024')
@@ -1307,6 +1450,12 @@ try {
     await form.getByRole('button', { name: 'Đổi mật khẩu' }).click()
     await toast(student2, 'Đã đổi mật khẩu thành công')
     STUDENT2.password = 'MoiDoi#2024'
+    // Thiết bị đổi mật khẩu vẫn đăng nhập; thiết bị khác vào trang cần đăng nhập thì phải đăng nhập lại
+    await student2.reload()
+    assert(new URL(student2.url()).pathname === '/account', `Thiết bị đang dùng bị đăng xuất: ${student2.url()}`)
+    await other.goto(`${BASE}/courses`)
+    await other.waitForURL((u) => u.pathname === '/login')
+    await otherCtx.close()
   })
 
   await step('[Học viên] Đăng xuất qua menu, đăng nhập lại bằng số điện thoại + mật khẩu mới', async () => {
@@ -1457,18 +1606,35 @@ try {
     assert((await student.getByRole('link', { name: new RegExp(escape(COURSE_A.title)) }).count()) === 0, 'Khóa A vẫn nằm trong khóa đã mở')
   })
 
-  await step('[Admin] Xóa khóa B → đơn đăng ký và lịch sử thanh toán của khóa B vẫn được giữ', async () => {
-    const before = await db.from('registrations').select('id').eq('course_id', created.courseIds.B)
+  await step('[Admin] Hàng thao tác ở thẻ khóa; xóa khóa B còn đơn chờ bị chặn, xử lý xong + gõ đúng tên thì xóa được; đơn và lịch sử thanh toán vẫn giữ (TC-108, TC-109)', async () => {
+    const before = await db.from('registrations').select('id, status').eq('course_id', created.courseIds.B)
     assert(before.data.length === 2, `Khóa B phải có 2 đơn, đang có ${before.data.length}`)
     await admin.goto(`${BASE}/admin/courses`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_B.title }) })
-    await card.getByText('Sửa thông tin').click()
-    let dialogText = ''
-    admin.once('dialog', (d) => { dialogText = d.message(); d.accept() })
-    await card.getByRole('button', { name: 'Xóa khóa học' }).click()
+    // QL-06: thao tác hiện sẵn trên thẻ, không giấu trong mục thu gọn
+    for (const name of ['Sửa', 'Quản lý buổi – bài', 'Xem trang giới thiệu', 'Xóa']) await card.getByRole('link', { name, exact: true }).waitFor()
+    await card.getByRole('button', { name: 'Ẩn khóa học' }).waitFor()
+    await card.getByRole('link', { name: 'Xóa', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === `/admin/courses/${created.courseIds.B}/edit` && u.hash === '#xoa-khoa-hoc')
+    const zone = admin.getByRole('region', { name: 'Xóa khóa học' })
+    // QL-08 / Q-7: còn đơn chờ duyệt → không có nút xóa, gợi ý Ẩn
+    await zone.getByRole('note').filter({ hasText: '1 đơn chờ duyệt' }).waitFor()
+    assert((await zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' }).count()) === 0, 'Còn đơn chờ mà vẫn có nút xóa')
+    // Xử lý đơn chờ (từ chối) → được xóa; gõ sai tên thì nút bị khóa
+    const pendingIds = before.data.filter((r) => r.status === 'pending').map((r) => r.id)
+    await db.from('registrations').update({ status: 'rejected', review_note: 'Khóa ngừng mở' }).in('id', pendingIds)
+    created.orphanPendingIds = pendingIds
+    await admin.reload()
+    const confirmInput = zone.locator('#confirm_title')
+    const deleteButton = zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' })
+    await confirmInput.fill('sai tên khóa')
+    assert(await deleteButton.isDisabled(), 'Gõ sai tên vẫn bấm được Xóa')
+    await confirmInput.fill(COURSE_B.title)
+    await deleteButton.click()
     await toast(admin, 'Đã xóa khóa học')
-    assert(dialogText.includes('lịch sử thanh toán vẫn được giữ lại'), `Hộp xác nhận: ${dialogText}`)
-    await card.waitFor({ state: 'detached' })
+    await admin.waitForURL((u) => u.pathname === '/admin/courses')
+    await admin.getByRole('heading', { name: COURSE_A.title }).waitFor()
+    assert((await admin.getByRole('heading', { name: COURSE_B.title }).count()) === 0, 'Khóa B vẫn còn trong danh sách')
     delete created.courseIds.B
 
     const { data: regs } = await db.from('registrations').select('id, course_id, course_title, amount, status').in('id', before.data.map((r) => r.id))
@@ -1482,9 +1648,9 @@ try {
     const row = regCard(STUDENT2.phone, COURSE_B)
     await row.getByText('(khóa học đã xóa)').waitFor()
     await row.getByText('299.000đ').waitFor()
-    await row.getByText('Chờ duyệt', { exact: true }).waitFor()
+    await row.getByText('Từ chối', { exact: true }).first().waitFor()
     assert((await row.getByRole('button', { name: 'Duyệt' }).count()) === 0, 'Vẫn có nút Duyệt cho khóa đã xóa')
-    await admin.goto(`${BASE}/admin/patients?q=${STUDENT2.phone}`)
+    await admin.goto(`${BASE}/admin/customers?q=${STUDENT2.phone}`)
     await admin.locator('tr', { hasText: STUDENT2.phone }).locator('li', { hasText: COURSE_B.title }).getByText('(đã xóa)').waitFor()
 
     // Học viên vẫn thấy lịch sử đơn khóa B trong "Khóa học của tôi"
@@ -1493,7 +1659,8 @@ try {
   })
 
   await step('[Admin] Đơn chờ duyệt của khóa đã xóa: tab "cần hoàn tiền", học viên được hướng dẫn liên hệ hoàn tiền', async () => {
-    // Học viên 2 đã chuyển khoản khóa B (đang chờ duyệt) trước khi khóa bị xóa
+    // Dữ liệu cũ (khóa xóa trước Đợt 24, khi chưa chặn xóa khóa còn đơn chờ): đơn của học viên 2 vẫn "Chờ duyệt"
+    await db.from('registrations').update({ status: 'pending', review_note: null }).in('id', created.orphanPendingIds)
     await student2.goto(`${BASE}/courses`)
     await student2.locator('.card', { hasText: COURSE_B.title }).getByText('Khóa học đã ngừng').waitFor()
 
@@ -1510,15 +1677,15 @@ try {
   })
 
   await step('[Admin] Gỡ quyền admin 2 → admin 2 không vào được trang quản trị nữa; nhật ký ghi lại', async () => {
-    const dialogText = await setRoleViaUI(admin, ADMIN2.email, 'user', 'Đã chuyển vai trò thành Bệnh nhân')
+    const dialogText = await setRoleViaUI(admin, ADMIN2.email, 'user', 'Đã chuyển vai trò thành Khách hàng')
     assert(dialogText.includes('không vào được trang quản trị'), `Hộp xác nhận: ${dialogText}`)
     // Trang quản trị tự kiểm tra vai trò (middleware chỉ đọc phiên): chuyển về /courses
     await admin2.goto(`${BASE}/admin`)
     await admin2.waitForURL(`${BASE}/courses`).catch(() => {})
     assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được: ${admin2.url()}`)
-    await admin2.goto(`${BASE}/admin/patients`)
+    await admin2.goto(`${BASE}/admin/customers`)
     await admin2.waitForURL(`${BASE}/courses`).catch(() => {})
-    assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được trang bệnh nhân: ${admin2.url()}`)
+    assert(new URL(admin2.url()).pathname === '/courses', `Admin đã bị gỡ quyền vẫn vào được trang khách hàng: ${admin2.url()}`)
     // Tài khoản học viên chưa đồng ý Chính sách bảo mật: hộp hỏi đồng ý hiện một lần
     const dialog = admin2.getByRole('dialog', { name: 'Chính sách bảo mật' })
     await dialog.getByRole('button', { name: 'Tôi đồng ý' }).click()
@@ -1545,8 +1712,10 @@ try {
     created.userIds.push(STAFF.id)
 
     await setRoleViaUI(admin, STAFF.email, 'staff', 'Đã chuyển vai trò thành Nhân viên')
-    // Tài khoản đã thành nhân viên: nằm ở tab "Nhân viên & Admin"
-    await admin.goto(`${BASE}/admin/patients?role=team&q=${encodeURIComponent(STAFF.email)}`)
+    // Tài khoản đã thành nhân viên: chuyển sang danh mục "Nhân viên", không còn ở danh sách khách hàng
+    await admin.goto(`${BASE}/admin/customers?q=${encodeURIComponent(STAFF.email)}`)
+    await admin.getByText('Không tìm thấy khách hàng').waitFor()
+    await admin.goto(`${BASE}/admin/staff?q=${encodeURIComponent(STAFF.email)}`)
     await admin.locator('tr', { hasText: STAFF.email }).locator('.badge', { hasText: 'Nhân viên' }).waitFor()
     const { data: events } = await db.from('role_events').select('actor, from_role, to_role').eq('user_id', STAFF.id)
     assert(events.length === 1 && events[0].actor === ADMIN.id && events[0].to_role === 'staff', `Nhật ký phân quyền: ${JSON.stringify(events)}`)
@@ -1581,20 +1750,20 @@ try {
     await staff.getByRole('link', { name: 'Quản trị', exact: true }).waitFor()
     const tabs = await navLabels(staff)
     assert(
-      JSON.stringify(tabs) === JSON.stringify(['Tổng quan', 'Đơn đăng ký', 'Bệnh nhân', 'Phiếu tham vấn', 'Khách quan tâm']),
+      JSON.stringify(tabs) === JSON.stringify(['Tổng quan', 'Đơn đăng ký', 'Khách hàng', 'Phiếu tham vấn', 'Khách quan tâm']),
       `Menu của nhân viên: ${tabs}`
     )
     // Trang chỉ admin chuyển nhân viên về Tổng quan
-    for (const path of ['/admin/courses', '/admin/settings/consultation', `/admin/courses/${created.courseIds.A}`]) {
+    for (const path of [
+      '/admin/courses', '/admin/courses/new', '/admin/settings/consultation', `/admin/courses/${created.courseIds.A}`, `/admin/courses/${created.courseIds.A}/edit`,
+      '/admin/staff', '/admin/staff/new', `/admin/staff/${ADMIN.id}`, '/admin/customers?role=team',
+    ]) {
       await staff.goto(`${BASE}${path}`)
       await staff.waitForURL(`${BASE}/admin`).catch(() => {})
-      assert(new URL(staff.url()).pathname === '/admin', `Nhân viên vào được ${path}: ${staff.url()}`)
+      assert(new URL(staff.url()).pathname === '/admin' && !new URL(staff.url()).search, `Nhân viên vào được ${path}: ${staff.url()}`)
     }
     await staff.getByRole('heading', { name: 'Tổng quan' }).waitFor()
-    // Tab "Nhân viên & Admin" chỉ admin thấy
-    await staff.goto(`${BASE}/admin/patients?role=team`)
-    assert((await staff.getByRole('link', { name: /Nhân viên & Admin/ }).count()) === 0, 'Nhân viên thấy tab Nhân viên & Admin')
-    await staff.goto(`${BASE}/admin/patients?q=${encodeURIComponent(STUDENT.email)}`)
+    await staff.goto(`${BASE}/admin/customers?q=${encodeURIComponent(STUDENT.email)}`)
     await staff.locator('tr', { hasText: STUDENT.email }).waitFor()
     assert((await staff.locator('select[name=role]').count()) === 0, 'Nhân viên thấy ô đổi vai trò')
   })
@@ -1648,7 +1817,7 @@ try {
 
   await step('[Admin] Tạo chương trình có học phí → tự có gói 1 tháng (12 buổi); thêm gói 3 tháng; gói trùng và nhân viên thêm gói bị chặn', async () => {
     created.courseIds.plan = await createCourseViaUI(admin, COURSE_PLAN)
-    const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PLAN.title }) })
+    const card = admin.getByRole('region', { name: 'Gói theo thời hạn' })
     const addForm = card.locator('form', { has: admin.getByRole('button', { name: 'Thêm gói' }) })
     await addForm.locator('select[name=months]').selectOption('3')
     await addForm.locator('input[name=price]').fill(String(PLAN3_PRICE))
@@ -1712,7 +1881,7 @@ try {
     )
   })
 
-  await step('[Nhân viên] Duyệt đơn gói 1 tháng → hạn học = lúc duyệt + 1 tháng; bệnh nhân thấy "Còn N ngày", nút Gia hạn, xem được bài', async () => {
+  await step('[Nhân viên] Duyệt đơn gói 1 tháng → hạn học = lúc duyệt + 1 tháng; khách hàng thấy "Còn N ngày", nút Gia hạn, xem được bài', async () => {
     await staff.goto(`${BASE}/admin/registrations`)
     const row = staff.getByRole('table', { name: 'Danh sách đơn đăng ký' }).locator('tbody tr', { hasText: RENEW.phone })
     await row.getByText('1 tháng').first().waitFor()
@@ -1734,7 +1903,7 @@ try {
     await patient.locator('iframe[src*="youtube.com/embed/"]').waitFor({ state: 'attached' })
   })
 
-  await step('[Bệnh nhân] Gia hạn gói 3 tháng khi còn hạn → cộng dồn vào hạn cũ; đơn chờ thứ 2 bị chặn; nhân viên không sửa tay được hạn học', async () => {
+  await step('[Khách hàng] Gia hạn gói 3 tháng khi còn hạn → cộng dồn vào hạn cũ; đơn chờ thứ 2 bị chặn; nhân viên không sửa tay được hạn học', async () => {
     await patient.goto(`${BASE}/courses`)
     await patient.locator('.card', { has: patient.getByRole('heading', { name: COURSE_PLAN.title }) }).getByRole('link', { name: 'Gia hạn' }).click()
     await patient.getByText('Bạn đang học chương trình này tới').waitFor()
@@ -1768,7 +1937,7 @@ try {
     assert(new Date(after.access_until).getTime() === addMonths(RENEW.firstUntil, 3) && after.amount === PLAN3_PRICE, `Sửa tay được: ${JSON.stringify(after)}`)
   })
 
-  await step('[Bệnh nhân] Hết hạn: mất quyền xem bài, vẫn thấy khóa ở mục "Gói đã hết hạn" + đề cương; gia hạn khi đã hết hạn tính lại từ lúc duyệt; số buổi đã mua cộng dồn', async () => {
+  await step('[Khách hàng] Hết hạn: mất quyền xem bài, vẫn thấy khóa ở mục "Gói đã hết hạn" + đề cương; gia hạn khi đã hết hạn tính lại từ lúc duyệt; số buổi đã mua cộng dồn', async () => {
     const past = new Date(Date.now() - 86_400_000).toISOString()
     await db.from('registrations').update({ access_until: past }).eq('user_id', RENEW.id).eq('status', 'approved')
     await patient.goto(`${BASE}/courses`)
@@ -1864,7 +2033,7 @@ try {
     await db.from('course_plans').update({ sessions: 2 }).eq('course_id', created.courseIds.seq).eq('months', 1)
   })
 
-  await step('[Bệnh nhân] Buổi mở lần lượt: buổi 2 khóa tới khi tick đủ buổi 1, buổi 3 vượt số buổi đã mua; database chặn tick trước (RLS)', async () => {
+  await step('[Khách hàng] Buổi mở lần lượt: buổi 2 khóa tới khi tick đủ buổi 1, buổi 3 vượt số buổi đã mua; database chặn tick trước (RLS)', async () => {
     const plan = (await db.from('course_plans').select('id').eq('course_id', created.courseIds.seq).single()).data
     const id = await insertRegistration({
       user_id: RENEW.id, course_id: created.courseIds.seq, full_name: RENEW.name, phone: RENEW.phone,
@@ -1890,7 +2059,7 @@ try {
     assert((await patient.locator('iframe').count()) === 0, 'Buổi chưa mở vẫn phát video')
   })
 
-  await step('[Bệnh nhân] Checklist buổi 1: "Hoàn thành & bài tiếp theo" tick bài và chuyển bài; xong buổi 1 thì buổi 2 mở; "Khóa học của tôi" hiện tiến độ + "Tiếp tục Buổi 2 – Bài 1"', async () => {
+  await step('[Khách hàng] Checklist buổi 1: "Hoàn thành & bài tiếp theo" tick bài và chuyển bài; xong buổi 1 thì buổi 2 mở; "Khóa học của tôi" hiện tiến độ + "Tiếp tục Buổi 2 – Bài 1"', async () => {
     await patient.goto(`${BASE}/courses/${created.courseIds.seq}`)
     await patient.getByRole('link', { name: 'Bắt đầu học' }).click()
     await patient.getByRole('heading', { level: 1, name: 'Bài 1: Thở cơ hoành' }).waitFor()
@@ -1916,7 +2085,7 @@ try {
     assert(count === 2, `Số bài đã tick: ${count}`)
   })
 
-  await step('[Bệnh nhân] Bỏ tick 1 bài buổi 1 (có xác nhận) → buổi 2 khóa lại; tick lại → mở; xong buổi đã mua → chúc mừng, buổi 3 vẫn khóa "Gia hạn"', async () => {
+  await step('[Khách hàng] Bỏ tick 1 bài buổi 1 (có xác nhận) → buổi 2 khóa lại; tick lại → mở; xong buổi đã mua → chúc mừng, buổi 3 vẫn khóa "Gia hạn"', async () => {
     await patient.goto(seqLessonUrl(0, 1))
     let dialogText = ''
     patient.once('dialog', (d) => { dialogText = d.message(); d.accept() })
@@ -1942,7 +2111,7 @@ try {
     assert(error, 'Database cho tick bài vượt số buổi đã mua!')
   })
 
-  await step('[Nhân viên] Xem trước mọi buổi (kể cả buổi bệnh nhân chưa mở), không có nút tick, không ghi tiến độ', async () => {
+  await step('[Nhân viên] Xem trước mọi buổi (kể cả buổi khách hàng chưa mở), không có nút tick, không ghi tiến độ', async () => {
     await staff.goto(seqLessonUrl(2, 1))
     await staff.getByText('Chế độ xem trước').waitFor()
     await staff.getByText('Video bài học đang được cập nhật').waitFor()
@@ -1966,19 +2135,24 @@ try {
     await admin.waitForURL(/kind=premium/)
     await admin.getByRole('heading', { name: COURSE_PREMIUM.title }).waitFor()
     assert((await admin.getByRole('heading', { name: COURSE_SEQ.title }).count()) === 0, 'Tab Premium vẫn có chương trình')
-    const form = admin.locator('section', { has: admin.getByRole('heading', { name: 'Thêm khóa học mới' }) })
+    // TC-110: nút "+ Thêm khóa học" ở tab Premium mở trang tạo khóa đã chọn sẵn loại Premium
+    await admin.getByRole('link', { name: 'Thêm khóa học', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === '/admin/courses/new' && u.searchParams.get('kind') === 'premium')
+    const form = admin.getByRole('region', { name: 'Thông tin khóa học mới' })
     assert((await form.locator('[name=kind]').inputValue()) === 'premium', 'Form thêm khóa không chọn sẵn loại theo tab')
 
     // Sửa chương trình: không có ô Giá, lưu không đổi giá
     await admin.goto(`${BASE}/admin/courses?kind=program`)
     const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_SEQ.title }) })
-    await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-    // Form "Sửa thông tin" nằm trong khối <details>; bảng Gói phía trên có ô giá riêng của từng gói
-    const editForm = card.locator('details form').first()
+    await card.getByRole('link', { name: 'Sửa', exact: true }).click()
+    await admin.waitForURL((u) => u.pathname === `/admin/courses/${created.courseIds.seq}/edit`)
+    // Trang sửa: form thông tin (không có ô Giá) + bảng Gói riêng
+    const editForm = admin.getByRole('region', { name: 'Thông tin khóa học' }).locator('form')
     assert((await editForm.locator('[name=price]').count()) === 0, 'Form sửa chương trình vẫn có ô Giá')
-    await card.getByText('sửa ở bảng Gói theo thời hạn').waitFor()
+    await admin.getByText('sửa ở bảng Gói theo thời hạn').waitFor()
+    await admin.getByRole('region', { name: 'Gói theo thời hạn' }).waitFor()
     await editForm.locator('[name=summary]').fill('Chương trình kiểm thử buổi tập')
-    await card.getByRole('button', { name: 'Lưu thay đổi' }).click()
+    await editForm.getByRole('button', { name: 'Lưu thay đổi' }).click()
     await toast(admin, 'Đã lưu thông tin khóa học')
     const { data } = await db.from('courses').select('price, summary').eq('id', created.courseIds.seq).single()
     assert(data.price === Number(COURSE_SEQ.price) && data.summary === 'Chương trình kiểm thử buổi tập', `Sửa chương trình đổi giá: ${JSON.stringify(data)}`)
@@ -1993,11 +2167,11 @@ try {
       assert((await html(path)).includes(COURSE_FREE.title), `${path}: chưa có tên khóa ban đầu`)
     }
     const rename = async (from, to) => {
-      await admin.goto(`${BASE}/admin/courses?kind=free`)
-      const card = admin.locator('.card', { has: admin.getByRole('heading', { name: from, exact: true }) })
-      await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-      await card.locator('details form').first().locator('[name=title]').fill(to)
-      await card.getByRole('button', { name: 'Lưu thay đổi' }).click()
+      await admin.goto(`${BASE}/admin/courses/${created.courseIds.free}/edit`)
+      await admin.getByRole('heading', { name: from, exact: true }).waitFor()
+      const form = admin.getByRole('region', { name: 'Thông tin khóa học' }).locator('form')
+      await form.locator('[name=title]').fill(to)
+      await form.getByRole('button', { name: 'Lưu thay đổi' }).click()
       await toast(admin, 'Đã lưu thông tin khóa học')
     }
     const renamed = `${COURSE_FREE.title} (đổi tên)`
@@ -2015,17 +2189,17 @@ try {
   })
 
   // =====================================================================
-  phase('9f. BỆNH NHÂN TỪ ZALO – nhân viên tạo tài khoản, cấp gói, cấp lại mật khẩu (v0.2, Đợt 11)')
+  phase('9f. KHÁCH HÀNG TỪ ZALO – nhân viên tạo tài khoản, cấp gói, cấp lại mật khẩu (v0.2, Đợt 11)')
   // =====================================================================
   const zaloCtx = await newContext({ ...devices['iPhone 13'] })
   const zalo = watch(await zaloCtx.newPage(), 'benh-nhan-zalo')
   const seqPlan = async () => (await db.from('course_plans').select('id, price').eq('course_id', created.courseIds.seq).eq('months', 1).single()).data
 
-  await step('[Nhân viên] Tạo bệnh nhân Zalo (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện 1 lần; database ghi nguồn, người tạo, người xử lý, lịch sử, hạn học', async () => {
+  await step('[Nhân viên] Tạo khách hàng Zalo (không email) + cấp gói tiền mặt → mật khẩu 8 ký tự hiện 1 lần; database ghi nguồn, người tạo, người xử lý, lịch sử, hạn học', async () => {
     const plan = await seqPlan()
-    await staff.goto(`${BASE}/admin/patients`)
-    await staff.getByRole('link', { name: '+ Tạo bệnh nhân' }).click()
-    await staff.waitForURL(`${BASE}/admin/patients/new`)
+    await staff.goto(`${BASE}/admin/customers`)
+    await staff.getByRole('link', { name: 'Tạo khách hàng', exact: true }).click()
+    await staff.waitForURL(`${BASE}/admin/customers/new`)
     await staff.fill('#fullName', ZALO.name)
     await staff.fill('#phone', ZALO.phone)
     await staff.fill('#note', ZALO.note)
@@ -2049,7 +2223,7 @@ try {
     created.userIds.push(ZALO.id)
     assert(
       profile.source === 'zalo' && profile.created_by === STAFF.id && profile.must_change_password && profile.consent_at && !profile.email && profile.role === 'user',
-      `Hồ sơ bệnh nhân Zalo sai: ${JSON.stringify(profile)}`
+      `Hồ sơ khách hàng Zalo sai: ${JSON.stringify(profile)}`
     )
     const { data: regs } = await db
       .from('registrations')
@@ -2078,7 +2252,7 @@ try {
     assert(note.note === ZALO.note && note.updated_by === STAFF.id, `Ghi chú nội bộ: ${JSON.stringify(note)}`)
 
     // Số điện thoại đã có tài khoản: không tạo trùng
-    await staff.getByRole('button', { name: 'Tạo bệnh nhân khác' }).click()
+    await staff.getByRole('button', { name: 'Tạo khách hàng khác' }).click()
     await staff.fill('#fullName', 'Trùng SĐT')
     await staff.fill('#phone', ZALO.phone)
     await staff.check('#consent')
@@ -2086,7 +2260,7 @@ try {
     await alertText(staff, 'Số điện thoại này đã có tài khoản')
   })
 
-  await step('[Hệ thống] Database chặn nhân viên tạo đơn sai quy tắc qua API (đơn web, đơn chờ, gói của chương trình khác, tự cấp cho mình); bệnh nhân không đọc được dữ liệu nội bộ', async () => {
+  await step('[Hệ thống] Database chặn nhân viên tạo đơn sai quy tắc qua API (đơn web, đơn chờ, gói của chương trình khác, tự cấp cho mình); khách hàng không đọc được dữ liệu nội bộ', async () => {
     const plan = await seqPlan()
     const base = { user_id: ZALO.id, course_id: created.courseIds.seq, plan_id: plan.id, amount: 1, full_name: ZALO.name, phone: ZALO.phone, created_by: STAFF.id }
     const { error: webError } = await STAFF.session.from('registrations').insert({ ...base, source: 'web', status: 'approved', payment_proof_path: 'x.jpg' })
@@ -2097,7 +2271,7 @@ try {
     const { error: planError } = await STAFF.session.from('registrations').insert({ ...base, plan_id: otherPlan.id, source: 'staff', status: 'approved' })
     assert(planError?.message.includes('Gói không thuộc'), `Nhân viên cấp gói của chương trình khác: ${planError?.message ?? 'không lỗi'}`)
     const { error: selfError } = await STAFF.session.from('registrations').insert({ ...base, user_id: STAFF.id, source: 'staff', status: 'approved' })
-    assert(selfError?.message.includes('Chỉ cấp gói cho tài khoản bệnh nhân'), `Nhân viên tự cấp gói cho mình: ${selfError?.message ?? 'không lỗi'}`)
+    assert(/Chỉ cấp gói cho tài khoản (bệnh nhân|khách hàng)/.test(selfError?.message ?? ''), `Nhân viên tự cấp gói cho mình: ${selfError?.message ?? 'không lỗi'}`)
     const { count } = await db.from('registrations').select('id', { count: 'exact', head: true }).eq('user_id', ZALO.id)
     assert(count === 1, `Đơn sai quy tắc vẫn được lưu: ${count}`)
 
@@ -2106,17 +2280,17 @@ try {
     assert(!loginError, loginError?.message)
     for (const t of ['patient_notes', 'account_events', 'consultations']) {
       const { data } = await ZALO.session.from(t).select('*')
-      assert(!data?.length, `Bệnh nhân đọc được bảng ${t}!`)
+      assert(!data?.length, `Khách hàng đọc được bảng ${t}!`)
     }
     const { data: list } = await ZALO.session.rpc('admin_patients')
-    assert(!list?.length, 'Bệnh nhân gọi được danh sách bệnh nhân!')
+    assert(!list?.length, 'Khách hàng gọi được danh sách khách hàng!')
     const { data: progress } = await ZALO.session.rpc('patient_progress', { p_user: ZALO.id })
-    assert(!progress?.length, 'Bệnh nhân gọi được hàm tiến độ dành cho nhân viên!')
+    assert(!progress?.length, 'Khách hàng gọi được hàm tiến độ dành cho nhân viên!')
     const { error: internalError } = await ZALO.session.rpc('_patient_courses')
     assert(internalError, 'Người dùng gọi được hàm nội bộ _patient_courses!')
   })
 
-  await step('[Bệnh nhân Zalo] Đăng nhập bằng SĐT + mật khẩu được cấp → nhắc đổi mật khẩu; "Để sau" vào học được; đổi mật khẩu → hết nhắc', async () => {
+  await step('[Khách hàng Zalo] Đăng nhập bằng SĐT + mật khẩu được cấp → nhắc đổi mật khẩu; "Để sau" vào học được; đổi mật khẩu → hết nhắc', async () => {
     await login(zalo, ZALO.phone, ZALO.password, '/courses')
     const dialog = zalo.getByRole('dialog', { name: 'Bạn nên đổi mật khẩu' })
     await dialog.waitFor()
@@ -2148,11 +2322,11 @@ try {
     await ctx.close()
   })
 
-  await step('[Nhân viên] Hồ sơ bệnh nhân: cấp thêm gói chuyển khoản (cộng dồn hạn), sửa thông tin + ghi chú, cấp lại mật khẩu (mật khẩu cũ hết hiệu lực); không có nút với tài khoản admin', async () => {
+  await step('[Nhân viên] Hồ sơ khách hàng: cấp thêm gói chuyển khoản (cộng dồn hạn), sửa thông tin + ghi chú, cấp lại mật khẩu (mật khẩu cũ hết hiệu lực); không có nút với tài khoản admin', async () => {
     const plan = await seqPlan()
-    await staff.goto(`${BASE}/admin/patients?source=zalo&q=${ZALO.phone}`)
-    await staff.getByRole('table', { name: 'Danh sách bệnh nhân' }).getByRole('link', { name: ZALO.name }).click()
-    await staff.waitForURL(`${BASE}/admin/patients/${ZALO.id}`)
+    await staff.goto(`${BASE}/admin/customers?source=zalo&q=${ZALO.phone}`)
+    await staff.getByRole('table', { name: 'Danh sách khách hàng' }).getByRole('link', { name: ZALO.name, exact: true }).click()
+    await staff.waitForURL(`${BASE}/admin/customers/${ZALO.id}`)
     await staff.getByRole('region', { name: 'Gói và tiến độ' }).getByText(COURSE_SEQ.title).waitFor()
     await staff.getByText(`Ghi chú nội bộ: ${ZALO.note}`).waitFor()
 
@@ -2174,7 +2348,7 @@ try {
     await staff.fill('#fullName', `${ZALO.name} (đã sửa)`)
     await staff.fill('#note', 'Đã gọi tư vấn lần 1')
     await staff.getByRole('button', { name: 'Lưu thông tin' }).click()
-    await toast(staff, 'Đã lưu thông tin bệnh nhân')
+    await toast(staff, 'Đã lưu thông tin khách hàng')
     const { data: after } = await db.from('profiles').select('full_name').eq('id', ZALO.id).single()
     assert(after.full_name === `${ZALO.name} (đã sửa)`, `Chưa lưu họ tên: ${after.full_name}`)
 
@@ -2194,33 +2368,153 @@ try {
     await staff.reload()
     await staff.getByRole('region', { name: 'Nhật ký tài khoản' }).getByText('Cấp lại mật khẩu').waitFor()
 
-    // Tài khoản admin: không có nút cấp gói / cấp lại mật khẩu
-    await staff.goto(`${BASE}/admin/patients/${ADMIN.id}`)
-    await staff.getByText('Đây là tài khoản nhân viên / admin').waitFor()
+    // Tài khoản admin không phải khách hàng: nhân viên mở hồ sơ thì 404 (không có nút cấp gói / mật khẩu / xóa)
+    expected404.add(`/admin/customers/${ADMIN.id}`)
+    await staff.goto(`${BASE}/admin/customers/${ADMIN.id}`)
+    await staff.getByRole('heading', { name: 'Không tìm thấy trang' }).waitFor()
     assert((await staff.getByRole('button', { name: 'Cấp lại mật khẩu' }).count()) === 0, 'Có nút cấp lại mật khẩu cho admin')
+    assert((await staff.getByRole('region', { name: 'Xóa khách hàng' }).count()) === 0, 'Có nút xóa tài khoản admin')
   })
 
-  await step('[Nhân viên] Lọc bệnh nhân theo nguồn Zalo / Web và trạng thái gói', async () => {
+  await step('[Nhân viên] Lọc khách hàng theo nguồn Zalo / Web và trạng thái gói', async () => {
     const rows = async (query) => {
-      await staff.goto(`${BASE}/admin/patients?${query}`)
-      await staff.getByText(/\d+ bệnh nhân/).first().waitFor()
-      return staff.getByRole('table', { name: 'Danh sách bệnh nhân' }).locator('tbody tr').allTextContents()
+      await staff.goto(`${BASE}/admin/customers?${query}`)
+      await staff.getByText(/\d+ khách hàng/).first().waitFor()
+      return staff.getByRole('table', { name: 'Danh sách khách hàng' }).locator('tbody tr').allTextContents()
     }
-    // Tìm theo tên (SĐT test trùng một phần với dãy số trong email test của bệnh nhân khác)
-    const byName = `q=${encodeURIComponent('Bệnh Nhân Zalo E2E')}`
+    // Tìm theo tên (SĐT test trùng một phần với dãy số trong email test của khách hàng khác)
+    const byName = `q=${encodeURIComponent('Khách Hàng Zalo E2E')}`
     let list = await rows('source=zalo')
     assert(list.some((t) => t.includes(ZALO.phone)) && !list.some((t) => t.includes(STUDENT.phone)), 'Lọc nguồn Zalo sai')
     list = await rows(`source=web&${byName}`)
-    assert(!list.length, 'Lọc nguồn Web vẫn có bệnh nhân Zalo')
+    assert(!list.length, 'Lọc nguồn Web vẫn có khách hàng Zalo')
     list = await rows(`status=active&${byName}`)
-    assert(list.length === 1 && list[0].includes('Zalo'), 'Lọc "Đang học" thiếu bệnh nhân Zalo')
+    assert(list.length === 1 && list[0].includes('Zalo'), 'Lọc "Đang học" thiếu khách hàng Zalo')
     list = await rows(`status=none&${byName}`)
     assert(!list.length, 'Lọc "Chưa có gói" sai')
-    // Sắp hết hạn: đưa hạn của bệnh nhân Zalo về 3 ngày nữa
+    // Sắp hết hạn: đưa hạn của khách hàng Zalo về 3 ngày nữa
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString()
     await db.from('registrations').update({ access_until: soon }).eq('user_id', ZALO.id)
     list = await rows(`status=expiring&${byName}`)
-    assert(list.length === 1, 'Lọc "Sắp hết hạn" thiếu bệnh nhân')
+    assert(list.length === 1, 'Lọc "Sắp hết hạn" thiếu khách hàng')
+  })
+
+  // =====================================================================
+  phase('9f2. THÊM / SỬA / XÓA KHÁCH HÀNG & NHÂN VIÊN (Đợt 26)')
+  // =====================================================================
+  await step('[Nhân viên] Xóa khách hàng: còn gói còn hạn bị chặn; hết gói → nút Xóa ở danh sách, gõ đúng SĐT mới xóa được; phiếu tham vấn bị xóa, đơn giữ lại', async () => {
+    // Khách hàng Zalo còn gói còn hạn: chỉ hiện lý do, không có ô xác nhận
+    await staff.goto(`${BASE}/admin/customers/${ZALO.id}`)
+    const blocked = staff.getByRole('region', { name: 'Xóa khách hàng' })
+    await blocked.getByText(/Không xóa được: khách hàng còn \d+ gói còn hạn/).waitFor()
+    assert((await blocked.locator('input[name=confirm]').count()) === 0, 'Khách hàng còn gói vẫn có ô xác nhận xóa')
+
+    // Khách hàng không còn gói (tạo sẵn): 1 đơn đã từ chối + 1 phiếu tham vấn
+    const { data: u, error } = await db.auth.admin.createUser({
+      email: `${DEL_CUSTOMER.phone}@sdt.hv.invalid`, password: 'Xoa#123456', email_confirm: true,
+      user_metadata: { full_name: DEL_CUSTOMER.name, phone: DEL_CUSTOMER.phone },
+    })
+    assert(!error, error?.message)
+    DEL_CUSTOMER.id = u.user.id
+    created.userIds.push(DEL_CUSTOMER.id)
+    created.deletedNames.push(DEL_CUSTOMER.name)
+    const regId = await insertRegistration({
+      user_id: DEL_CUSTOMER.id, course_id: created.courseIds.hidden, full_name: DEL_CUSTOMER.name, phone: DEL_CUSTOMER.phone, status: 'rejected',
+    })
+    const { error: consultError } = await db.from('consultations').insert({ user_id: DEL_CUSTOMER.id, full_name: DEL_CUSTOMER.name, phone: DEL_CUSTOMER.phone })
+    assert(!consultError, consultError?.message)
+
+    await staff.goto(`${BASE}/admin/customers?q=${encodeURIComponent(DEL_CUSTOMER.name)}`)
+    await staff.getByRole('table', { name: 'Danh sách khách hàng' }).getByRole('link', { name: `Xóa ${DEL_CUSTOMER.name}` }).click()
+    await staff.waitForURL(`${BASE}/admin/customers/${DEL_CUSTOMER.id}#xoa-khach-hang`)
+    const zone = staff.getByRole('region', { name: 'Xóa khách hàng' })
+    const button = zone.getByRole('button', { name: 'Xóa khách hàng' })
+    await zone.locator('input[name=confirm]').fill('0900000000')
+    assert(await button.isDisabled(), 'Nút xóa bật khi SĐT xác nhận sai')
+    await zone.locator('input[name=confirm]').fill(DEL_CUSTOMER.phone)
+    await button.click()
+    await toast(staff, `Đã xóa khách hàng ${DEL_CUSTOMER.name}`)
+    await staff.waitForURL(`${BASE}/admin/customers`)
+
+    const { data: profile } = await db.from('profiles').select('id').eq('id', DEL_CUSTOMER.id)
+    assert(!profile.length, 'Profile khách hàng chưa bị xóa')
+    const { data: auth } = await db.auth.admin.getUserById(DEL_CUSTOMER.id)
+    assert(!auth?.user, 'Tài khoản đăng nhập của khách hàng chưa bị xóa')
+    const { data: consults } = await db.from('consultations').select('id').eq('full_name', DEL_CUSTOMER.name)
+    assert(!consults.length, 'Phiếu tham vấn của khách hàng đã xóa vẫn còn (Q-5)')
+    const { data: reg } = await db.from('registrations').select('user_id, full_name').eq('id', regId).single()
+    assert(reg.user_id === null && reg.full_name === DEL_CUSTOMER.name, `Đơn của khách hàng đã xóa: ${JSON.stringify(reg)}`)
+    const { data: logs } = await db.from('account_events').select('actor, actor_name').eq('action', 'deleted').eq('user_name', DEL_CUSTOMER.name)
+    if (!logs?.length) schemaNotices.push('chưa ghi nhật ký xóa tài khoản – chủ dự án cần chạy supabase/schema.sql (Đợt 26)')
+    else assert(logs[0].actor === STAFF.id && logs[0].actor_name === STAFF.name, `Nhật ký xóa: ${JSON.stringify(logs)}`)
+  })
+
+  await step('[Admin] Danh mục Nhân viên: thêm nhân viên → mật khẩu hiện 1 lần, đăng nhập được + nhắc đổi mật khẩu; sửa; cấp lại mật khẩu (phiên cũ bị đăng xuất); xóa → không đăng nhập được', async () => {
+    await admin.goto(`${BASE}/admin/staff`)
+    await admin.getByRole('link', { name: 'Thêm nhân viên' }).click()
+    await admin.waitForURL(`${BASE}/admin/staff/new`)
+    await admin.fill('#fullName', NEW_STAFF.name)
+    await admin.fill('#phone', NEW_STAFF.phone)
+    await admin.fill('#email', NEW_STAFF.email)
+    await admin.selectOption('#role', 'staff')
+    await admin.getByRole('button', { name: 'Tạo tài khoản' }).click()
+    const secret = admin.getByTestId('one-time-password')
+    await secret.waitFor()
+    const password = (await secret.textContent()).trim()
+    assert(password.length === 8, `Mật khẩu sinh ra: ${password}`)
+    await admin.getByRole('button', { name: 'Chép tin nhắn gửi nhân viên' }).waitFor()
+    const { data: p } = await db.from('profiles').select('id, role, created_by, must_change_password, email').eq('phone', NEW_STAFF.phone).single()
+    NEW_STAFF.id = p.id
+    created.userIds.push(p.id)
+    assert(p.role === 'staff' && p.created_by === ADMIN.id && p.must_change_password && p.email === NEW_STAFF.email, `Hồ sơ nhân viên mới: ${JSON.stringify(p)}`)
+    const { data: roleEvents } = await db.from('role_events').select('actor, to_role').eq('user_id', p.id)
+    assert(roleEvents.length === 1 && roleEvents[0].actor === ADMIN.id && roleEvents[0].to_role === 'staff', `Nhật ký phân quyền: ${JSON.stringify(roleEvents)}`)
+
+    // Nhân viên mới đăng nhập bằng SĐT, vào trang quản trị, được nhắc đổi mật khẩu được cấp
+    const ctx = await newContext({ viewport: { width: 1366, height: 900 } })
+    const newbie = watch(await ctx.newPage(), 'nhan-vien-moi')
+    await login(newbie, NEW_STAFF.phone, password, '/admin')
+    await newbie.getByRole('heading', { name: 'Bảng quản trị' }).waitFor()
+    await newbie.getByText('Bạn đang dùng mật khẩu được cấp').waitFor()
+
+    // Sửa thông tin từ nút Sửa ở danh sách
+    await admin.goto(`${BASE}/admin/staff?q=${encodeURIComponent(NEW_STAFF.name)}`)
+    await admin.getByRole('table', { name: 'Danh sách nhân viên' }).getByRole('link', { name: `Sửa ${NEW_STAFF.name}` }).click()
+    await admin.waitForURL(`${BASE}/admin/staff/${NEW_STAFF.id}`)
+    NEW_STAFF.name = `${NEW_STAFF.name} (đã sửa)`
+    await admin.fill('#fullName', NEW_STAFF.name)
+    await admin.getByRole('button', { name: 'Lưu thông tin' }).click()
+    await toast(admin, 'Đã lưu thông tin nhân viên')
+    const { data: renamed } = await db.from('profiles').select('full_name').eq('id', NEW_STAFF.id).single()
+    assert(renamed.full_name === NEW_STAFF.name, `Chưa lưu họ tên: ${renamed.full_name}`)
+
+    // Cấp lại mật khẩu: mật khẩu cũ hết hiệu lực, phiên đang mở của nhân viên bị đăng xuất
+    admin.once('dialog', (d) => d.accept())
+    await admin.getByRole('button', { name: 'Cấp lại mật khẩu' }).click()
+    const secret2 = admin.getByTestId('one-time-password')
+    await secret2.waitFor()
+    const reset = (await secret2.textContent()).trim()
+    assert(reset !== password && reset.length === 8, `Mật khẩu cấp lại: ${reset}`)
+    assert(!(await tryLogin(NEW_STAFF.phone, password)), 'Mật khẩu cũ của nhân viên vẫn đăng nhập được')
+    await newbie.goto(`${BASE}/admin`)
+    await newbie.waitForURL((u) => u.pathname === '/login').catch(() => {})
+    assert(new URL(newbie.url()).pathname === '/login', `Phiên cũ của nhân viên vẫn dùng được sau khi cấp lại mật khẩu: ${newbie.url()}`)
+
+    // Xóa: gõ đúng SĐT; xóa xong không đăng nhập được, nhật ký xóa hiện ở trang Nhân viên
+    created.deletedNames.push(NEW_STAFF.name)
+    await admin.goto(`${BASE}/admin/staff/${NEW_STAFF.id}#xoa-nhan-vien`)
+    const zone = admin.getByRole('region', { name: 'Xóa nhân viên' })
+    await zone.locator('input[name=confirm]').fill(NEW_STAFF.phone)
+    await zone.getByRole('button', { name: 'Xóa nhân viên' }).click()
+    await toast(admin, 'Đã xóa tài khoản nhân viên')
+    await admin.waitForURL(`${BASE}/admin/staff`)
+    const { data: gone } = await db.from('profiles').select('id').eq('id', NEW_STAFF.id)
+    assert(!gone.length, 'Tài khoản nhân viên chưa bị xóa')
+    assert(!(await tryLogin(NEW_STAFF.phone, reset)), 'Nhân viên đã xóa vẫn đăng nhập được')
+    const { data: logs } = await db.from('account_events').select('id').eq('action', 'deleted').eq('user_name', NEW_STAFF.name)
+    if (logs?.length) await admin.getByRole('region', { name: 'Nhật ký xóa tài khoản' }).getByText(NEW_STAFF.name).first().waitFor()
+    else schemaNotices.push('trang Nhân viên chưa có nhật ký xóa – chạy supabase/schema.sql (Đợt 26)')
+    await ctx.close()
   })
 
   // =====================================================================
@@ -2244,7 +2538,7 @@ try {
     assert(error, 'Nhân viên sửa được mẫu phiếu!')
   })
 
-  await step('[Bệnh nhân] Gửi phiếu tham vấn từ trình học (chọn sẵn chương trình) → "Phiếu tham vấn của tôi"; server kiểm tra câu bắt buộc; tối đa 5 phiếu / ngày', async () => {
+  await step('[Khách hàng] Gửi phiếu tham vấn từ trình học (chọn sẵn chương trình) → "Phiếu tham vấn của tôi"; server kiểm tra câu bắt buộc; tối đa 5 phiếu / ngày', async () => {
     await patient.goto(seqLessonUrl(0, 0))
     await patient.getByRole('link', { name: '📝 Phiếu tham vấn' }).click()
     await patient.waitForURL(/\/courses\/consultation\?course=/)
@@ -2282,19 +2576,19 @@ try {
     }
     await patient.getByRole('button', { name: 'Gửi cho nhân viên' }).click()
     await alertText(patient, 'Bạn đã gửi 5 phiếu hôm nay')
-    // Bệnh nhân khác không đọc được phiếu; hàm my_consultations chỉ trả phiếu của mình
+    // Khách hàng khác không đọc được phiếu; hàm my_consultations chỉ trả phiếu của mình
     const { data: others } = await ZALO.session.rpc('my_consultations')
-    assert(!others?.length, 'Bệnh nhân khác đọc được phiếu tham vấn!')
+    assert(!others?.length, 'Khách hàng khác đọc được phiếu tham vấn!')
   })
 
-  await step('[Bệnh nhân] Hoàn thành các buổi đã mở → thẻ chúc mừng có nút gửi phiếu tham vấn', async () => {
+  await step('[Khách hàng] Hoàn thành các buổi đã mở → thẻ chúc mừng có nút gửi phiếu tham vấn', async () => {
     await patient.goto(`${seqLessonUrl(1, 1)}?finished=1`)
     const link = patient.getByRole('link', { name: '📝 Gửi phiếu tham vấn bác sĩ' })
     await link.waitFor()
     assert((await link.getAttribute('href')).includes('origin=course_end'), 'Nút phiếu ở thẻ chúc mừng thiếu nguồn course_end')
   })
 
-  await step('[Nhân viên] Phiếu tham vấn: xem câu trả lời, chuyển "Đã liên hệ" kèm ghi chú nội bộ; bệnh nhân thấy trạng thái, không thấy ghi chú', async () => {
+  await step('[Nhân viên] Phiếu tham vấn: xem câu trả lời, chuyển "Đã liên hệ" kèm ghi chú nội bộ; khách hàng thấy trạng thái, không thấy ghi chú', async () => {
     await staff.goto(`${BASE}/admin/consultations`)
     const card = staff.locator(`#phieu-${RENEW.consultationId}`)
     await card.getByRole('term').filter({ hasText: QUESTION }).waitFor()
@@ -2303,24 +2597,24 @@ try {
     await card.locator('select[name=status]').selectOption('contacted')
     await card.locator('textarea[name=staff_note]').fill('Hẹn bác sĩ gọi 19h thứ 5')
     await card.getByRole('button', { name: 'Cập nhật' }).click()
-    await toast(staff, 'Đã ghi nhận: đã liên hệ bệnh nhân')
+    await toast(staff, 'Đã ghi nhận: đã liên hệ khách hàng')
     const { data } = await db.from('consultations').select('status, staff_note, handled_by, handled_by_name').eq('id', RENEW.consultationId).single()
     assert(
       data.status === 'contacted' && data.staff_note === 'Hẹn bác sĩ gọi 19h thứ 5' && data.handled_by === STAFF.id && data.handled_by_name === STAFF.name,
       `Phiếu sau khi xử lý: ${JSON.stringify(data)}`
     )
-    // Nhân viên không sửa được câu trả lời của bệnh nhân (trigger giữ nguyên)
+    // Nhân viên không sửa được câu trả lời của khách hàng (trigger giữ nguyên)
     await STAFF.session.from('consultations').update({ note: 'Bị sửa', answers: [] }).eq('id', RENEW.consultationId)
     const { data: kept } = await db.from('consultations').select('note, answers').eq('id', RENEW.consultationId).single()
-    assert(kept.note === 'Đau nhẹ vùng lưng ngực khi tập bài 2' && kept.answers.length > 0, 'Nhân viên sửa được câu trả lời của bệnh nhân!')
+    assert(kept.note === 'Đau nhẹ vùng lưng ngực khi tập bài 2' && kept.answers.length > 0, 'Nhân viên sửa được câu trả lời của khách hàng!')
 
     await patient.goto(`${BASE}/courses`)
     await patient.getByRole('region', { name: 'Phiếu tham vấn của tôi' }).getByText('Đã liên hệ').waitFor()
-    assert((await patient.getByText('Hẹn bác sĩ gọi 19h thứ 5').count()) === 0, 'Bệnh nhân thấy ghi chú nội bộ')
+    assert((await patient.getByText('Hẹn bác sĩ gọi 19h thứ 5').count()) === 0, 'Khách hàng thấy ghi chú nội bộ')
     const { data: mine } = await RENEW.session.rpc('my_consultations')
     assert(mine.length === 1 && !('staff_note' in mine[0]), `my_consultations: ${JSON.stringify(mine)}`)
     const { data: direct } = await RENEW.session.from('consultations').select('staff_note')
-    assert(!direct?.length, 'Bệnh nhân đọc thẳng được bảng phiếu (kèm ghi chú nội bộ)!')
+    assert(!direct?.length, 'Khách hàng đọc thẳng được bảng phiếu (kèm ghi chú nội bộ)!')
 
     // Xóa câu hỏi thử nghiệm khỏi mẫu (phiếu đã gửi vẫn giữ câu trả lời)
     await admin.goto(`${BASE}/admin/settings/consultation`)
@@ -2344,18 +2638,18 @@ try {
     const statCard = (label) => admin.getByTestId('stat-card').filter({ has: admin.getByText(label, { exact: true }) })
     const card = (label) => statCard(label).getByTestId('stat-value')
     const num = async (label) => Number((await card(label).textContent()).replace(/\./g, ''))
-    assert((await num('Bệnh nhân')) === stats.patients, `Thẻ Bệnh nhân: ${await num('Bệnh nhân')} ≠ ${stats.patients}`)
+    assert((await num('Khách hàng')) === stats.patients, `Thẻ Khách hàng: ${await num('Khách hàng')} ≠ ${stats.patients}`)
     assert((await num('Đơn chờ duyệt')) === stats.pending_registrations, 'Thẻ Đơn chờ duyệt lệch')
     assert((await num('Sắp hết hạn (7 ngày)')) === stats.expiring_7d && stats.expiring_7d >= 1, `Thẻ Sắp hết hạn: ${stats.expiring_7d}`)
     assert((await num('Phiếu tham vấn mới')) === stats.consultations_new, 'Thẻ Phiếu tham vấn mới lệch')
-    assert(stats.new_7d_zalo >= 1, `Chưa đếm bệnh nhân Zalo mới: ${stats.new_7d_zalo}`)
-    // Việc cần làm: bệnh nhân Zalo sắp hết hạn; tiến độ theo chương trình
+    assert(stats.new_7d_zalo >= 1, `Chưa đếm khách hàng Zalo mới: ${stats.new_7d_zalo}`)
+    // Việc cần làm: khách hàng Zalo sắp hết hạn; tiến độ theo chương trình
     await admin.getByRole('region', { name: 'Việc cần làm' }).getByRole('link', { name: `${ZALO.name} (đã sửa)` }).waitFor()
     await admin.getByRole('region', { name: 'Tiến độ theo chương trình' }).getByText(COURSE_SEQ.title).first().waitFor()
     // Thẻ bấm được → danh sách lọc sẵn
     await statCard('Sắp hết hạn (7 ngày)').click()
-    await admin.waitForURL(/\/admin\/patients\?status=expiring/)
-    await admin.getByRole('table', { name: 'Danh sách bệnh nhân' }).getByText(ZALO.phone).first().waitFor()
+    await admin.waitForURL(/\/admin\/customers\?status=expiring/)
+    await admin.getByRole('table', { name: 'Danh sách khách hàng' }).getByText(ZALO.phone).first().waitFor()
 
     // Doanh thu (chỉ admin): có khoản tiền mặt 200.000đ nhân viên thu
     await admin.goto(`${BASE}/admin`)
@@ -2370,7 +2664,7 @@ try {
     await admin.screenshot({ path: `${OUT}desktop-admin-dashboard.png`, fullPage: true })
   })
 
-  await step('[Nhân viên] Tổng quan không có doanh thu; database từ chối revenue_report với nhân viên; khách / bệnh nhân không đọc được dashboard', async () => {
+  await step('[Nhân viên] Tổng quan không có doanh thu; database từ chối revenue_report với nhân viên; khách / khách hàng không đọc được dashboard', async () => {
     await staff.goto(`${BASE}/admin`)
     await staff.getByRole('heading', { name: 'Tổng quan' }).waitFor()
     await staff.getByTestId('stat-card').first().waitFor()
@@ -2380,16 +2674,16 @@ try {
     const { data: anonStats } = await anon.rpc('dashboard_stats')
     assert(anonStats === null, 'Khách đọc được số liệu dashboard!')
     const { data: patientStats } = await ZALO.session.rpc('dashboard_stats')
-    assert(patientStats === null, 'Bệnh nhân đọc được số liệu dashboard!')
+    assert(patientStats === null, 'Khách hàng đọc được số liệu dashboard!')
   })
 
   await step('[Admin] Xóa khóa premium còn khách quan tâm, xóa tài khoản đã gửi phiếu tham vấn: lead / phiếu / đơn được giữ, khóa ngoại về null (RK-29)', async () => {
-    await admin.goto(`${BASE}/admin/courses?kind=premium`)
-    const card = admin.locator('.card', { has: admin.getByRole('heading', { name: COURSE_PREMIUM.title }) })
-    await card.locator('summary', { hasText: 'Sửa thông tin' }).click()
-    admin.once('dialog', (d) => d.accept())
-    await card.getByRole('button', { name: 'Xóa khóa học' }).click()
+    await admin.goto(`${BASE}/admin/courses/${created.courseIds.premium}/edit`)
+    const zone = admin.getByRole('region', { name: 'Xóa khóa học' })
+    await zone.locator('#confirm_title').fill(COURSE_PREMIUM.title)
+    await zone.getByRole('button', { name: 'Xóa vĩnh viễn khóa học' }).click()
     await toast(admin, 'Đã xóa khóa học')
+    await admin.waitForURL((u) => u.pathname === '/admin/courses')
     const { data: leads } = await db.from('leads').select('course_id, course_title').eq('phone', LEAD.phone)
     assert(leads.length === 1 && leads[0].course_id === null && leads[0].course_title === COURSE_PREMIUM.title, `Lead sau khi xóa khóa: ${JSON.stringify(leads)}`)
 
@@ -2483,6 +2777,105 @@ try {
     })
   }
 
+  // ---------- Phiên đăng nhập (Đợt 21, SEC-13 → SEC-15) ----------
+  const authCookies = async (ctx) => (await ctx.cookies()).filter((x) => /^sb-.*-auth-token(\.\d+)?$/.test(x.name))
+  const cookieOf = async (ctx, name) => (await ctx.cookies()).find((x) => x.name === name)
+  const signIn = async (identifier, password, remember, label) => {
+    const ctx = await newContext()
+    const p = watch(await ctx.newPage(), label)
+    await p.goto(`${BASE}/login`)
+    await p.fill('#identifier', identifier)
+    await p.fill('#password', password)
+    if (remember) await p.check('input[name=remember]')
+    await Promise.all([p.waitForURL((u) => !u.pathname.startsWith('/login')), p.click('button[type=submit]')])
+    return { ctx, p }
+  }
+  // Ghi đè mốc thời gian phiên (giả lập đã lâu không thao tác / đăng nhập từ lâu)
+  const setActivity = async (ctx, { loginAgoMin = 0, idleMin = 0 }) => {
+    const flags = (await cookieOf(ctx, 'hv-activity')).value.split('.')[2] ?? ''
+    const now = Date.now()
+    await ctx.addCookies([{ name: 'hv-activity', value: `${now - loginAgoMin * 60_000}.${now - idleMin * 60_000}.${flags}`, url: BASE }])
+  }
+
+  await step('[Bảo mật] Phiên đăng nhập là cookie tạm (đóng trình duyệt là mất); học viên "Ghi nhớ" → 30 ngày; admin luôn cookie tạm (TC-114, SEC-13)', async () => {
+    const plain = await signIn(STUDENT.email, STUDENT.password, false, 'phien-tam')
+    const plainAuth = await authCookies(plain.ctx)
+    assert(plainAuth.length && plainAuth.every((x) => x.expires === -1), `Cookie phiên vẫn có hạn: ${plainAuth.map((x) => x.expires)}`)
+    const activity = await cookieOf(plain.ctx, 'hv-activity')
+    assert(activity && activity.expires === -1 && /^\d+\.\d+\.$/.test(activity.value), `hv-activity sai: ${JSON.stringify(activity)}`)
+    assert(!(await cookieOf(plain.ctx, 'hv-remember')), 'Không chọn ghi nhớ nhưng có hv-remember')
+    await plain.ctx.close()
+
+    const kept = await signIn(STUDENT.email, STUDENT.password, true, 'phien-ghi-nho')
+    const days = (x) => (x.expires * 1000 - Date.now()) / 86_400_000
+    const keptAuth = await authCookies(kept.ctx)
+    assert(keptAuth.length && keptAuth.every((x) => days(x) > 29 && days(x) <= 30.01), `Ghi nhớ không đúng 30 ngày: ${keptAuth.map(days)}`)
+    assert((await cookieOf(kept.ctx, 'hv-remember'))?.value === '1', 'Thiếu hv-remember')
+    // Ghi nhớ: 3 giờ không thao tác vẫn còn đăng nhập
+    await setActivity(kept.ctx, { idleMin: 180 })
+    await kept.p.goto(`${BASE}/courses`)
+    assert(new URL(kept.p.url()).pathname === '/courses', `Ghi nhớ mà vẫn bị đăng xuất: ${kept.p.url()}`)
+    await kept.ctx.close()
+
+    const staffLogin = await signIn(ADMIN.email, ADMIN.password, true, 'phien-admin')
+    const staffAuth = await authCookies(staffLogin.ctx)
+    assert(staffAuth.length && staffAuth.every((x) => x.expires === -1), 'Admin chọn ghi nhớ nhưng cookie vẫn có hạn')
+    assert((await cookieOf(staffLogin.ctx, 'hv-activity')).value.endsWith('.s'), 'hv-activity của admin thiếu cờ nhân viên')
+    await staffLogin.ctx.close()
+  })
+
+  await step('[Bảo mật] Tự đăng xuất: admin 30 phút không thao tác, học viên quá 12 giờ / 2 giờ (cả trang công khai, cả tab đang mở); cookie cũ không dùng lại được (TC-115)', async () => {
+    // Admin 31 phút không thao tác → vào trang quản trị bị chuyển về đăng nhập, cookie bị xóa
+    const a = await signIn(ADMIN.email, ADMIN.password, false, 'het-gio-admin')
+    await a.p.goto(`${BASE}/admin`)
+    const stolen = await authCookies(a.ctx)
+    await setActivity(a.ctx, { idleMin: 31 })
+    await a.p.goto(`${BASE}/admin/registrations`)
+    await a.p.waitForURL((u) => u.pathname === '/login' && u.searchParams.get('error') === 'timeout')
+    await alertText(a.p, 'lâu không thao tác')
+    assert(!(await authCookies(a.ctx)).length && !(await cookieOf(a.ctx, 'hv-activity')), 'Hết giờ nhưng cookie phiên chưa bị xóa')
+    // Phiên đã bị thu hồi ở Supabase: gắn lại cookie cũ (giả lập cookie bị đánh cắp) vẫn không vào được
+    await a.ctx.addCookies(stolen.map(({ name, value }) => ({ name, value, url: BASE })))
+    await a.ctx.addCookies([{ name: 'hv-activity', value: `${Date.now()}.${Date.now()}.s`, url: BASE }])
+    await a.p.goto(`${BASE}/admin`)
+    await a.p.waitForURL((u) => u.pathname === '/login')
+    await a.ctx.close()
+
+    // Học viên đăng nhập từ 13 giờ trước (trình duyệt khôi phục cookie tạm) → trang chủ hiện như khách
+    const s = await signIn(STUDENT.email, STUDENT.password, false, 'het-han-12h')
+    await setActivity(s.ctx, { loginAgoMin: 13 * 60 })
+    await s.p.goto(`${BASE}/`)
+    await s.p.getByRole('banner').getByRole('link', { name: 'Đăng nhập' }).waitFor()
+    assert(!(await authCookies(s.ctx)).length, 'Quá 12 giờ nhưng cookie phiên còn')
+    await s.ctx.close()
+
+    // Tab đang mở, học viên 2 giờ không thao tác → trình duyệt tự đăng xuất (SessionGuard) khi quay lại tab
+    const t = await signIn(STUDENT.email, STUDENT.password, false, 'het-gio-tab')
+    await t.p.goto(`${BASE}/`)
+    await t.p.getByRole('button', { name: 'Tài khoản' }).first().waitFor()
+    await setActivity(t.ctx, { idleMin: 121 })
+    await t.p.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await alertText(t.p, 'Phiên đăng nhập đã hết hạn')
+    await t.p.getByRole('banner').getByRole('link', { name: 'Đăng nhập' }).waitFor()
+    assert(!(await authCookies(t.ctx)).length, 'Tab tự đăng xuất nhưng cookie phiên còn')
+    await t.ctx.close()
+  })
+
+  await step('[Bảo mật] Trang đăng nhập không hiển thị chữ lấy từ link (?error=...), chỉ thông báo theo mã (TC-116, SEC-14)', async () => {
+    const ctx = await newContext()
+    const p = watch(await ctx.newPage(), 'chen-chu')
+    const fake = 'Tài khoản bị khóa, gọi ngay 0900000000'
+    await p.goto(`${BASE}/login?error=${encodeURIComponent(fake)}`)
+    await p.locator('#identifier').waitFor()
+    assert(!(await p.getByText(fake).count()), 'Trang vẫn hiển thị chữ chèn từ URL')
+    // (Next.js luôn có next-route-announcer role=alert – chỉ kiểm hộp lỗi của trang)
+    assert(!(await p.locator('main .alert-error').count()), 'Mã lỗi lạ vẫn hiện hộp lỗi')
+    // Mã hợp lệ vẫn hiện đúng câu
+    await p.goto(`${BASE}/login?error=timeout`)
+    await p.locator('main .alert-error').filter({ hasText: 'lâu không thao tác' }).waitFor()
+    await ctx.close()
+  })
+
   // =====================================================================
   phase('11. HỆ THỐNG – tổng kết')
   // =====================================================================
@@ -2498,6 +2891,7 @@ try {
 
   await step('[Hệ thống] Không có lỗi JavaScript trên mọi trình duyệt đã dùng', async () => {
     if (thirdPartyErrors.length) console.log(`      (bỏ qua ${thirdPartyErrors.length} lỗi trong iframe bên thứ ba, VD YouTube)`)
+    for (const n of new Set(schemaNotices)) console.log(`      (lưu ý database: ${n})`)
     if (knownIssues.length) console.log(`      (vấn đề đã biết RK-54: ${knownIssues.length} lỗi hydration React #418 ở trang quản trị trên workerd – xem project-review §7.9)`)
     if (pageErrors.length) console.log(pageErrors.map((e) => `      ${e}`).join('\n'))
     assert(pageErrors.length === 0, `${pageErrors.length} lỗi JavaScript (chi tiết ở trên)`)

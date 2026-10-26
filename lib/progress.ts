@@ -60,7 +60,7 @@ export async function loadLearning(courseId: string): Promise<Learning | null> {
     user,
     mode,
     hasAccess,
-    // Bệnh nhân đã đăng nhập tick được khi bài đang xem được; nhân viên / admin chỉ xem trước
+    // Khách hàng đã đăng nhập tick được khi bài đang xem được; nhân viên / admin chỉ xem trước
     canTick: !!user && mode !== 'preview' && hasAccess,
     done,
     sessions,

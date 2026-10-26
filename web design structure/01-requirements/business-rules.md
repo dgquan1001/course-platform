@@ -87,9 +87,9 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-70 | ✅ Vai trò gồm `user` (bệnh nhân, mặc định), `staff`, `admin`. Admin là quyền cao nhất | BR-02 | `profiles_role_check`, `lib/auth.ts` (`Role`) |
+| BR-70 | ✅ Vai trò gồm `user` (khách hàng, mặc định), `staff`, `admin`. Admin là quyền cao nhất | BR-02 | `profiles_role_check`, `lib/auth.ts` (`Role`) |
 | BR-71 | ✅ Chỉ **admin** đổi vai trò của tài khoản khác; không tự đổi quyền mình; luôn còn ≥ 1 admin; mỗi lần đổi ghi `role_events`. Script/service role vẫn đổi được | BR-03 | `setUserRole` (`requireAdmin`), trigger `guard_role_change` ("Chỉ admin được thay đổi vai trò tài khoản.") |
-| BR-72 | ✅ (Đợt 7 → 13) Staff được: duyệt/từ chối/thu hồi đơn; tạo, sửa thông tin, cấp gói, cấp lại mật khẩu cho tài khoản `role = 'user'`; xử lý phiếu tham vấn, lead; xem dashboard không có doanh thu; xem trước nội dung khóa | BR-25, BR-36, BR-41 | `requireStaff`, `requireStaffPage`, `run({ staff: true })`, `is_staff()`, policy `profiles_staff_update`, `registrations_staff_update`, `registrations_staff_insert`, `registration_events_staff_select`, `payment_proofs_staff_select`, `patient_notes_staff_*`, `consultations_staff_*` |
+| BR-72 | ✅ (Đợt 7 → 13) Staff được: duyệt/từ chối/thu hồi đơn; tạo, sửa thông tin, cấp gói, cấp lại mật khẩu, **xóa** (Đợt 26 – BR-122) cho tài khoản `role = 'user'`; xử lý phiếu tham vấn, lead; xem dashboard không có doanh thu; xem trước nội dung khóa | BR-25, BR-36, BR-41 | `requireStaff`, `requireStaffPage`, `run({ staff: true })`, `is_staff()`, policy `profiles_staff_update`, `registrations_staff_update`, `registrations_staff_insert`, `registration_events_staff_select`, `payment_proofs_staff_select`, `patient_notes_staff_*`, `consultations_staff_*` |
 | BR-73 | ✅ (Đợt 7 → 13) Chỉ admin được: thêm/sửa/xóa khóa, buổi, bài, gói, ảnh bìa; sửa mẫu phiếu tham vấn; xem doanh thu; sửa tài khoản staff/admin | BR-25 | `requireAdmin`, `requireAdminPage`, `is_admin()`, `revenue_report()` (báo lỗi với nhân viên) |
 
 ### Loại khóa & gói (ADR-012)
@@ -107,11 +107,11 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-80 | ✅ Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng bệnh nhân + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
+| BR-80 | ✅ Khi đơn chuyển sang `approved`: `access_starts_at = greatest(now(), max(access_until) của các đơn approved khác cùng khách hàng + khóa)`, `access_until = access_starts_at + plan_months tháng`. → Gia hạn khi còn hạn thì cộng dồn; hết hạn rồi thì tính từ lúc duyệt | — | Trigger `registrations_stamp_review` |
 | BR-81 | ✅ Thu hồi (approved → rejected) xóa `access_starts_at/access_until` của đơn đó; không dời các đơn khác (có thể tạo khoảng trống – staff xử lý tay) | BR-42 | Trigger |
-| BR-82 | ✅ Bệnh nhân có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
+| BR-82 | ✅ Khách hàng có quyền học chương trình X ⇔ có ≥ 1 đơn `approved` cho X với `access_until > now()` **hoặc** `access_until is null` (đơn cũ v0.1) | BR-40 | `has_course_access()` |
 | BR-83 | ✅ Số buổi được mở của chương trình X = tổng `plan_sessions` của mọi đơn `approved` cho X (kể cả đã hết hạn); đơn cũ v0.1 không có gói → mở toàn bộ | — | `purchased_sessions()` |
-| BR-84 | ✅ Mỗi bệnh nhân chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
+| BR-84 | ✅ Mỗi khách hàng chỉ có **1 đơn `pending`** cho mỗi khóa; được có nhiều đơn `approved` (gia hạn). Đã có đơn đang chờ → báo "Bạn đã có đơn đang chờ xác nhận cho chương trình này" | BR-34 | Unique index `registrations_pending_key`, `registerAction` |
 | BR-85 | ✅ Hết hạn: không xem được video; vẫn xem đề cương, tiến độ, bài đã tick; thấy nút Gia hạn. Hạn hiển thị theo ngày giờ Việt Nam | — | `has_course_access()` (RLS bài học), "Khóa học của tôi" (mục "Gói đã hết hạn"), `/courses/[id]` (đề cương + "Gia hạn để tập tiếp"); ✅ Đợt 10: `can_view_lesson` |
 
 ### Buổi, bài tập & tiến độ (ADR-013)
@@ -119,8 +119,8 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
 | BR-86 | ✅ Chương trình gồm các **buổi** theo `sort_order`; mỗi buổi gồm các **bài tập** theo `sort_order`. Tạo khung nhanh: 1 – 200 buổi × 1 – 20 bài/buổi | BR-22 | `course_sessions`, `generateSkeleton` |
-| BR-87 | ✅ Link video không bắt buộc; nếu có phải hợp lệ như BR-24. Bài chưa có video: bệnh nhân thấy "Video đang được cập nhật" và vẫn tick được | BR-24 | `readLesson`, trình học |
-| BR-88 | ✅ Checklist buổi dùng **mẫu chung**: mỗi bài tập là 1 mục "Đã tập"; bệnh nhân tick / bỏ tick bài của mình | — | `lesson_progress`, RLS |
+| BR-87 | ✅ Link video không bắt buộc; nếu có phải hợp lệ như BR-24. Bài chưa có video: khách hàng thấy "Video đang được cập nhật" và vẫn tick được | BR-24 | `readLesson`, trình học |
+| BR-88 | ✅ Checklist buổi dùng **mẫu chung**: mỗi bài tập là 1 mục "Đã tập"; khách hàng tick / bỏ tick bài của mình | — | `lesson_progress`, RLS |
 | BR-89 | ✅ Buổi thứ k (k ≥ 2) của chương trình mở khi: còn hạn **và** k ≤ số buổi đã mua **và** mọi bài của buổi k-1 đã tick. Buổi không có bài nào coi như đã hoàn thành | — | `can_view_lesson()` (database) |
 | BR-90 | ✅ Chỉ tick được bài đang xem được (không tick trước buổi bị khóa); đã hết hạn thì không tick / bỏ tick được nhưng không mất tick cũ. Luật mở buổi luôn tính theo **trạng thái tick hiện tại**: bỏ tick 1 bài của buổi trước thì buổi sau khóa lại cho tới khi tick lại (giao diện hỏi xác nhận trước khi bỏ tick) | — | RLS `lesson_progress` |
 | BR-91 | ✅ Tiến độ % = số bài đã tick / tổng bài trong các buổi đã mua (khóa miễn phí: toàn khóa), làm tròn xuống; hiển thị "x/y bài · z%" | — | `course_progress()` |
@@ -131,9 +131,9 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
-| BR-94 | ✅ Nhân viên tạo tài khoản bệnh nhân với SĐT (bắt buộc, không trùng) và email (tùy chọn, không trùng); `source = 'zalo'`, `created_by` = nhân viên; bắt buộc xác nhận bệnh nhân đã đồng ý chính sách bảo mật | BR-07, BR-08 | `createPatientAction` (kiểm tra trùng trước khi tạo; ô xác nhận đồng ý chính sách bắt buộc) |
+| BR-94 | ✅ Nhân viên tạo tài khoản khách hàng với SĐT (bắt buộc, không trùng) và email (tùy chọn, không trùng); `source = 'zalo'`, `created_by` = nhân viên; bắt buộc xác nhận khách hàng đã đồng ý chính sách bảo mật | BR-07, BR-08 | `createPatientAction` (kiểm tra trùng trước khi tạo; ô xác nhận đồng ý chính sách bắt buộc) |
 | BR-95 | ✅ Mật khẩu do hệ thống sinh: 8 ký tự từ bảng chữ/số dễ đọc (bỏ `0 O 1 l I`), CSPRNG; chỉ hiển thị một lần; không lưu rõ | BR-09 | `lib/generate-password.ts#generatePassword` (có đủ chữ hoa, chữ thường, số) |
-| BR-96 | ✅ `must_change_password = true` khi nhân viên tạo hoặc cấp lại mật khẩu; bệnh nhân được **nhắc** đổi sau đăng nhập (không bắt buộc); đổi thành công → `false` | — | `createPatientAction`, `resetPatientPasswordAction`, `components/LoginReminders.tsx`, `changePasswordAction` |
+| BR-96 | ✅ `must_change_password = true` khi nhân viên tạo hoặc cấp lại mật khẩu; khách hàng được **nhắc** đổi sau đăng nhập (không bắt buộc); đổi thành công → `false` | — | `createPatientAction`, `resetPatientPasswordAction`, `components/LoginReminders.tsx`, `changePasswordAction` |
 | BR-97 | ✅ Nhân viên cấp gói: đơn `source = 'staff'`, tạo thẳng `approved`, bắt buộc số tiền (0 – 1 tỷ) và hình thức thanh toán (`bank_transfer` / `cash` / `other`); ảnh chuyển khoản tùy chọn; người xử lý = nhân viên; lịch sử ghi `new → approved` | BR-31, BR-33, BR-35 | `grantPlanAction` / `createPatientAction` (server client) + policy `registrations_staff_insert` + trigger `registrations_stamp_insert` / `registrations_log_insert` |
 | BR-98 | ✅ Đơn `source = 'web'` bắt buộc có ảnh chuyển khoản; `source = 'staff'` thì không | BR-31 | check `registrations_proof_check` |
 | BR-99 | ✅ Cấp lại mật khẩu chỉ áp dụng cho tài khoản `role = 'user'`; ghi `account_events` (ai, lúc nào, không ghi mật khẩu) | — | `resetPatientPasswordAction` (chỉ `role = user`), `account_events` |
@@ -143,18 +143,28 @@ cột "Thực thi tại" và đánh dấu quy tắc cũ là đã thay thế.
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
 | BR-100 | ✅ Mẫu phiếu tham vấn là **một mẫu chung** do admin soạn; câu hỏi `check` (có/không), `scale` (0–10), `text` (≤ 500 ký tự); câu hỏi đang tắt không hiện | — | `consult_questions` + `/admin/settings/consultation` |
-| BR-101 | ✅ Bệnh nhân đã đăng nhập gửi phiếu bất cứ lúc nào, tối đa 5 phiếu / ngày; phiếu lưu snapshot câu hỏi + trả lời, không sửa được sau khi gửi | — | `submitConsultationAction`, `rate_limits` khóa `consult:<user_id>` (5 / ngày) |
-| BR-102 | ✅ Phiếu có trạng thái `new → contacted → done` hoặc `cancelled`; staff/admin đổi trạng thái, ghi chú nội bộ (bệnh nhân không thấy), ghi người xử lý; không ghi đè khi 2 người cùng xử lý (như BR-36) | — | `setConsultationStatus` (`.eq(status, expected)`), trigger `consultations_stamp` |
-| BR-103 | ✅ Bệnh nhân chỉ xem phiếu của mình; staff/admin xem tất cả; không ai xóa phiếu qua API | — | RLS `consultations_staff_*` + hàm `my_consultations()` (bệnh nhân không thấy ghi chú nội bộ) |
+| BR-101 | ✅ Khách hàng đã đăng nhập gửi phiếu bất cứ lúc nào, tối đa 5 phiếu / ngày; phiếu lưu snapshot câu hỏi + trả lời, không sửa được sau khi gửi | — | `submitConsultationAction`, `rate_limits` khóa `consult:<user_id>` (5 / ngày) |
+| BR-102 | ✅ Phiếu có trạng thái `new → contacted → done` hoặc `cancelled`; staff/admin đổi trạng thái, ghi chú nội bộ (khách hàng không thấy), ghi người xử lý; không ghi đè khi 2 người cùng xử lý (như BR-36) | — | `setConsultationStatus` (`.eq(status, expected)`), trigger `consultations_stamp` |
+| BR-103 | ✅ Khách hàng chỉ xem phiếu của mình; staff/admin xem tất cả; không ai xóa phiếu qua API | — | RLS `consultations_staff_*` + hàm `my_consultations()` (khách hàng không thấy ghi chú nội bộ) |
 | BR-104 | ✅ Nút premium lưu lead (khóa, họ tên, SĐT hợp lệ nếu nhập, người dùng nếu đã đăng nhập) rồi mở Zalo; "Mở Zalo ngay" lưu lượt bấm ẩn danh. Tối đa 20 lead / giờ / IP | — | `createLeadAction`, rate limit |
 | BR-105 | ✅ Lead có trạng thái `new → contacted → converted` hoặc `closed`; lượt bấm ẩn danh (`phone is null`) chỉ để thống kê, không hiện trong danh sách cần gọi | — | `/admin/leads`, `setLeadStatus` (không ghi đè), trigger `leads_stamp` (giữ nguyên thông tin khách để lại) |
+
+### Quản lý tài khoản khách hàng & nhân viên (Đợt 26 – 18/10/2026)
+
+| ID | Quy tắc | Thay | Thực thi tại |
+| --- | --- | --- | --- |
+| BR-120 | ✅ Gọi chung người dùng dịch vụ là **khách hàng** (thay "bệnh nhân" / "học viên" trên giao diện) | — | Giao diện, thông báo, tài liệu |
+| BR-121 | ✅ Nhân viên và admin được thêm / sửa / xóa **khách hàng**; nhân viên **không** thêm / sửa / xóa khóa học, không phân quyền, không quản lý nhân viên | Q-6 (04/10) | `requireStaff` / `requireAdmin`, RLS `courses_admin_*`, `profiles_staff_update` |
+| BR-122 | ✅ Xóa khách hàng chỉ khi không còn gói còn hạn và không có đơn chờ duyệt; phải gõ lại SĐT; xóa phiếu tham vấn (Q-5), giữ đơn + ảnh chuyển khoản; không hoàn tác | — | `deleteCustomerAction`, `customerUsage` |
+| BR-123 | ✅ Chỉ admin thêm / sửa / đổi vai trò / cấp lại mật khẩu / xóa **nhân viên, admin**; không tự đổi quyền / tự xóa; luôn còn ≥ 1 admin | BR-72 (mở rộng) | `app/admin/staff/actions.ts`, trigger `guard_role_change`, `guard_admin_delete` |
+| BR-124 | ✅ Mọi lần xóa tài khoản ghi nhật ký (người xóa, tên người bị xóa, thời điểm); admin xem ở trang Nhân viên | — | `account_events.action = 'deleted'` |
 
 ### Đồng ý xử lý dữ liệu (RV-17)
 
 | ID | Quy tắc | Thay | Thực thi tại (dự kiến) |
 | --- | --- | --- | --- |
 | BR-106 | ✅ Khách tạo tài khoản ở box đăng ký phải tick đồng ý Chính sách bảo mật; lưu `consent_at`, `consent_version`. Học viên cũ chưa có `consent_at` được hỏi một lần sau khi đăng nhập | — | `registerAction`, `components/ConsentReminder.tsx` + `acceptConsentAction` (chỉ tài khoản học viên), `lib/consent.ts` |
-| BR-107 | ✅ Phiếu tham vấn và tiến độ tập là dữ liệu sức khỏe: chỉ bệnh nhân đó, staff, admin đọc được; không hiển thị trên trang công khai | — | RLS `consultations`, `lesson_progress`; hồ sơ bệnh nhân chỉ ở `/admin/**` |
+| BR-107 | ✅ Phiếu tham vấn và tiến độ tập là dữ liệu sức khỏe: chỉ khách hàng đó, staff, admin đọc được; không hiển thị trên trang công khai | — | RLS `consultations`, `lesson_progress`; hồ sơ khách hàng chỉ ở `/admin/**` |
 
 ## Đặt lại mật khẩu
 

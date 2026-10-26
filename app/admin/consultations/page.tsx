@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { setConsultationStatus } from '../actions'
+import PageHeader from '@/components/admin/PageHeader'
 
 export const metadata: Metadata = { title: 'Phiếu tham vấn' }
 
@@ -27,7 +28,7 @@ type Consultation = {
   created_at: string
 }
 
-// Phiếu tham vấn bệnh nhân gửi (SCR-25): nhân viên xem câu trả lời, gọi / nhắn Zalo hẹn bác sĩ, cập nhật trạng thái
+// Phiếu tham vấn khách hàng gửi (SCR-25): nhân viên xem câu trả lời, gọi / nhắn Zalo hẹn bác sĩ, cập nhật trạng thái
 export default async function AdminConsultationsPage(props: { searchParams: Promise<{ status?: string }> }) {
   const searchParams = await props.searchParams
   await requireStaffPage()
@@ -50,20 +51,19 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <PageHeader title="Phiếu tham vấn" description="Phiếu khách hàng gửi cho bác sĩ: liên hệ hẹn lịch, ghi chú nội bộ và cập nhật trạng thái." />
+      <nav aria-label="Lọc theo trạng thái phiếu" className="seg">
         {CONSULT_STATUSES.map((s, i) => (
           <Link
             key={s.value}
             href={s.value === 'new' ? '/admin/consultations' : `/admin/consultations?status=${s.value}`}
             aria-current={status === s.value ? 'page' : undefined}
-            className={`btn-sm btn whitespace-nowrap border ${
-              status === s.value ? 'border-ocean-500 bg-ocean-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-            }`}
+            className="seg-item"
           >
-            {s.label} <span className="opacity-80">({counts[i].count ?? 0})</span>
+            {s.label} <span className="opacity-70">({counts[i].count ?? 0})</span>
           </Link>
         ))}
-      </div>
+      </nav>
 
       <div className="space-y-3">
         {items.map((c) => {
@@ -74,11 +74,11 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {c.user_id ? (
-                    <Link href={`/admin/patients/${c.user_id}`} className="font-semibold text-ocean-900 hover:underline">
-                      {c.full_name ?? 'Bệnh nhân'}
+                    <Link href={`/admin/customers/${c.user_id}`} className="font-semibold text-ocean-900 hover:underline">
+                      {c.full_name ?? 'Khách hàng'}
                     </Link>
                   ) : (
-                    <p className="font-semibold text-ocean-900">{c.full_name ?? 'Bệnh nhân'} <span className="text-xs font-normal italic text-slate-400">(tài khoản đã xóa)</span></p>
+                    <p className="font-semibold text-ocean-900">{c.full_name ?? 'Khách hàng'} <span className="text-xs font-normal italic text-slate-400">(tài khoản đã xóa)</span></p>
                   )}
                   <StatusBadge status={`consult_${c.status}`} />
                   {scale && <span className="badge bg-red-50 text-red-700">{scale.label}: {answerText(scale)}</span>}
@@ -123,7 +123,7 @@ export default async function AdminConsultationsPage(props: { searchParams: Prom
                   rows={3}
                   maxLength={1000}
                   defaultValue={c.staff_note ?? ''}
-                  placeholder="Ghi chú nội bộ (bệnh nhân không thấy), VD: hẹn bác sĩ gọi 19h thứ 5"
+                  placeholder="Ghi chú nội bộ (khách hàng không thấy), VD: hẹn bác sĩ gọi 19h thứ 5"
                   className="input text-sm"
                 />
                 <SubmitButton className="btn-primary btn-sm w-full">Cập nhật</SubmitButton>

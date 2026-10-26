@@ -2,27 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookIcon, ClipboardIcon, HomeIcon, SettingsIcon, StarIcon, StethoscopeIcon, UsersIcon } from '@/components/icons'
+import { BookIcon, ClipboardIcon, HomeIcon, SettingsIcon, StarIcon, StethoscopeIcon, UserIcon, UsersIcon } from '@/components/icons'
 
-// Thứ tự menu do chủ dự án chốt 29/09/2026 (UI-02).
+// Thứ tự menu do chủ dự án chốt 29/09/2026 (UI-02); Đợt 26 (18/10/2026) tách "Nhân viên" (chỉ admin) khỏi "Khách hàng".
 // adminOnly: nhân viên (staff) không thấy mục này (trang cũng tự chặn bằng requireAdminPage)
 // exact: "Tổng quan" (/admin) chỉ sáng khi đúng trang, không sáng theo các trang con
 const tabs = [
   { href: '/admin', label: 'Tổng quan', icon: HomeIcon, adminOnly: false, exact: true },
   { href: '/admin/registrations', label: 'Đơn đăng ký', icon: ClipboardIcon, adminOnly: false },
-  { href: '/admin/patients', label: 'Bệnh nhân', icon: UsersIcon, adminOnly: false },
+  { href: '/admin/customers', label: 'Khách hàng', icon: UsersIcon, adminOnly: false },
   { href: '/admin/courses', label: 'Khóa học', icon: BookIcon, adminOnly: true },
   { href: '/admin/consultations', label: 'Phiếu tham vấn', icon: StethoscopeIcon, adminOnly: false },
   { href: '/admin/leads', label: 'Khách quan tâm', icon: StarIcon, adminOnly: false },
+  { href: '/admin/staff', label: 'Nhân viên', icon: UserIcon, adminOnly: true },
   { href: '/admin/settings/consultation', label: 'Mẫu phiếu', icon: SettingsIcon, adminOnly: true },
 ]
 
-// Màn hình < lg: hàng tab gạch chân cuộn ngang; từ lg: cột dọc trong sidebar bên trái (layout.tsx).
-// counts: số việc cần xử lý theo href (server component bọc Suspense, truyền từ layout)
+// Màn hình < lg: hàng "viên" cuộn ngang trên dải tối; từ lg: cột dọc trong thanh bên tối (layout.tsx) – mục đang mở nền sáng hơn
+// + vạch vàng bên trái. counts: số việc cần xử lý theo href (server component bọc Suspense, truyền từ layout)
 export default function AdminNav({ isAdmin, counts = {} }: { isAdmin: boolean; counts?: Record<string, React.ReactNode> }) {
   const pathname = usePathname()
   return (
-    <nav aria-label="Menu quản trị" className="-mb-px flex gap-1 overflow-x-auto lg:mb-0 lg:flex-col lg:overflow-visible">
+    <nav aria-label="Menu quản trị" className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
       {tabs
         .filter((t) => isAdmin || !t.adminOnly)
         .map((t) => {
@@ -33,13 +34,13 @@ export default function AdminNav({ isAdmin, counts = {} }: { isAdmin: boolean; c
               key={t.href}
               href={t.href}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition lg:rounded-r-lg lg:border-b-0 lg:border-l-4 lg:px-3 lg:py-2.5 ${
+              className={`relative flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300 lg:py-2.5 ${
                 active
-                  ? 'border-ocean-500 text-ocean-700 lg:bg-ocean-50'
-                  : 'border-transparent text-slate-500 hover:text-ocean-700 lg:hover:bg-slate-50'
+                  ? 'bg-white text-ocean-950 lg:bg-white/10 lg:text-white lg:before:absolute lg:before:inset-y-2 lg:before:left-0 lg:before:w-1 lg:before:rounded-r lg:before:bg-gold-400'
+                  : 'text-ocean-200 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <Icon className="hidden h-5 w-5 shrink-0 lg:block" />
+              <Icon className={`hidden h-[18px] w-[18px] shrink-0 lg:block ${active ? 'text-gold-300' : 'text-ocean-300'}`} />
               <span data-nav-label>{t.label}</span>
               {counts[t.href]}
             </Link>

@@ -10,8 +10,8 @@
 > ([project-overview §9](../00-overview/project-overview.md#9-định-vị-lại--phiên-bản-02-chốt-27092026)); **UI-xx** yêu cầu giao diện
 > sau v0.2 (§3.0).
 
-**Cập nhật lần cuối: 05/10/2026** – rà soát performance & security (project-review §7.10), thêm **§0.1 to-do từng bước**. Website đang chạy:
-https://hv-web.bsdomanhcuong.workers.dev.
+**Cập nhật lần cuối: 18/10/2026** – **Đợt 26 xong** (gọi chung "khách hàng", tách danh mục Khách hàng / Nhân viên, thêm / sửa / xóa cả hai, gỡ Vercel khỏi mã nguồn – §3.7) · E2E Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng) · ✅ chủ dự án đã chạy `supabase/schema.sql` (A-30, 18/10 – E2E chạy lại Node 107/107 · Workers 108/108, nhật ký xóa ghi đúng) · còn xóa project Vercel (A-31). Trước đó 17/10: **Đợt 21 → 24 xong** (bảo mật phiên đăng nhập, hiệu năng điện thoại 90 – 94 điểm, giao diện quản trị mới, thêm / sửa / xóa khóa học – §3.6) · E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) · chờ Pull Request vào `main`. Trước đó: Đợt 19 + **Đợt 20** (song ngữ trang chủ VI ↔ EN, giao diện hiện đại hơn) trên nhánh `hv-dgquan-20261017`, chờ PR vào `main`. Trước đó 06/10/2026: – **deploy tự động từ GitHub hoạt động**: merge vào `main` → Cloudflare Workers Builds tự build + deploy
+(PR #8, commit `73295e1`, check "Workers Builds: hv-web" ✅). Website: https://hv-web.bsdomanhcuong.workers.dev. Việc tiếp theo: **§0.1**.
 
 Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 26/09/2026 – v0.1 + Đợt 1 → 5 (sửa review, nhiều admin, vận hành an toàn, chống lạm dụng) · E2E 63/63
@@ -20,25 +20,60 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 - 02/10/2026 – Đợt 16 hạ tầng gói Free (keepalive + sao lưu tuần chạy thật, A-14 ✅); Đợt 14 viết lại thành kế hoạch chạy thử 7 giai đoạn (§3.1)
 - 04/10/2026 (sáng) – chủ dự án chốt **Cloudflare Workers Paid + Supabase Free** (ADR-017) → kế hoạch Đợt 17 (§3.4) và Đợt 18 (§3.5); Đợt 14 tạm dừng ở bước 1.2
 - 04/10/2026 (tối) – Đợt 17 P0 → P2 xong: Next 15 / React 19, OpenNext, RK-43, RK-53 · E2E Node 99/99, Workers 100/100
-- 04/10/2026 (khuya) – Đợt 17 P3: deploy lên Cloudflare (`npm run deploy:win`)
+- 04/10/2026 (khuya) – Đợt 17 P3: deploy lần đầu lên Cloudflare từ máy (`npm run deploy:win`)
 - 05/10/2026 – rà soát performance & security: sửa SEC-02, SEC-03, PERF-02; A-24, A-25 · E2E Node 99/99, Workers 100/100
+- 06/10/2026 – chủ dự án: Supabase URL, tắt đăng ký công khai (SEC-01 ✅), nghiệm thu bước 2; `deploy:win` có rào chặn; PR #7 → `main`;
+  Workers Builds: sửa lỗi build (biến công khai vào `.env.production`, `.node-version`), PR #8 → **deploy tự động từ `main` thành công** (Đợt 17 P3 ✅, P5 bắt đầu theo dõi)
+- 17/10/2026 – chủ dự án yêu cầu: rà soát hiệu năng + bảo mật (lỗi **phiên đăng nhập còn sau khi tắt trình duyệt**), thêm / sửa / xóa khóa học, thiết kế lại trang quản trị → **Đợt 21 → 24 xong cùng ngày**: SEC-13 → SEC-19, PERF-08 → PERF-12, UI-10, QL-06 → QL-08 · E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)
+- 17/10/2026 – dọn dự án trước khi push: bỏ `.idea/` khỏi git (cấu hình IDE riêng từng máy), xóa thư mục build / kết quả test cũ (~530 MB), bỏ 2 icon + 6 export không dùng; build sạch và kiểm thử lại Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng) → push nhánh `hv-dgquan-20261017`
+- 17/10/2026 – Đợt 20: nút chuyển ngữ VI | EN (trang chủ tiếng Anh `/en`, ADR-018), hero tối + bento + hiệu ứng theo cuộn · E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)
+- 17/10/2026 – Đợt 19 thiết kế lại trang chủ (UI-04 → UI-07): chuyển động, hồ sơ + ảnh bác sĩ, bỏ phần trùng · E2E Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)
+- 18/10/2026 – chủ dự án yêu cầu: gọi chung "khách hàng", tách danh mục nhân viên / khách hàng, thêm / sửa / xóa cả hai (nhân viên được xóa khách hàng, không đụng khóa học), gỡ Vercel → **Đợt 26 xong cùng ngày**: FR-212 → FR-218, QL-02 / QL-04, RK-63 → RK-66, Đợt 17 P6 (phần mã nguồn) · E2E Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng)
 
 ## 0. Tóm tắt hiện trạng
 
 | Hạng mục | Trạng thái |
 | --- | --- |
-| Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, bệnh nhân từ Zalo, phiếu tham vấn, dashboard |
-| Kiểm thử | E2E **Node 99/99**, **Cloudflare Workers 100/100** (04/10/2026, Đợt 17; RK-54 ghi nhận riêng) – chạy trên project Supabase hiện tại (dữ liệu test). Lần chạy sau rà soát: xem test-plan §3 |
-| Hiệu năng | Middleware nhẹ (ADR-016); trang công khai ISR trả từ cache (`enableCacheInterception`); Worker 1,6 MiB nén, khởi động 16 ms; mạng VN → PoP Hồng Kông ~0,27 giây kết nối (PERF-01) – project-review §7.10 |
-| Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. Deploy từ máy: `npm run deploy:win`. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
-| Việc tiếp theo | Xem **§0.1** – bước 1 (Supabase URL + tắt đăng ký công khai + SMTP) → bước 2 (nghiệm thu CF-01 → CF-41) → bước 3 (gộp `main`, Workers Builds) → bước 4 (Đợt 18) → bước 5 (Đợt 14 chạy thử) |
-| Rủi ro còn mở cần chú ý | **SEC-01 🟠** (Supabase cho đăng ký công khai qua API – A-24), RK-54 (hydration trang quản trị trên workerd – CF-41), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
+| Phiên bản | **v0.2 hoàn tất code** (Đợt 7 → 13): vai trò nhân viên, khóa miễn phí / chương trình / premium, gói tháng + hạn học, buổi – bài + tiến độ, khách hàng từ Zalo, phiếu tham vấn, dashboard |
+| Kiểm thử | E2E **Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)** (17/10/2026 sau Đợt 21 → 24: phiên đăng nhập, quản trị mới, khóa học); sau Đợt 19 – 20: Node 101 – 102, Workers 102 – 103; 05/10: Node 99/99, Workers 100/100 – chạy trên project Supabase hiện tại (dữ liệu test); chủ dự án nghiệm thu trên website thật 06/10 ✅ (trừ email thật – chờ 1.3) |
+| Hiệu năng | **Đợt 22 (đo bằng `scripts/perf.mjs`)**: điện thoại 90 – 94 điểm (trước 71 – 89), TBT quản trị ≤ 41 ms, JS ~150 kB gzip / trang, máy tính 98 – 100; còn PERF-13 (LCP điện thoại 2,8 – 3,4 s do font – A-29). Middleware nhẹ (ADR-016); trang công khai ISR trả từ cache (`enableCacheInterception`); Worker 1,6 MiB nén, khởi động 16 ms; mạng VN → PoP Hồng Kông ~0,27 giây kết nối (PERF-01) – project-review §7.10 |
+| Hạ tầng | **Cloudflare Workers Paid** (`hv-web`, https://hv-web.bsdomanhcuong.workers.dev, R2 + D1 + Durable Object) + **Supabase Free**; keepalive + sao lưu tuần ✅. **Deploy: merge vào `main` → Workers Builds tự deploy** (từ 06/10); `npm run deploy:win` chỉ khẩn cấp. Supabase chỉ nâng Pro khi chạm hạn mức (§3.3) |
+| Việc tiếp theo | **Đợt 26** (18/10): chủ dự án **chạy `supabase/schema.sql`** (A-30 – nhật ký xóa tài khoản, chặn xóa admin cuối ở database), xóa project Vercel + gỡ app Vercel khỏi GitHub (A-31), báo nhân viên menu mới (A-32) → Pull Request vào `main`. Trước đó: **Đợt 19 → 24** (trang chủ mới, song ngữ, bảo mật phiên, hiệu năng, quản trị mới, khóa học): Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) + **A-28** báo mọi người đăng nhập lại 1 lần / nhân viên làm quen giao diện mới, A-26 xác nhận ảnh / số liệu, A-27 duyệt bản dịch, A-29 chọn phương án font · sau đó **Đợt 25** (khách hàng: sửa nhanh, khóa / xóa tài khoản – cần chạy SQL) · Xem **§0.1** – ✅ bước 1 (trừ email), 2, 3.0 → 3.3 · ⏭ **bước 4 – Đợt 18** (thêm / sửa / xóa) · song song: theo dõi 14 ngày (3.4, tới 20/10), email khi chốt Gmail (1.3 → 1.4) · sau đó bước 5 (Đợt 14 chạy thử) |
+| Rủi ro còn mở cần chú ý | RK-63 (xóa khách hàng không hoàn tác – nhân viên cũng xóa được; có nhật ký), RK-54 (hydration trang quản trị trên workerd – CF-41), RK-55 (ảnh / số liệu trang chủ chờ A-26), RK-48 / 49 (cấu hình còn thiếu), RK-51 / 52 (Đợt 18), SEC-10 (tài khoản Cloudflare 1 thành viên), RK-20 (nội dung chính sách chưa duyệt), RK-10 (chưa có staging), RK-33 (chưa có thông báo phiếu / lead mới), RK-37 (Storage Free 1 GB) |
 
 ## 0.1. Việc cần làm tiếp theo – từng bước (to-do)
 
 > Làm theo thứ tự. Mỗi bước: **ai làm** · **cách làm** · **xong khi**. Tick `[x]` + ngày khi xong. Bước của dev: báo "tiếp tục bước X" là dev làm.
-> Lệnh hay dùng: deploy từ máy `npm run deploy:win` · kiểm thử `npm run test:e2e:workers` (chuẩn) / `npm run test:e2e` (Node)
+> **Khi quay lại, bắt đầu từ đây**: (1) `git fetch` rồi `git checkout <nhánh làm việc> && git pull origin main` (nhánh hiện tại: `hv-dgquan-20261017` – Đợt 19; nhánh tạo trên GitHub mà máy báo `pathspec … did not match` thì chạy `git fetch` trước) (nhánh làm việc luôn đồng bộ `main` trước khi code);
+> (2) đọc bước đầu tiên còn ⬜ bên dưới – hiện là **bước 0 (Đợt 21 → 24)**; (3) xong một phần → commit → push nhánh → Pull Request vào `main` → merge = tự deploy.
+> Lệnh hay dùng: kiểm thử `npm run test:e2e:workers` (chuẩn) / `npm run test:e2e` (Node) · deploy khẩn cấp từ máy `npm run deploy:win` (phải commit + push trước)
 > (cần `E2E_SUPABASE_REF` – runbook §1.1) · xem log Cloudflare: Workers › hv-web › Observability › Logs.
+
+### Bước 0 – Đợt 21 → 24 (yêu cầu chủ dự án 17/10/2026, dev làm theo thứ tự) – kế hoạch chi tiết §3.6
+
+- [x] **0.1 Đợt 21 – Bảo mật** ✅ 17/10/2026 – SEC-13 → SEC-19 (project-review §7.13): SEC-13 phiên đăng nhập không còn sau khi tắt trình duyệt + tự đăng xuất khi không dùng; rà soát toàn bộ bảo mật và sửa lỗi tìm được. *Xong khi*: TC-114 → TC-116 PASS, E2E toàn bộ PASS, project-review §7.13 ghi kết quả
+- [x] **0.2 Đợt 22 – Hiệu năng** ✅ 17/10/2026 – điện thoại 71 – 89 → 90 – 94 điểm (project-review §7.14); PERF-13 chờ A-29: đo Lighthouse (điện thoại + máy tính) các trang chính, dung lượng JS, thời gian phản hồi; sửa vấn đề tìm được. *Xong khi*: bảng số đo trước / sau ở project-review §7.14, không trang nào dưới ngưỡng test-plan §5
+- [x] **0.3 Đợt 23 – Giao diện quản trị mới** ✅ 17/10/2026 (project-review §7.15) (UI-10): khung quản trị riêng (thanh bên tối, thanh trên có tiêu đề trang), Tổng quan dạng thẻ số liệu, bảng / bộ lọc thống nhất, trạng thái rỗng, điện thoại dễ dùng. *Xong khi*: mọi trang quản trị dùng khung mới, E2E PASS
+- [x] **0.4 Đợt 24 – Thêm / sửa / xóa khóa học** ✅ 17/10/2026 – TC-108 → TC-110 (QL-06 → QL-08 của Đợt 18): nút "+ Thêm khóa học", trang sửa riêng, hàng thao tác rõ ràng, xóa an toàn (chặn khi còn học viên / đơn chờ, gõ tên để xác nhận, xóa ảnh bìa). *Xong khi*: TC-108 → TC-110 PASS
+- [x] 0.5a Commit Đợt 21 → 24 trên nhánh `hv-dgquan-20261017` (dev, 17/10/2026); dọn dự án + kiểm thử lại Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng); **push nhánh lên GitHub** ✅
+- [ ] **0.5b** (chủ dự án) mở Pull Request `hv-dgquan-20261017` → `main` (nhánh đã push) → merge (tự deploy) → **A-28** · (dev) đo lại hiệu năng trên website thật: `PERF_BASE=https://hv-web.bsdomanhcuong.workers.dev` (cần tài khoản admin thật – chỉ đo trang công khai: chạy Lighthouse tay)
+- [ ] **0.6 Đợt 25** (dev, sau 0.5b) – phần khách hàng của Đợt 18: ~~QL-02 sửa nhanh ở danh sách~~, ~~QL-04 xóa khách hàng~~ (→ **Đợt 26 ✅ 18/10**, nhân viên cũng được xóa), còn QL-03 khóa / mở khóa tài khoản, QL-05 sửa gói; trigger chặn xóa khóa còn học viên ở database (RK-61) → **chủ dự án chạy `supabase/schema.sql`**
+
+### Bước 0c – Sửa lỗi build Cloudflare (26/10/2026) – RK-71 🔴
+
+- [x] (dev) `npm run build:cf` = `opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion`; CI, `deploy:win`, `preview` / `deploy` dùng chung; thử build sạch (`npm ci`) trên bản sao → PASS ✅ 26/10
+- [ ] **(chủ dự án – A-33)** Cloudflare › Workers › hv-web › Settings › Build › **Build command** = `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` → Save → Deployments › Retry build (lần thử `npm run build:cf` 26/10 09:12 lỗi `Missing script` vì `main` chưa có script – chỉ nhánh `hv-dgquan-20261017` có)
+- [ ] **Đợt 27 (dev)** nâng Next 16 (OpenNext 1.20.13 hỗ trợ `next >= 16.4.1`) để nhận lại bản vá bảo mật, rồi bỏ cờ – chạy E2E Node + Workers
+
+### Bước 0b – Đợt 26 (yêu cầu chủ dự án 18/10/2026) – kế hoạch §3.7
+
+- [x] **0b.1** Đổi "bệnh nhân" → "khách hàng" toàn bộ giao diện, thông báo, kiểm thử, tài liệu; `/admin/patients` → `/admin/customers` (link cũ tự chuyển) ✅ 18/10
+- [x] **0b.2** Danh mục **Nhân viên** riêng (`/admin/staff`, chỉ admin): thêm / sửa / đổi vai trò / cấp lại mật khẩu / xóa; danh sách khách hàng chỉ còn khách hàng ✅ 18/10
+- [x] **0b.3** Khách hàng: cột Thao tác (Hồ sơ · Sửa · Xóa), **xóa an toàn** cho nhân viên + admin (QL-02, QL-04); nhân viên vẫn không sửa khóa học ✅ 18/10
+- [x] **0b.4** Gỡ Vercel khỏi mã nguồn (`vercel.json`, README, ghi chú) – Đợt 17 P6 phần dev; rà soát deploy Cloudflare, rủi ro, hiệu năng, bảo mật (project-review §7.16) ✅ 18/10
+- [x] **0b.5** E2E Node + Workers (TC-117 → TC-119) – Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng)
+- [ ] **0b.6** (chủ dự án) ✅ **A-30** đã chạy `supabase/schema.sql` (18/10, E2E lại Node 107/107 · Workers 108/108, hết "lưu ý database") · **A-31** xóa project Vercel + gỡ app Vercel khỏi repo GitHub (runbook §4.1) · **A-32** báo nhân viên: menu "Bệnh nhân" đổi thành "Khách hàng", nhân viên được xóa khách hàng
+- [ ] **0b.7** Commit → push nhánh → Pull Request vào `main` → merge (tự deploy)
 
 ### Bước 1 – Hoàn tất cấu hình Cloudflare / Supabase (Đợt 17 P3 còn lại) – ưu tiên cao
 
@@ -55,15 +90,15 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 ### Bước 2 – Nghiệm thu trên Cloudflare thật (Đợt 17 P4, dev + chủ dự án, ~1 giờ)
 
 Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-migration.md#5-checklist-nghiệm-thu-inspection) (CF-01 → CF-41). Tối thiểu:
-- [ ] 2.1 Khách (iPhone + Android): trang chủ, khóa miễn phí xem video, khóa premium "Mở Zalo ngay" (CF-02, CF-27)
-- [ ] 2.2 Đăng ký chương trình bằng điện thoại: QR đúng tiền, ảnh chuyển khoản tải lên được (CF-03)
-- [ ] 2.3 Đăng nhập email / SĐT, đăng xuất, quên mật khẩu email thật (CF-04, CF-05)
-- [ ] 2.4 Nhân viên / admin: duyệt đơn, tạo bệnh nhân Zalo, cấp gói, phiếu tham vấn, Tổng quan; đổi tab Đơn đăng ký (RK-53) (CF-07, CF-08)
-- [ ] 2.5 Sửa tên một khóa → trang chủ (tab ẩn danh) đổi ngay (CF-09)
-- [ ] 2.6 Mở trang quản trị nhiều lần, DevTools › Console không có lỗi React #418 (CF-41, RK-54) – còn lỗi thì ghi URL gửi dev
-- [ ] 2.7 Workers › hv-web › Deployments: thử **Rollback** về bản trước rồi về lại bản mới (CF-29); Logs thấy lỗi thử (CF-30)
-- [x] 2.1 → 2.7 chủ dự án kiểm thử trên website thật – ✅ 06/10/2026 (trừ quên mật khẩu bằng email thật: chờ 1.3)
-- [ ] 2.8 Ghi kết quả vào cloudflare-migration §6; mục 🔴 nào chưa đạt → dev sửa trước bước 3
+- [x] 2.1 Khách (iPhone + Android): trang chủ, khóa miễn phí xem video, khóa premium "Mở Zalo ngay" (CF-02, CF-27)
+- [x] 2.2 Đăng ký chương trình bằng điện thoại: QR đúng tiền, ảnh chuyển khoản tải lên được (CF-03)
+- [x] 2.3 Đăng nhập email / SĐT, đăng xuất (CF-04) · ⬜ quên mật khẩu email thật (CF-05 – chờ 1.3)
+- [x] 2.4 Nhân viên / admin: duyệt đơn, tạo khách hàng Zalo, cấp gói, phiếu tham vấn, Tổng quan; đổi tab Đơn đăng ký (RK-53) (CF-07, CF-08)
+- [x] 2.5 Sửa tên một khóa → trang chủ (tab ẩn danh) đổi ngay (CF-09)
+- [x] 2.6 Mở trang quản trị nhiều lần, DevTools › Console không có lỗi React #418 (CF-41, RK-54) – còn lỗi thì ghi URL gửi dev · chủ dự án báo ổn 06/10; RK-54 vẫn theo dõi trong P5 (mở Console khi dùng trang quản trị, thấy #418 thì gửi URL)
+- [x] 2.7 Workers › hv-web › Deployments: thử **Rollback** về bản trước rồi về lại bản mới (CF-29); Logs thấy lỗi thử (CF-30)
+- [x] 2.1 → 2.7: chủ dự án nghiệm thu trên website thật ✅ 06/10/2026 (trừ CF-05 email thật)
+- [x] 2.8 Ghi kết quả vào cloudflare-migration §6 – ✅ 06/10/2026
 
 ### Bước 3 – Gộp nhánh & tự động deploy (Đợt 17 P3.4 / P5)
 
@@ -71,19 +106,20 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 
 - [x] 3.1 – ✅ 06/10/2026 chủ dự án mở Pull Request nhánh `hv-change-dgquan1001-20260929-1` → `main`; CI phải xanh (typecheck, lint, build OpenNext).
 - [x] 3.2 (chủ dự án) – ✅ 06/10/2026 merge vào `main` (`a87311c`), CI `check` xanh. *Lưu ý*: workflow sao lưu / keepalive chạy theo `main` – kiểm Actions vẫn ✅ sau merge.
-- [ ] 3.3 (chủ dự án, dev hướng dẫn) – 🟡 06/10: đã nối nhưng lần merge `a87311c` **không được build** (commit không có check "Workers Builds" – nối sau khi merge hoặc chưa lưu / chưa cấp quyền repo cho app GitHub). Workers Builds đã nối (build nhánh `1f19308` chạy) nhưng **đỏ vì thiếu Build variables** (`supabaseUrl is required`) → chủ dự án đã nhập nhưng vào Variables and Secrets (lúc chạy) chứ không phải Build variables → dev đưa 3 biến công khai vào `.env.production` (commit) + `.node-version` = 22, không còn phụ thuộc nhập tay; `next.config.mjs` báo rõ biến thiếu. Build `a8efa59` **đạt** (Node 22, 22/22 trang, OpenNext build complete), chỉ đỏ ở bước `wrangler preview` của nhánh phụ → tắt Non-production branch builds; deploy thật chờ PR vào `main`. Kích hoạt lại bằng một PR mới vào `main`; kiểm: commit có check Workers Builds, Deployments có nguồn GitHub. Workers › hv-web › Settings › Builds › Connect GitHub (repo, nhánh `main`, Build `npx opennextjs-cloudflare build`,
-  Deploy `npx opennextjs-cloudflare deploy`, Build variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`,
-  `NODE_VERSION=22`) – runbook §4 bước 5. *Xong khi*: push `main` → build xanh, website đổi theo.
-- [ ] 3.4 Theo dõi 14 ngày (Logs không lỗi 5xx bất thường) → **P6**: xóa project Vercel, xóa `vercel.json`, đóng RK-35 (dev + chủ dự án).
+- [x] 3.3 Workers Builds – ✅ 06/10/2026: nối GitHub (nhánh production `main`, Build `npx opennextjs-cloudflare build`, Deploy `npx opennextjs-cloudflare deploy`);
+  PR #8 merge (`73295e1`) → check "Workers Builds: hv-web" ✅ → deploy production từ GitHub. Bài học (runbook §8): lần merge trước khi nối không được build;
+  biến build nhập nhầm vào Variables and Secrets (lúc chạy) → đưa biến công khai vào `.env.production` + `.node-version`; build nhánh phụ đỏ ở `wrangler preview` → tắt Non-production branch builds.
+- [ ] 3.4 Theo dõi 14 ngày **06/10 → 20/10/2026** – chủ dự án xác nhận ổn định 18/10 → **P6**: ✅ (dev, 18/10 – Đợt 26) xóa `vercel.json`, gỡ tham chiếu Vercel trong mã nguồn / tài liệu vận hành, đóng RK-35 · ⬜ (chủ dự án – A-31) xóa project Vercel + gỡ app Vercel khỏi repo GitHub (hiện vẫn tạo check "Vercel Preview Comments").
+- [ ] 3.5 (chủ dự án, nếu chưa làm) Settings › Build › Branch control: **tắt Non-production branch builds** (tránh check đỏ trên nhánh làm việc).
 
-### Bước 4 – Đợt 18: thêm / sửa / xóa bệnh nhân & khóa học (dev, ~2 – 3 ngày) – thiết kế đã chốt ở §3.5
+### Bước 4 – Đợt 18: thêm / sửa / xóa khách hàng & khóa học (dev, ~2 – 3 ngày) – thiết kế đã chốt ở §3.5
 
-- [ ] 4.1 Schema: cột khóa tài khoản ở `profiles` (`disabled_at`, `disabled_by`, `disabled_reason`), lọc "Đã khóa" trong `admin_patients()`, hàm kiểm điều kiện xóa bệnh nhân / khóa học, `account_events` lưu tên → **chủ dự án chạy `supabase/schema.sql`**
-- [ ] 4.2 QL-02 cột "Thao tác" + hộp thoại sửa nhanh ở danh sách bệnh nhân
+- [ ] 4.1 Schema: cột khóa tài khoản ở `profiles` (`disabled_at`, `disabled_by`, `disabled_reason`), lọc "Đã khóa" trong `admin_patients()`, hàm kiểm điều kiện xóa khách hàng / khóa học, `account_events` lưu tên → **chủ dự án chạy `supabase/schema.sql`**
+- [ ] 4.2 QL-02 cột "Thao tác" + hộp thoại sửa nhanh ở danh sách khách hàng
 - [ ] 4.3 QL-03 khóa / mở khóa tài khoản (nhân viên + admin; chặn đăng nhập + đăng xuất phiên đang mở)
-- [ ] 4.4 QL-04 xóa bệnh nhân (chỉ admin, gõ lại SĐT, không còn gói còn hạn / đơn chờ; xóa cả phiếu tham vấn; giữ đơn + ảnh chuyển khoản)
+- [ ] 4.4 QL-04 xóa khách hàng (chỉ admin, gõ lại SĐT, không còn gói còn hạn / đơn chờ; xóa cả phiếu tham vấn; giữ đơn + ảnh chuyển khoản)
 - [ ] 4.5 QL-06, QL-07, QL-08 danh sách khóa học: hàng nút Sửa / Ẩn / Xóa, nút "+ Thêm khóa học", chặn xóa khóa còn học viên, xóa ảnh bìa
-- [ ] 4.6 E2E TC-104 → TC-110 + chạy lại toàn bộ (Node + workers) → deploy (`npm run deploy:win` hoặc push `main`) → cập nhật tài liệu (SRS, user stories, database, API, UI, security, test-plan, roadmap, project-review)
+- [ ] 4.6 E2E TC-104 → TC-110 + chạy lại toàn bộ (Node + workers) → Pull Request vào `main` → merge (tự deploy) → cập nhật tài liệu (SRS, user stories, database, API, UI, security, test-plan, roadmap, project-review)
 
 ### Bước 5 – Tiếp Đợt 14: chạy thử MVP (§3.1, cách làm ở runbook §10)
 
@@ -117,15 +153,23 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | 8 | Danh mục khóa, premium, chính sách | R-03, RV-17 | ✅ (nội dung chờ A-7) | 27/09/2026 (`1251587`) | TC-68 → 73 | 73/73 |
 | 9 | Gói tháng & hạn học | RK-22 | ✅ | 27/09/2026 (`b46f232`, `da23361`) | TC-74 → 78 | 78/78 |
 | 10 | Buổi – bài, trình học, tiến độ | R-04, R-09, RK-27, RK-28 | ✅ | 27/09/2026 (`c713566` → `2f41289`) | TC-79 → 84 | 83/83 |
-| 11 | Bệnh nhân từ Zalo | R-02, RK-16 (cấp bù), RK-34 | ✅ | 27/09/2026 (`b25430e`) | TC-85 → 88, TC-96 | 96/96 (chạy chung 11 → 13) |
+| 11 | Khách hàng từ Zalo | R-02, RK-16 (cấp bù), RK-34 | ✅ | 27/09/2026 (`b25430e`) | TC-85 → 88, TC-96 | 96/96 (chạy chung 11 → 13) |
 | 12 | Phiếu tham vấn | RK-29 | ✅ | 27/09/2026 | TC-89 → 92 | ↑ |
 | 13 | Dashboard | R-07 (doanh thu trên dashboard) | ✅ | 27/09/2026 | TC-93 → 94 | ↑ |
 | + | Khóa học theo loại, RK-18, hiệu năng (ADR-016) | RK-18 | ✅ | 27/09/2026 | TC-95, TC-97, TC-98 | ↑ |
 | 14 | **Chạy thử MVP (pilot)** – 7 giai đoạn (§3.1) | A-1, A-4 → A-11, A-15, A-17, V-12 | ⏸ Tạm dừng ở bước 1.2 – chờ Đợt 17 (bước 1.3 → hạ tầng Cloudflare) | — | Nghiệm thu runbook §10 giai đoạn 5 | — |
 | 15 | **Cải tiến giao diện** (yêu cầu 29/09) | UI-01 → UI-03 | ✅ | 29/09/2026 (`c17f476`) | TC-99 → TC-101 | 98/98 |
 | 16 | **Hạ tầng gói Free** (đánh giá + lộ trình chuyển gói) | RK-35 → RK-42, RV-20 (một phần) | ✅ | 02/10/2026 (`9e1e7b0`, sửa Node 22 `aea7eb1`) | 2 workflow chạy thật trên GitHub ✅ (A-14) | — (không đổi giao diện) |
-| 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, RK-53, A-18 → A-22 | 🟡 P0 → P2 ✅ · P3 đã deploy `hv-web.bsdomanhcuong.workers.dev` (04/10) · P4 nghiệm thu | — | TC-102, TC-103; checklist CF-01 → CF-41 (P4) | Node 99/99 · Workers 100/100 |
-| 18 | **Thêm / sửa / xóa bệnh nhân & khóa học** – §3.5 | QL-01 → QL-08, RK-51, RK-52 | 📝 Kế hoạch (04/10) – đã chốt Q-5 → Q-8, làm sau Đợt 17 P2 | — | TC-104 → TC-110 | — |
+| 17 | **Chuyển web sang Cloudflare Workers** (Next 15, OpenNext, R2/D1/DO, IP, email) – §3.4 | ADR-017, RK-35, RK-43 → RK-50, RK-53, A-18 → A-22 | 🟡 P0 → P4 ✅ (06/10: deploy tự động từ `main`, nghiệm thu) · P5 theo dõi tới 20/10 · P6 gỡ Vercel | — | TC-102, TC-103; checklist CF-01 → CF-41 (P4) | Node 99/99 · Workers 100/100 |
+| 18 | **Thêm / sửa / xóa khách hàng & khóa học** – §3.5 | QL-01 → QL-08, RK-51, RK-52 | 🟡 Phần khóa học xong ở Đợt 24 (17/10); phần khách hàng → Đợt 25 | — | TC-104 → TC-110 | — |
+| 19 | **Thiết kế lại trang chủ** (yêu cầu 17/10): chuyển động, câu chữ thu hút, hồ sơ + ảnh bác sĩ, bỏ phần trùng | UI-04 → UI-07, RK-55, RK-56, A-26 | ✅ code + E2E (nhánh `hv-dgquan-20261017`, chờ PR vào `main`) | 17/10/2026 | TC-111, TC-112 | Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
+| 20 | **Song ngữ trang chủ VI ↔ EN + giao diện hiện đại hơn** (yêu cầu 17/10) | UI-08, UI-09, ADR-018, RK-57, RK-58 | ✅ code + E2E (nhánh `hv-dgquan-20261017`, chờ PR vào `main`) | 17/10/2026 | TC-113 (+ TC-111, TC-112 trên giao diện mới) | Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
+| 21 | **Bảo mật: phiên đăng nhập + rà soát toàn bộ** (yêu cầu 17/10) – §3.6 | SEC-13 → SEC-19, RK-59, RK-60 | ✅ (chờ PR vào `main`) | 17/10/2026 | TC-114 → TC-116 | Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) (chạy chung 21 → 24) |
+| 22 | **Hiệu năng: đo + sửa** – §3.6 | PERF-08 → PERF-13 | ✅ (PERF-13 chờ A-29) | 17/10/2026 | `scripts/perf.mjs` – điện thoại 90 – 94 điểm (trước 71 – 89) | ↑ |
+| 23 | **Giao diện quản trị mới** – §3.6 | UI-10, RK-62 | ✅ (chờ PR vào `main`) | 17/10/2026 | E2E toàn bộ | ↑ |
+| 24 | **Thêm / sửa / xóa khóa học** (phần khóa học của Đợt 18) – §3.6, §3.5 | QL-06 → QL-08, RK-61 | ✅ (chờ PR vào `main`) | 17/10/2026 | TC-108 → TC-110 | ↑ |
+| 25 | **Khách hàng: khóa tài khoản, sửa gói** (phần còn lại của Đợt 18) – §3.5 | QL-03, QL-05, RK-61 | 📝 Kế hoạch – cần chạy SQL (QL-02, QL-04 đã làm ở Đợt 26) | — | TC-105 | — |
+| 26 | **Khách hàng & Nhân viên tách riêng, thêm / sửa / xóa; gỡ Vercel** (yêu cầu 18/10) – §3.7 | FR-212 → FR-218, QL-02, QL-04, RK-63 → RK-66, Đợt 17 P6 | ✅ code + E2E (chờ A-30 chạy SQL, PR vào `main`) | 18/10/2026 | TC-117 → TC-119 | Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng) |
 
 ### 1.2. Tổng hợp theo nguồn
 
@@ -134,12 +178,14 @@ Checklist đầy đủ: [cloudflare-migration §5](../09-operations/cloudflare-m
 | RV (review vòng 1) | 20 | 10 | 4 (RV-10, RV-12, RV-17, RV-20) | 6 |
 | RK vòng 2–3 (RK-01 → 15) | 15 | 12 | 1 (RK-10) | 2 (RK-02, RK-15) |
 | RK v0.2 (RK-16 → 34) | 19 | 7 (RK-16, 18, 22, 27, 28, 29, 34) | 10 chấp nhận / theo dõi (RK-17, 19, 21, 23, 24, 25, 26, 30, 31, 32) | 2 (RK-20 chờ A-7, RK-33) |
-| RK hạ tầng (RK-35 → 42) | 8 | 2 (RK-36, RK-38 chờ A-15) | 3 chấp nhận / theo dõi (RK-35, 37, 42) | 3 (RK-39, 40, 41 – giai đoạn 2) |
+| RK hạ tầng (RK-35 → 42) | 8 | 3 (RK-35 – 18/10, RK-36, RK-38 chờ A-15) | 2 chấp nhận / theo dõi (RK-37, 42) | 3 (RK-39, 40, 41 – giai đoạn 2) |
 | R (tính năng mở rộng, gồm R-00) | 14 | 7 (R-00, 02, 03, 04, 05, 09, 12) | 1 (R-07) | 6 |
 | G (khoảng trống kiểm thử) | 12 | 2 | 4 | 6 |
-| UI (yêu cầu giao diện 29/09) | 3 | 3 | 0 | 0 |
+| UI (yêu cầu giao diện 29/09 + 17/10) | 10 | 10 | 0 | 0 |
 | RK chuyển hạ tầng & quản lý (RK-43 → 54) | 12 | 7 (RK-43 → 47, 50, 53) | 3 (RK-48, 49 – cấu hình P3 / P5; RK-54 – theo dõi) | 2 (RK-51, 52 – Đợt 18) |
-| QL (thêm / sửa / xóa – 04/10) | 8 | 1 (QL-01 có sẵn) | 0 | 7 |
+| QL (thêm / sửa / xóa – 04/10) | 8 | 6 (QL-01, 02, 04, 06, 07, 08) | 0 | 2 (QL-03, QL-05 – Đợt 25) |
+| RK trang chủ (RK-55 → 58 – 17/10) | 4 | 1 (RK-56) | 3 (RK-55 – chờ A-26; RK-57 – chấp nhận; RK-58 – đo Lighthouse sau deploy) | 0 |
+| RK Đợt 26 (RK-63 → 70 – 18/10) | 8 | 6 (RK-64 chấp nhận, RK-65, 67, 68, 69, 70) | 2 (RK-63 theo dõi nhật ký, RK-66 chờ A-31) | 0 |
 
 ## 2. Việc cần chủ dự án làm (không tự động hóa được)
 
@@ -151,7 +197,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-15 | Xác nhận project Supabase ở vùng **Singapore** (ghi vào tài liệu; Smart Placement của Cloudflare tự đặt Worker gần Supabase) | RK-38 | 1.2 / Đợt 17 P3.7 | ⬜ |
 | A-18 | Tài khoản Cloudflare (email trung tâm, **bật 2FA**), đăng ký **Workers Paid** (5 USD/tháng), cảnh báo thanh toán | ADR-017 | Đợt 17 P3.1 | ✅ 04/10 (tạm đăng nhập GitHub; mời email trung tâm làm Super Administrator khi chốt) |
 | A-19 | **Tên miền**: chủ dự án chốt 04/10 – **chạy thử trên `*.workers.dev`**, chọn / mua tên miền ở đợt sau (đổi nameserver về Cloudflare, bật tự gia hạn) | RK-49 | Sau Đợt 17 | ⏸ |
-| A-20 | 🟡 R2, D1, Secret, deploy đã xong 04/10 (dev); còn Workers Builds kết nối GitHub (sau khi gộp nhánh vào `main`) + nhập biến môi trường / Secret theo [cloudflare-migration §4 P3.4](../09-operations/cloudflare-migration.md#p3--hạ-tầng-cloudflare-chủ-dự-án-dev-hướng-dẫn-qua-màn-hình); tạo R2, D1 | RK-48 | Đợt 17 P3.3 → P3.5 | ⬜ |
+| A-20 | ✅ 06/10/2026: R2, D1, Secret, deploy (04/10); Workers Builds nối GitHub, deploy tự động từ `main` (biến công khai trong `.env.production`) – theo [cloudflare-migration §4 P3.4](../09-operations/cloudflare-migration.md#p3--hạ-tầng-cloudflare-chủ-dự-án-dev-hướng-dẫn-qua-màn-hình); tạo R2, D1 | RK-48 | Đợt 17 P3.3 → P3.5 | ⬜ |
 | A-21 | Supabase Auth Site URL / Redirect URLs, Turnstile hostname theo domain mới; (nếu cần) tài khoản Resend + xác minh domain; Email Routing `lienhe@` | RK-49 | Đợt 17 P3.6, P5 | ⬜ |
 | A-22 | Nghiệm thu checklist CF-01 → CF-41 cùng dev, quyết định cutover; sau 14 ngày ổn định xóa project Vercel | — | Đợt 17 P4 → P6 | ⬜ |
 | A-12 | ~~Vercel production~~ → thay bằng A-18 → A-21. Phần còn lại: **App Password Gmail** cho `SMTP_USER` / `SMTP_PASS` (hiện `.env.local` để trống), thử quên mật khẩu | — | 1.6 | ⬜ |
@@ -169,6 +215,14 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-13 | Supabase **Pro** – chỉ khi chạm hạn mức Free (§3.3); không cần Vercel Pro nữa (ADR-017) | RK-37 | Khi đạt ngưỡng | ⏸ |
 | A-23 | Chốt các câu hỏi Đợt 18 (Q-5 → Q-8, §3.5) | RK-51, RK-52 | Trước khi code Đợt 18 | ✅ 04/10/2026 |
 | A-24 | **Tắt đăng ký công khai** của Supabase (Authentication › Sign In / Providers › Allow new users to sign up = tắt) | SEC-01 | §0.1 bước 1.2 | ✅ 06/10/2026 |
+| A-26 | Xác nhận được dùng **ảnh hoạt động** (có học viên / người tham dự) và **số liệu** trên trang chủ (10+ năm, 13.000+ người theo dõi, 3 cơ sở, quá trình công tác) – sửa ở `lib/site-config.ts`, `public/images/bac-si/` | RK-55 | Trước khi quảng bá | ⬜ |
+| A-28 | Sau khi merge Đợt 21 → 24: **báo nhân viên / khách hàng đang dùng phải đăng nhập lại 1 lần** (cookie phiên mới – RK-59); nhân viên làm quen giao diện quản trị mới (menu giữ thứ tự, đổi màu / vị trí nút – RK-62); thử "Ghi nhớ đăng nhập" trên điện thoại riêng | SEC-13, UI-10 | Ngay sau deploy | ⬜ |
+| A-29 | Chọn phương án font để LCP điện thoại < 2,5 s (PERF-13): (a) giữ nguyên (điểm 90 – 94), (b) bỏ độ đậm 500 – chữ "vừa" dùng 400 / 600, (c) chỉ tải trước độ đậm 400 + 700 | PERF-13 | Khi tiện | ⬜ |
+| A-27 | Duyệt **bản dịch tiếng Anh** trang chủ (`lib/i18n.ts` › `homeCopy.en`, `cardCopy.en`, `chromeCopy.en`) – thuật ngữ y khoa, tên trường, chức danh bác sĩ | RK-57 | Trước khi quảng bá bản `/en` | ⬜ |
+| A-30 | **Chạy `supabase/schema.sql`** (Supabase › SQL Editor › dán toàn bộ › Run) sau Đợt 26: nhật ký xóa tài khoản (`account_events` cho phép `deleted`), trigger chặn xóa admin cuối cùng, lời báo lỗi "khách hàng". Chưa chạy: mọi chức năng vẫn dùng được, chỉ chưa lưu nhật ký xóa | RK-65 | Ngay (trước khi merge) | ✅ 18/10/2026 |
+| A-31 | **Xóa project Vercel** (Vercel › project › Settings › Delete) + **gỡ app Vercel khỏi repo** (GitHub › Settings › Applications › Vercel › Configure) – runbook §4.1 | RK-35, RK-66 | Khi tiện (mã nguồn đã gỡ 18/10) | ⬜ |
+| A-32 | Báo nhân viên: menu "Bệnh nhân" → **"Khách hàng"**, nhân viên được **xóa khách hàng** (chỉ khi hết gói, gõ SĐT xác nhận, không hoàn tác); admin quản lý tài khoản nhân viên ở menu **"Nhân viên"**; tài khoản nhân viên nên có SĐT để đăng nhập | RK-63 | Sau deploy | ⬜ |
+| A-33 | **Đổi Build command** của Workers Builds thành `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` (Workers › hv-web › Settings › Build) rồi Retry build – Next 15 hết hỗ trợ 21/10/2026, OpenNext chặn build nếu thiếu cờ (runbook §8) | RK-71 | Ngay (đang chặn deploy) | ⬜ |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 
@@ -183,13 +237,13 @@ Không đổi schema (chủ dự án **không** cần chạy SQL); làm song son
 2. UI-02 trên màn hình < 1024px: giữ **hàng tab cuộn ngang** (theo thứ tự mới); ≥ 1024px: cột dọc bên trái.
 3. UI-02: **có số đếm** cạnh mục Đơn đăng ký (đơn chờ duyệt), Phiếu tham vấn (phiếu mới), Khách quan tâm (khách mới) – 3 truy vấn
    `count` chạy song song trong `app/admin/layout.tsx` (quyền theo RLS nhân viên), **không** gọi `dashboard_stats()` để tránh RK-30.
-4. UI-03: vòng tròn **thay tất cả** 5 chỗ đang dùng `ProgressBar` + cột % ở danh sách bệnh nhân; bỏ `ProgressBar`.
+4. UI-03: vòng tròn **thay tất cả** 5 chỗ đang dùng `ProgressBar` + cột % ở danh sách khách hàng; bỏ `ProgressBar`.
 
 | Mã | Yêu cầu | Hiện trạng (review 29/09) | Kế hoạch | Công sức |
 | --- | --- | --- | --- | --- |
 | UI-01 | Ô mật khẩu có **icon con mắt** để hiện / ẩn mật khẩu | 7 ô `type="password"` thuần: đăng nhập (1), đăng ký (1), quên mật khẩu (2), tài khoản (3); chưa có nút hiện mật khẩu | Component mới `components/PasswordInput.tsx` (client): ô nhập + nút mắt bên phải (`type="button"`, `aria-label` "Hiện mật khẩu" / "Ẩn mật khẩu", `aria-pressed`, vùng chạm 44px); thêm `EyeIcon`, `EyeOffIcon` vào `components/icons.tsx`; dùng cho các ô trên (phạm vi chờ chốt) | XS |
-| UI-02 | Menu quản trị chuyển sang **cột dọc bên trái**, thứ tự mới: Tổng quan · Đơn đăng ký · Bệnh nhân · **Khóa học** · Phiếu tham vấn · Khách quan tâm · Mẫu phiếu | `AdminNav` là hàng tab gạch chân nằm ngang dưới tiêu đề "Bảng quản trị"; Khóa học đứng thứ 6 | `app/admin/layout.tsx` thành 2 cột từ màn hình `lg` (≥ 1024px): sidebar ~220px, dính khi cuộn (`sticky`), mỗi mục có icon + nhãn, mục đang mở tô nền `ocean-50` + vạch trái; nội dung bên phải. Giữ `nav aria-label="Menu quản trị"`, quy tắc `adminOnly` (nhân viên thấy 5 mục: Tổng quan, Đơn đăng ký, Bệnh nhân, Phiếu tham vấn, Khách quan tâm). Màn hình nhỏ: chờ chốt. Tùy chọn: số đếm (đơn chờ / phiếu mới / khách mới) cạnh mục như thiết kế [sitemap §6.3](../06-ui-ux/sitemap-navigation.md) | S |
-| UI-03 | Tiến độ hiển thị bằng **vòng tròn %** | `ProgressBar` (thanh 6px + chữ "x/y bài · %") dùng ở 5 chỗ: Khóa học của tôi, trang khóa, trình học, Tổng quan (không tập > 7 ngày), hồ sơ bệnh nhân; danh sách bệnh nhân chỉ ghi "%" | Component `components/ProgressRing.tsx` (SVG): vòng nền `slate-100`, cung `ocean-500` (100% → `emerald-500`), số % ở giữa, bên cạnh "x/y bài hoàn thành"; 2 cỡ: `md` ~56px (thẻ khóa, trang khóa, hồ sơ) và `sm` ~36px (trình học, danh sách admin); giữ `role="progressbar"` + `aria-valuenow`; chuyển động tắt khi `prefers-reduced-motion`. Phạm vi thay chờ chốt | S |
+| UI-02 | Menu quản trị chuyển sang **cột dọc bên trái**, thứ tự mới: Tổng quan · Đơn đăng ký · Khách hàng · **Khóa học** · Phiếu tham vấn · Khách quan tâm · Mẫu phiếu | `AdminNav` là hàng tab gạch chân nằm ngang dưới tiêu đề "Bảng quản trị"; Khóa học đứng thứ 6 | `app/admin/layout.tsx` thành 2 cột từ màn hình `lg` (≥ 1024px): sidebar ~220px, dính khi cuộn (`sticky`), mỗi mục có icon + nhãn, mục đang mở tô nền `ocean-50` + vạch trái; nội dung bên phải. Giữ `nav aria-label="Menu quản trị"`, quy tắc `adminOnly` (nhân viên thấy 5 mục: Tổng quan, Đơn đăng ký, Khách hàng, Phiếu tham vấn, Khách quan tâm). Màn hình nhỏ: chờ chốt. Tùy chọn: số đếm (đơn chờ / phiếu mới / khách mới) cạnh mục như thiết kế [sitemap §6.3](../06-ui-ux/sitemap-navigation.md) | S |
+| UI-03 | Tiến độ hiển thị bằng **vòng tròn %** | `ProgressBar` (thanh 6px + chữ "x/y bài · %") dùng ở 5 chỗ: Khóa học của tôi, trang khóa, trình học, Tổng quan (không tập > 7 ngày), hồ sơ khách hàng; danh sách khách hàng chỉ ghi "%" | Component `components/ProgressRing.tsx` (SVG): vòng nền `slate-100`, cung `ocean-500` (100% → `emerald-500`), số % ở giữa, bên cạnh "x/y bài hoàn thành"; 2 cỡ: `md` ~56px (thẻ khóa, trang khóa, hồ sơ) và `sm` ~36px (trình học, danh sách admin); giữ `role="progressbar"` + `aria-valuenow`; chuyển động tắt khi `prefers-reduced-motion`. Phạm vi thay chờ chốt | S |
 
 Kiểm thử dự kiến (E2E): **TC-99** bấm mắt ở trang đăng nhập → ô thành `text`, bấm lại → `password`, vẫn đăng nhập được;
 **TC-100** admin thấy menu dọc đúng 7 mục theo thứ tự mới, nhân viên thấy 5 mục; **TC-101** vòng tiến độ 0% → 50% → 100% (thay các bước
@@ -200,7 +254,7 @@ source-structure, SRS (FR mới cho UI-01 → 03), test-plan, README gốc, proj
 
 ### 3.1. Đợt 14 – Chạy thử MVP (pilot) – kế hoạch từng bước
 
-**Mục tiêu**: chạy thật với nội dung thật cho một nhóm nhỏ bệnh nhân (đề xuất 10–30 người, ~4 tuần – chủ dự án chốt ở bước 6.1) để đo hiệu quả
+**Mục tiêu**: chạy thật với nội dung thật cho một nhóm nhỏ khách hàng (đề xuất 10–30 người, ~4 tuần – chủ dự án chốt ở bước 6.1) để đo hiệu quả
 trước khi tốn chi phí hạ tầng / quảng bá. Hạ tầng: gói Free (§3.3). **Cách làm chi tiết từng bước, tiêu chí "xong khi"**:
 [runbook §10](../09-operations/deployment-runbook.md#10-chạy-thử-mvp-pilot--hướng-dẫn-từng-bước-roadmap-đợt-14).
 
@@ -249,11 +303,11 @@ vì phải tự mở Tổng quan, đưa **R-01 thông báo** (backlog 1) lên l�
 
 | Ưu tiên | Mã | Hạng mục | Vì sao | Công sức |
 | --- | --- | --- | --- | --- |
-| 1 | RK-33 / R-01 | Thông báo cho nhân viên khi có đơn / phiếu / lead mới (email hoặc Zalo OA) và cho bệnh nhân khi đơn được duyệt | Không phải mở dashboard liên tục; có thể kéo vào đợt chạy thử nếu bỏ sót phiếu | S – M |
+| 1 | RK-33 / R-01 | Thông báo cho nhân viên khi có đơn / phiếu / lead mới (email hoặc Zalo OA) và cho khách hàng khi đơn được duyệt | Không phải mở dashboard liên tục; có thể kéo vào đợt chạy thử nếu bỏ sót phiếu | S – M |
 | 2 | RV-20 | Giám sát lỗi (Sentry / Vercel logs). Backup DB + Storage ✅ Đợt 16 (đang chạy) | Vận hành thật | XS |
-| 2b | RK-39 → 41, RV-12 | Chuẩn bị giai đoạn 2 (§3.3): phân trang danh sách admin, nới giới hạn đăng nhập theo IP, giới hạn Supabase Auth | Trước khi > 200 bệnh nhân / > 100 người cùng lúc | S |
+| 2b | RK-39 → 41, RV-12 | Chuẩn bị giai đoạn 2 (§3.3): phân trang danh sách admin, nới giới hạn đăng nhập theo IP, giới hạn Supabase Auth | Trước khi > 200 khách hàng / > 100 người cùng lúc | S |
 | 3 | A-1, A-2, A-3 | Staging + CI E2E (A-1 đề xuất làm ngay ở bước 2.5) | Thay đổi schema an toàn; sau khi dọn dữ liệu không chạy E2E trên production | S |
-| 4 | RV-12 + R-06 | Phân trang, lọc, xuất Excel đơn / bệnh nhân / doanh thu | Khi > 200 đơn / bệnh nhân | S |
+| 4 | RV-12 + R-06 | Phân trang, lọc, xuất Excel đơn / khách hàng / doanh thu | Khi > 200 đơn / khách hàng | S |
 | 5 | — | Trình học điện thoại tách 2 tab "Bài này / Nội dung" | Chủ dự án chốt để sau (27/09) | S |
 | 6 | RK-02 | Xác minh email khi đăng ký / đổi email | Tránh giữ chỗ email người khác | M |
 | 7 | R-08 | Xác nhận chuyển khoản tự động (webhook ngân hàng) | Giảm việc duyệt tay | L |
@@ -271,8 +325,8 @@ sức chứa gói Free, bảng theo dõi hằng tháng: [runbook §12](../09-ope
 | --- | --- | --- | --- | --- |
 | **0. Thử nghiệm + kinh doanh nhỏ** ← sau Đợt 17 | — | Supabase Free + **Cloudflare Workers Paid**, keepalive, backup (đang chạy từ 02/10) | Đợt 17 | ~5 USD (+ tên miền theo năm) |
 | **1. Chạm hạn mức Supabase Free** | Storage > 600 MB · egress > 3,5 GB/tháng · cần sao lưu hằng ngày tự động / hỗ trợ kỹ thuật | + **Supabase Pro** (A-13) – hoặc chuyển ảnh sang R2 để kéo dài Free (RK-37) | Tùy chọn: ảnh → R2 | ~30 USD |
-| **2. Mở rộng** | > 200 bệnh nhân · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên | RV-12 phân trang, RK-39, RK-40, giám sát lỗi (backlog 2b) | 5–30 USD |
-| **3. Mục tiêu** (300–500 cùng lúc, ~1.000 bệnh nhân) | CPU database > 60% giờ cao điểm | Supabase Pro + compute Small, staging (A-1) | Chạy thử tải (k6) trên staging | ~45–65 USD |
+| **2. Mở rộng** | > 200 khách hàng · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên | RV-12 phân trang, RK-39, RK-40, giám sát lỗi (backlog 2b) | 5–30 USD |
+| **3. Mục tiêu** (300–500 cùng lúc, ~1.000 khách hàng) | CPU database > 60% giờ cao điểm | Supabase Pro + compute Small, staging (A-1) | Chạy thử tải (k6) trên staging | ~45–65 USD |
 
 ### 3.4. Đợt 17 – Chuyển hạ tầng sang Cloudflare Workers (kế hoạch 04/10/2026)
 
@@ -291,15 +345,15 @@ sức chứa gói Free, bảng theo dõi hằng tháng: [runbook §12](../09-ope
 | P5 | Cutover: domain, Supabase Site URL, Turnstile; smoke test; theo dõi 14 ngày | Chủ dự án + dev | 14 ngày không lỗi nghiêm trọng | ⬜ |
 | P6 | Gỡ Vercel, cập nhật tài liệu, đóng RK | Dev + chủ dự án | Không còn tham chiếu Vercel | ⬜ |
 
-Sau P5 tiếp tục **Đợt 14** từ bước 1.5 (§3.1). Chưa có bệnh nhân thật nên cutover không phải di chuyển dữ liệu.
+Sau P5 tiếp tục **Đợt 14** từ bước 1.5 (§3.1). Chưa có khách hàng thật nên cutover không phải di chuyển dữ liệu.
 
-### 3.5. Đợt 18 – Thêm / sửa / xóa bệnh nhân & khóa học (yêu cầu chủ dự án 04/10/2026 – đã chốt Q-5 → Q-8)
+### 3.5. Đợt 18 – Thêm / sửa / xóa khách hàng & khóa học (yêu cầu chủ dự án 04/10/2026 – đã chốt Q-5 → Q-8)
 
 **Hiện trạng (rà soát code 04/10)**:
 
 | Danh sách | Thêm | Sửa | Xóa / ngừng |
 | --- | --- | --- | --- |
-| Bệnh nhân `/admin/patients` | ✅ Nút "+ Tạo bệnh nhân" (`/admin/patients/new`) | 🟡 Chỉ ở **hồ sơ** (`/admin/patients/[id]`): sửa thông tin + ghi chú, cấp gói, cấp lại mật khẩu; **danh sách không có nút thao tác** | ❌ **Không có** xóa hay khóa tài khoản |
+| Khách hàng `/admin/customers` | ✅ Nút "+ Tạo khách hàng" (`/admin/customers/new`) | 🟡 Chỉ ở **hồ sơ** (`/admin/customers/[id]`): sửa thông tin + ghi chú, cấp gói, cấp lại mật khẩu; **danh sách không có nút thao tác** | ❌ **Không có** xóa hay khóa tài khoản |
 | Khóa học `/admin/courses` | 🟡 Form cố định cột phải (trên điện thoại nằm cuối trang, khó thấy) | 🟡 Có, nhưng giấu trong mục "Sửa thông tin" thu gọn ở cuối mỗi thẻ | 🟡 Có "Ẩn" và "Xóa" (nút xóa cũng giấu trong mục thu gọn); **xóa được cả khi còn học viên đang học** |
 
 Dữ liệu khi xóa tài khoản (đã kiểm tra `schema.sql`): `profiles`, `lesson_progress`, `patient_notes` bị xóa theo (cascade); **đơn đăng ký giữ lại**
@@ -307,10 +361,10 @@ Dữ liệu khi xóa tài khoản (đã kiểm tra `schema.sql`): `profiles`, `l
 
 | Mã | Hạng mục | Thiết kế đề xuất | Quyền |
 | --- | --- | --- | --- |
-| QL-01 | Thêm bệnh nhân | Đã có – giữ; thêm nút ở trạng thái danh sách rỗng | Nhân viên, admin |
-| QL-02 | **Cột "Thao tác" ở danh sách bệnh nhân** | Cố định bên phải như bảng đơn (máy tính), hàng nút dưới thẻ (điện thoại): **Hồ sơ** · **Sửa** (hộp thoại họ tên / SĐT / email / ghi chú – dùng lại `updatePatientAction`) · menu "Thêm": Cấp gói / gia hạn, Cấp lại mật khẩu, Khóa / Mở khóa, Xóa | Theo từng mục |
+| QL-01 | Thêm khách hàng | Đã có – giữ; thêm nút ở trạng thái danh sách rỗng | Nhân viên, admin |
+| QL-02 | **Cột "Thao tác" ở danh sách khách hàng** | Cố định bên phải như bảng đơn (máy tính), hàng nút dưới thẻ (điện thoại): **Hồ sơ** · **Sửa** (hộp thoại họ tên / SĐT / email / ghi chú – dùng lại `updatePatientAction`) · menu "Thêm": Cấp gói / gia hạn, Cấp lại mật khẩu, Khóa / Mở khóa, Xóa | Theo từng mục |
 | QL-03 | **Khóa / mở khóa tài khoản** (ngừng hoạt động, đảo ngược được) | `profiles.disabled_at / disabled_by / disabled_reason` + chặn đăng nhập ở Supabase Auth (`ban_duration`); `requireUserPage` đăng xuất phiên đang mở; trang đăng nhập báo "Tài khoản đang tạm khóa – liên hệ hotline"; bộ lọc "Đã khóa"; ghi `account_events` | Nhân viên, admin (Q-6) |
-| QL-04 | **Xóa vĩnh viễn bệnh nhân** | Chỉ khi **không còn gói còn hạn và không có đơn chờ** (nếu có: thu hồi / từ chối trước, hoặc dùng Khóa); xác nhận bằng **gõ lại SĐT**; xóa tài khoản Auth (cascade như trên); giữ đơn + ảnh chuyển khoản làm chứng từ; phiếu tham vấn theo Q-5; nhật ký lưu tên người bị xóa + người xóa | **Chỉ admin** (Q-6) |
+| QL-04 | **Xóa vĩnh viễn khách hàng** | Chỉ khi **không còn gói còn hạn và không có đơn chờ** (nếu có: thu hồi / từ chối trước, hoặc dùng Khóa); xác nhận bằng **gõ lại SĐT**; xóa tài khoản Auth (cascade như trên); giữ đơn + ảnh chuyển khoản làm chứng từ; phiếu tham vấn theo Q-5; nhật ký lưu tên người bị xóa + người xóa | **Chỉ admin** (Q-6) |
 | QL-05 | Sửa gói đã cấp sai (tùy chọn) | Ở hồ sơ: sửa số tiền / hình thức / ghi chú thanh toán của đơn đã duyệt (không sửa hạn – trigger tính); thu hồi gói kèm lý do (đã có ở bảng đơn, thêm lối tắt) | Nhân viên, admin |
 | QL-06 | **Hàng thao tác rõ ràng ở danh sách khóa học** | Mỗi thẻ khóa: **Sửa** (mở form ngay đầu thẻ / hộp thoại) · Ẩn / Hiện · Quản lý buổi – bài · Xem trang · **Xóa** (đỏ) – không còn giấu trong mục thu gọn | Admin |
 | QL-07 | Thêm khóa học dễ thấy | Nút "+ Thêm khóa học" ở đầu danh sách (mọi màn hình) mở form (chọn sẵn loại theo tab đang xem) | Admin |
@@ -320,27 +374,134 @@ Dữ liệu khi xóa tài khoản (đã kiểm tra `schema.sql`): `profiles`, `l
 
 | # | Câu hỏi | Chốt |
 | --- | --- | --- |
-| Q-5 | Xóa bệnh nhân có xóa luôn **phiếu tham vấn** (dữ liệu sức khỏe) không? | ✅ **Có** – dữ liệu sức khỏe; đơn + ảnh chuyển khoản giữ làm chứng từ |
+| Q-5 | Xóa khách hàng có xóa luôn **phiếu tham vấn** (dữ liệu sức khỏe) không? | ✅ **Có** – dữ liệu sức khỏe; đơn + ảnh chuyển khoản giữ làm chứng từ |
 | Q-6 | Ai được Khóa / Xóa? | ✅ Khóa: nhân viên + admin · Xóa vĩnh viễn: chỉ admin |
 | Q-7 | Khóa học còn học viên đang học: chặn xóa hay cho xóa kèm cảnh báo? | ✅ **Chặn**, chỉ cho Ẩn (học viên vẫn học tiếp – RV-01) |
 | Q-8 | Sửa nhanh ở danh sách: hộp thoại hay chuyển sang trang hồ sơ? | Theo đề xuất (dev tự quyết): hộp thoại cho thông tin cơ bản; cấp gói mở hồ sơ |
 
 **Schema** (chủ dự án chạy `supabase/schema.sql` sau khi dev xong): cột khóa tài khoản ở `profiles` + trigger chỉ nhân viên / admin đổi; hàm
-`admin_patients()` thêm trạng thái "Đã khóa"; hàm kiểm tra điều kiện xóa bệnh nhân / khóa học (dùng chung cho giao diện và server action);
+`admin_patients()` thêm trạng thái "Đã khóa"; hàm kiểm tra điều kiện xóa khách hàng / khóa học (dùng chung cho giao diện và server action);
 `account_events` lưu tên người bị xóa. **Kiểm thử dự kiến**: TC-104 sửa nhanh từ danh sách · TC-105 khóa → không đăng nhập được, phiên cũ
-bị đăng xuất, mở khóa → đăng nhập lại được · TC-106 nhân viên không xóa được (cả qua API) · TC-107 admin xóa bệnh nhân còn gói bị chặn;
+bị đăng xuất, mở khóa → đăng nhập lại được · TC-106 nhân viên không xóa được (cả qua API) · TC-107 admin xóa khách hàng còn gói bị chặn;
 hết gói → xóa được, đơn + doanh thu Tổng quan không đổi · TC-108 nút Sửa / Xóa khóa ở danh sách · TC-109 xóa khóa còn học viên bị chặn
 · TC-110 thêm khóa từ nút đầu danh sách. Ước lượng: **2–3 ngày** (gồm E2E, tài liệu).
 
+### 3.6. Đợt 21 → 24 – Bảo mật, hiệu năng, quản trị mới, thêm / sửa / xóa khóa học (yêu cầu chủ dự án 17/10/2026)
+
+Yêu cầu: (1) rà soát + đo hiệu năng, không để có sự cố hiệu năng; (2) **lỗi bảo mật: đăng nhập → tắt website → mở lại vẫn còn đăng nhập**, rà soát kỹ mọi lỗi bảo mật có thể có;
+(3) thêm / sửa / xóa khóa học; (4) thiết kế lại trang quản trị hiện đại, dễ dùng, chuyên nghiệp. Dev tự quyết, làm từng bước, cập nhật roadmap liên tục.
+Thứ tự: bảo mật trước (lỗi đang có), hiệu năng, rồi giao diện quản trị mới, cuối cùng màn hình khóa học dựng luôn trên giao diện mới (không làm 2 lần).
+
+| Đợt | Hạng mục | Cách làm | Kiểm thử |
+| --- | --- | --- | --- |
+| 21 | **SEC-13 Phiên đăng nhập sống quá lâu** | Nguyên nhân: cookie phiên Supabase mặc định lưu **400 ngày** → tắt trình duyệt vẫn còn. Sửa: cookie **chỉ sống tới khi đóng trình duyệt**; tự đăng xuất khi **không thao tác** (nhân viên / admin 30 phút, học viên 2 giờ) và **tối đa 12 giờ** mỗi lần đăng nhập (trình duyệt "mở lại các tab cũ" vẫn giữ cookie phiên); học viên có ô **"Ghi nhớ đăng nhập 30 ngày"** (mặc định tắt, nhân viên / admin không có); đăng xuất thu hồi phiên ở Supabase | TC-114, TC-115 |
+| 21 | Rà soát bảo mật toàn bộ | Phiên + đăng xuất, quyền từng server action / trang, RLS, đầu vào (XSS, link, chuyển hướng), tải file, giới hạn tần suất, header / CSP, bí mật, `npm audit`; sửa ngay lỗi tìm được | TC-116 + E2E toàn bộ |
+| 22 | Hiệu năng | Lighthouse điện thoại (CPU chậm 4×, mạng 4G) + máy tính cho `/`, `/en`, `/khoa-hoc/[id]`, `/login`, `/courses`, `/admin`; dung lượng JS từng trang; thời gian trang quản trị; sửa điểm nghẽn | Bảng số đo trước / sau |
+| 23 | UI-10 Giao diện quản trị | Khung riêng cho khu quản trị: thanh bên tối (logo, menu có icon + số việc cần xử lý, thu gọn trên điện thoại), thanh trên (tên trang, đường dẫn, tài khoản); Tổng quan thẻ KPI; bảng, bộ lọc, nút, trạng thái rỗng thống nhất; giữ màu xanh – trắng – vàng | E2E toàn bộ |
+| 24 | QL-06 → QL-08 Khóa học | Danh sách dạng bảng (ảnh, loại, trạng thái, học viên, thao tác **Sửa · Ẩn / Hiện · Buổi – bài · Xem · Xóa**); nút **"+ Thêm khóa học"** → trang tạo; trang sửa riêng; **xóa an toàn**: chặn khi còn học viên có gói còn hạn hoặc đơn chờ (gợi ý Ẩn – Q-7), gõ đúng tên khóa để xác nhận, xóa ảnh bìa | TC-108 → TC-110 |
+
+Phần khách hàng của Đợt 18 (QL-02 → QL-05: sửa nhanh, khóa tài khoản, xóa khách hàng) cần đổi schema → để **Đợt 25** sau khi xong các đợt trên.
+
+### 3.7. Đợt 26 – Khách hàng & Nhân viên tách riêng, thêm / sửa / xóa; gỡ Vercel (yêu cầu chủ dự án 18/10/2026)
+
+Yêu cầu: (1) không gọi "bệnh nhân" nữa, gọi chung **khách hàng**; (2) tách danh mục nhân viên và khách hàng; (3) thêm / sửa / xóa nhân viên; (4) thêm / sửa /
+xóa khách hàng; (5) nhân viên **không** thêm / sửa / xóa khóa học nhưng **được** thêm / sửa / xóa khách hàng; (6) Cloudflare đã ổn định → gỡ Vercel khỏi mã nguồn,
+bảo đảm deploy Cloudflare ổn định; (7) rà soát risk case, nguy hiểm thì sửa ngay; (8) bảo đảm hiệu năng, bảo mật. Dev tự quyết các điểm dưới (chủ dự án chưa trả lời
+được trong phiên) – đổi lại nếu chủ dự án muốn khác:
+
+| # | Quyết định của dev | Lý do |
+| --- | --- | --- |
+| D-1 | Đường dẫn `/admin/patients` → **`/admin/customers`**; link cũ chuyển hướng (`next.config.mjs`); tên database giữ nguyên (`admin_patients()`, `patient_notes`, `audience = 'patient'`) | Đổi tên bảng / hàm cần migration rủi ro cao, không lợi cho người dùng |
+| D-2 | "Học viên" giữ ở chỗ nói về **người đang học một khóa** (VD "khóa còn 3 học viên") | Đúng nghĩa trong ngữ cảnh khóa học; tài khoản thì gọi là khách hàng |
+| D-3 | Xóa khách hàng: nhân viên + admin; **chặn** khi còn gói còn hạn / đơn chờ; gõ lại SĐT; xóa phiếu tham vấn (Q-5), giữ đơn + ảnh chuyển khoản | Theo yêu cầu (5) + an toàn dữ liệu đã chốt 04/10 (Q-5); thay Q-6 |
+| D-4 | Xóa nhân viên: chỉ admin, xóa hẳn tài khoản (muốn giữ lịch sử mà thu quyền thì đổi vai trò thành Khách hàng); không tự xóa; luôn còn ≥ 1 admin | Yêu cầu (3); trigger database chặn mất admin cuối |
+| D-5 | Không làm "khóa tài khoản" (QL-03) ở đợt này | Không có trong yêu cầu; cần đổi Supabase Auth (ban) – để Đợt 25 |
+
+| Hạng mục | Cách làm | Kiểm thử |
+| --- | --- | --- |
+| Thuật ngữ | Thay toàn bộ giao diện, thông báo, kiểm thử, tài liệu; lời báo lỗi trong database đổi khi chạy SQL (E2E chấp nhận cả 2) | TC-117 |
+| Tách danh mục | Menu **Nhân viên** (chỉ admin, `requireAdminPage`); danh sách khách hàng chỉ `role = user`; đổi vai trò ở hồ sơ; hồ sơ nhân viên mở từ trang khách hàng thì chuyển sang `/admin/staff/[id]` | TC-117 |
+| Nhân viên CRUD | `app/admin/staff/*` + `lib/managed-accounts.ts` (dùng chung với khách hàng) | TC-119 |
+| Khách hàng xóa | `deleteCustomerAction` + `customerUsage` + vùng xóa `components/admin/DeleteAccount.tsx` | TC-118 |
+| Gỡ Vercel | Xóa `vercel.json`, README, ghi chú; runbook §4.1 (Rollback Cloudflare thay đường lùi Vercel) | CI build OpenNext, E2E workers |
+| Schema | `account_events` thêm `deleted` + index; trigger `guard_admin_delete` → **chủ dự án chạy SQL (A-30)**; mã vẫn chạy khi chưa chạy SQL | E2E in "lưu ý database" nếu chưa chạy |
+
 ## 4. Checklist chi tiết theo đợt (mới nhất ở trên)
+
+#### Đợt 26 – Khách hàng & Nhân viên tách riêng, thêm / sửa / xóa; gỡ Vercel ✅ (18/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] "Bệnh nhân" → "khách hàng": giao diện, thông báo, E2E, schema (chú thích + lời báo lỗi), README, toàn bộ `web design structure/`; `/admin/customers` (+ chuyển hướng `/admin/patients/**`, `/admin/users?role=team` → `/admin/staff`)
+- [x] Danh mục Nhân viên: danh sách (lọc vai trò, người cấp quyền, nhật ký xóa), thêm (mật khẩu 1 lần, tin nhắn mẫu cho nhân viên), hồ sơ (sửa, vai trò, cấp lại mật khẩu, xóa; của chính mình chỉ sửa thông tin); dải nhắc đổi mật khẩu được cấp trong khu quản trị
+- [x] Khách hàng: cột Thao tác Hồ sơ · Sửa · Xóa; hồ sơ có vùng Xóa (chặn khi còn gói / đơn chờ, gõ SĐT), mục Phân quyền (admin); tài khoản nhân viên không còn hiện ở danh mục khách hàng
+- [x] Quyền: nhân viên thêm / sửa / xóa khách hàng; không vào `/admin/staff/**`, `/admin/courses/**`; action nhân viên dùng `requireAdmin`
+- [x] Gỡ Vercel khỏi mã nguồn (P6 phần dev) · [ ] A-31 chủ dự án xóa project + app Vercel
+- [x] Schema: `account_events.action` thêm `deleted` + index, trigger `guard_admin_delete` · [x] A-30 chủ dự án chạy `supabase/schema.sql` (18/10)
+- [x] typecheck / lint / build (Next + OpenNext) · [x] E2E TC-117 → TC-119 + chạy lại toàn bộ (Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng)) · [x] tài liệu (SRS FR-212 → 218, BR-120 → 124, US-17.01 → 17.03, SCR-26, sitemap, API, database, security T37 → T40, test-plan, source-structure, runbook §4.1, cloudflare-migration P6, glossary, ADR-017, project-review §7.16, README)
+- Để lại / đề xuất: QL-03 khóa tài khoản (thay cho xóa khi muốn giữ lịch sử) + QL-05 sửa gói → Đợt 25; trigger chặn xóa khóa còn học viên (RK-61); xuất danh sách khách hàng trước khi xóa nếu trung tâm cần lưu trữ
+
+
+#### Đợt 25 – Khách hàng: sửa nhanh, khóa / xóa tài khoản 📝 (kế hoạch – phần còn lại của Đợt 18, thiết kế §3.5)
+- [ ] Schema: khóa tài khoản (`disabled_at…`), `admin_patients()` lọc "Đã khóa", hàm kiểm điều kiện xóa, `account_events` lưu tên, **trigger chặn xóa khóa còn học viên (RK-61)**, hàm thu hồi phiên khi khóa tài khoản → chủ dự án chạy SQL
+- [ ] QL-02 cột Thao tác + hộp thoại Sửa · [ ] QL-03 Khóa / mở khóa (đăng xuất phiên đang mở) · [ ] QL-04 Xóa (admin, gõ SĐT) · [ ] QL-05 sửa gói
+- [ ] E2E TC-104 → TC-107 · [ ] tài liệu
+
+#### Đợt 24 – Thêm / sửa / xóa khóa học ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] QL-07 nút "+ Thêm khóa học" (đầu danh sách, chọn sẵn loại theo tab) → trang tạo `/admin/courses/new` → tạo xong chuyển sang trang sửa
+- [x] QL-06 thẻ khóa có hàng thao tác luôn hiện: **Sửa · Quản lý buổi – bài · Ẩn / Hiển thị · Xem trang giới thiệu · Xóa**; trang sửa riêng `/admin/courses/[id]/edit` (thông tin + ảnh bìa, bảng gói, hiển thị) + tab "Thông tin & gói" / "Buổi – bài"
+- [x] QL-08 xóa an toàn: chặn khi còn học viên gói còn hạn / đơn chờ duyệt (gợi ý Ẩn – Q-7), phải gõ đúng tên khóa (server kiểm tra lại), xóa ảnh bìa, đơn cũ giữ nguyên
+- [x] E2E TC-108 → TC-110 + chạy lại toàn bộ (Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)) · [x] tài liệu (SRS FR-209 → 211, US-07.04 / 07.08, SCR-12 / 12b / 12c, sitemap, API, source-structure, design-system §9, test-plan, project-review §7.15)
+- Để lại / đề xuất: trigger database chặn xóa khóa còn học viên (RK-61 – Đợt 25); nhân bản khóa (copy cả buổi – bài) nếu chủ dự án cần
+
+#### Đợt 23 – Giao diện quản trị mới ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] Khung quản trị: thanh bên tối (thương hiệu + vai trò + tên, menu icon, số việc cần làm màu vàng, "Xem website"), nền nội dung xám nhạt; điện thoại: dải tối + hàng tab cuộn ngang; header bỏ menu neo trang chủ, ẩn chân trang trong khu quản trị
+- [x] Tiêu đề trang thống nhất (`components/admin/PageHeader.tsx`: tên trang, mô tả, nút chính) cho Tổng quan, Đơn đăng ký, Khách hàng, Khóa học, Phiếu tham vấn, Khách quan tâm, Mẫu phiếu, tạo khách hàng, trang khóa
+- [x] Tổng quan: thẻ KPI có icon + nhãn "Cần xử lý / Cần chú ý"; bộ lọc dạng viên (`.seg`) thống nhất; bảng: tiêu đề cột + dòng sáng khi rê; trạng thái rỗng có icon + nút hành động
+- [x] E2E toàn bộ (Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)) · [x] tài liệu (design-system §9, SRS FR-207 / 208, US-16.01, sitemap, source-structure, project-review §7.15)
+- Để lại / đề xuất: hồ sơ khách hàng + trang buổi – bài dùng thêm thẻ / bảng mới (Đợt 25); chế độ thu gọn thanh bên trên màn hình nhỏ
+
+#### Đợt 22 – Hiệu năng ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] Đo trước bằng `scripts/perf.mjs` (mới – Lighthouse 3 lần / trang, điện thoại + máy tính, 10 trang gồm trang quản trị): máy tính 98 – 100 điểm; **điện thoại 71 – 89, LCP 3,3 – 3,8 giây** (89% là "render delay"), TBT trang quản trị tới 643 ms
+- [x] PERF-08 thư viện Supabase (68 kB gzip) chỉ tải khi có cookie đăng nhập (khách không tải) · PERF-09 hiệu ứng tiêu đề hero / thẻ đăng nhập không bắt đầu từ opacity 0 (phần tử LCP) · PERF-10 xác thực + đọc profile song song (bớt 1 lượt gọi Supabase mỗi trang đăng nhập)
+- [x] PERF-12 TBT quản trị (form sửa khóa rời khỏi danh sách – Đợt 24) · [x] Đo sau: **điện thoại 90 – 94 điểm** (trước 71 – 89), LCP 2,8 – 3,4 s, TBT quản trị 28 – 41 ms (trước 177 – 643), JS 149 – 159 kB (trước 219 – 230); máy tính 98 – 100 · [x] project-review §7.14
+- Để lại / đề xuất: PERF-13 font (A-29); PERF-11 ảnh thu nhỏ chuyển khoản; đo lại trên Cloudflare thật sau deploy
+
+#### Dọn dự án trước khi push ✅ (17/10/2026)
+- [x] Bỏ `.idea/` khỏi git (thêm vào `.gitignore` – file vẫn còn trên máy) · [x] xóa `.next-e2e`, `.next-dev`, `.open-next`, `.wrangler`, `test-results`, `tsconfig.tsbuildinfo` (tạo lại khi build / test) · [x] bỏ `SearchIcon`, `WalletIcon`, export nội bộ của `lib/session-policy.ts`, `app/login/errors.ts`
+- [x] Rà soát: không còn module / ảnh không dùng (`public/_headers`, `favicon.ico`, `lib/cloudflare-sockets.d.ts` vẫn cần); `vercel.json` giữ tới P6 (bước 3.4)
+- [x] typecheck / lint / build sạch · E2E Node 105/105 · Workers 106/106 (13 lỗi hydration RK-54 ghi riêng)
+
+#### Đợt 21 – Bảo mật: phiên đăng nhập + rà soát toàn bộ ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] SEC-13 cookie phiên + tự đăng xuất khi không dùng / quá 12 giờ + "Ghi nhớ đăng nhập" (học viên) + đăng xuất thu hồi phiên (`lib/session-policy.ts`, middleware mọi trang, `SessionGuard`)
+- [x] Rà soát bảo mật toàn bộ, sửa lỗi tìm được (project-review §7.13): SEC-14 chữ chèn từ link, SEC-15 đổi mật khẩu giữ phiên máy đang dùng + đăng xuất máy khác, SEC-16 lộ lỗi kỹ thuật ở form đăng ký, SEC-17 link ảnh chuyển khoản 15 phút, SEC-18 npm audit fix
+- [x] E2E TC-114 → TC-116 + chạy lại toàn bộ (Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18)) – E2E bắt thêm 2 lỗi đã sửa: đổi mật khẩu làm mất phiên máy đang dùng (SEC-15), header không cập nhật khi tab tự đăng xuất · [x] tài liệu (security-design, SRS FR-203 → 206, test-plan, project-review §7.13)
+- Để lại / đề xuất: RK-59 mọi người đăng nhập lại 1 lần sau deploy (A-28); thu hồi phiên khi khóa tài khoản (Đợt 25)
+
 
 Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** là căn cứ để chủ dự án sắp xếp lại các đợt sau.
 
-#### Đợt 18 – Thêm / sửa / xóa bệnh nhân & khóa học 📝 (kế hoạch 04/10/2026)
+#### Đợt 20 – Song ngữ trang chủ + giao diện hiện đại hơn ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] Tham khảo nút chuyển ngữ irc.coach (`/en/`) + xu hướng thiết kế 2026 (bento grid, CSS scroll-driven animation, kinetic typography; tránh 3D/WebGL); không đổi schema (chủ dự án **không** cần chạy SQL)
+- [x] ADR-018: từ điển tĩnh `lib/i18n.ts`, `/en` dùng chung `components/home/HomePage.tsx`, ISR như `/`, hreflang; không widget dịch máy (giữ CSP)
+- [x] UI-08 `LangSwitch` VI | EN (chỉ trang chủ, giữ `#mục`), header / chân trang / thẻ khóa / bộ lọc theo ngôn ngữ; `/en` có 3 bước + nút mở form tiếng Việt; `<html lang>`
+- [x] UI-09 hero nền tối + lưới + tiêu đề hiện từng từ, viền conic xoay, 2 dải chéo ngược chiều, số liệu gradient, bento, cột ảnh bác sĩ dính + trích dẫn nguyên văn, đường thời gian tự vẽ, parallax + thanh tiến độ cuộn, ánh sáng theo con trỏ, vệt sáng nút, chân trang tối
+- [x] typecheck / lint / build · [x] E2E TC-113 + chạy lại toàn bộ (Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20)) · [x] tài liệu (ADR-018, SRS FR-198 → 202, US-01.06, design-system §5 / §5.1, SCR-01 / SCR-01b, sitemap, API, system-architecture, source-structure, test-plan, project-review §7.12, README)
+- [ ] Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) · [ ] chủ dự án / người thạo tiếng Anh duyệt bản dịch (A-27)
+- Để lại / đề xuất: dịch tên – mô tả khóa (`title_en`…) và form đăng ký khi có khách nước ngoài thật (RK-57); Lighthouse mobile sau deploy (hiệu ứng nặng hơn – RK-58)
+
+#### Đợt 19 – Thiết kế lại trang chủ ✅ (17/10/2026 · nhánh `hv-dgquan-20261017`)
+- [x] Tham khảo chuyển động irc.coach/dich-vu-dieu-tri + nội dung bác sĩ bsdomanhcuong.com/bac-si.html#chuyen-mon; không đổi schema (chủ dự án **không** cần chạy SQL)
+- [x] UI-04 chuyển động: hero so le, hiện dần khi cuộn (`RevealObserver`), số đếm (`CountUp`), dải chuyên môn chạy ngang, thẻ nổi, vệt màu nền, thẻ nhấc khi rê; giảm chuyển động / tắt JS vẫn đọc được
+- [x] UI-05 câu chữ thu hút + số liệu tin cậy + thẻ "Chưa biết chọn chương trình nào?" (Zalo / hotline)
+- [x] UI-06 hồ sơ bác sĩ: học vấn & chứng chỉ, `#chuyen-mon` 4 lĩnh vực, quá trình công tác, 4 ảnh hoạt động (6 ảnh nén vào `public/images/bac-si/`); chân trang 3 cơ sở
+- [x] UI-07 bỏ trùng: banner lặp tiểu sử, ô số liệu lặp, CTA cuối lặp hero; gộp Vấn đề + Lợi ích; thẻ khóa nhóm ít căn giữa
+- [x] typecheck / lint / build · [x] E2E TC-111, TC-112 + chạy lại toàn bộ (Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng)) · [x] tài liệu (SRS FR-194 → 197, user-stories US-01.05, design-system §2 / §3 / §5, screen-specs SCR-01, sitemap, API, source-structure, test-plan, project-review §7.11, README)
+- [ ] Pull Request `hv-dgquan-20261017` → `main` → merge (tự deploy) · [ ] A-26 chủ dự án xác nhận ảnh + số liệu
+- Để lại / đề xuất: thêm cảm nhận / video khách hàng thật (chưa có nguồn – không tự viết); trang riêng `/bac-si` nếu muốn đủ toàn bộ workshop; Lighthouse mobile trang chủ (checklist test-plan §5) trên website thật sau khi deploy
+
+#### Đợt 18 – Thêm / sửa / xóa khách hàng & khóa học 🟡 (kế hoạch 04/10/2026 – khóa học xong ở Đợt 24, khách hàng → Đợt 25)
 - [x] Chủ dự án chốt Q-5 → Q-8 (A-23, 04/10/2026)
 - [ ] Schema: khóa tài khoản, `admin_patients()` lọc "Đã khóa", hàm kiểm tra điều kiện xóa, `account_events` lưu tên
-- [ ] Bệnh nhân: [ ] QL-02 cột Thao tác + hộp thoại Sửa · [ ] QL-03 Khóa / mở khóa · [ ] QL-04 Xóa (admin) · [ ] QL-05 sửa gói (tùy chọn)
-- [ ] Khóa học: [ ] QL-06 hàng thao tác · [ ] QL-07 nút Thêm · [ ] QL-08 chặn xóa khi còn học viên, xóa ảnh bìa
+- [ ] Khách hàng: [ ] QL-02 cột Thao tác + hộp thoại Sửa · [ ] QL-03 Khóa / mở khóa · [ ] QL-04 Xóa (admin) · [ ] QL-05 sửa gói (tùy chọn)
+- [x] Khóa học: [x] QL-06 hàng thao tác · [x] QL-07 nút Thêm · [x] QL-08 chặn xóa khi còn học viên, xóa ảnh bìa → **làm ở Đợt 24 (17/10/2026)**
 - [ ] typecheck / lint / build · [ ] E2E TC-104 → TC-110 + chạy lại toàn bộ · [ ] tài liệu (SRS, user-stories EP-14 / EP-11, business-rules, database, API, screen-specs, security ma trận quyền, test-plan, project-review, README)
 
 #### Đợt 17 – Chuyển hạ tầng sang Cloudflare Workers 📝 (kế hoạch 04/10/2026)
@@ -352,7 +513,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] Lỗi nhỏ do Next 15: link "Xem trang giới thiệu" của khóa đang ẩn prefetch ra 404 → `prefetch={false}`; `/khoa-hoc/[id]` thêm `generateStaticParams` để giữ ISR
 - [x] E2E: **Node 99/99**, **Workers 100/100** (04/10); `next dev` chạy bình thường · 🟡 RK-54: lỗi hydration #418 lác đác ở `/admin/**` trên workerd (React tự dựng lại, chức năng đúng) – kiểm lại trên Cloudflare thật (CF-41)
 - [x] Tài liệu: ADR-001 / 007 / 017, system-architecture, source-structure, SRS, security T33 / T34, screen-specs, test-plan, runbook §1 / §2 / §4 / §6 / §8 / §9 / §10 / §11 / §12 (viết lại cho Cloudflare), development-guide, cloudflare-migration, templates, README
-- [x] P3 hạ tầng: tài khoản, Workers Paid, R2, D1, Secret, **deploy https://hv-web.bsdomanhcuong.workers.dev** (04/10), `npm run deploy:win` cho Windows · [ ] SMTP_USER / SMTP_PASS · [ ] Supabase Site URL · [ ] Workers Builds · [ ] P4 nghiệm thu CF-01 → CF-41 (A-22) · [ ] P5 cutover + 14 ngày (A-21) · [ ] P6 gỡ Vercel, tài liệu
+- [x] P3 hạ tầng: tài khoản, Workers Paid, R2, D1, Secret, **deploy https://hv-web.bsdomanhcuong.workers.dev** (04/10), `npm run deploy:win` có rào chặn · [x] Supabase Site URL + tắt đăng ký công khai (06/10) · [x] **Workers Builds – deploy tự động từ `main`** (06/10, PR #8) · [ ] SMTP_USER / SMTP_PASS (chờ Gmail trung tâm) · [x] P4 nghiệm thu trên website thật (chủ dự án, 06/10) – còn CF-05 (email thật) · [ ] P5 theo dõi 14 ngày (06/10 → 20/10) · [ ] P6 gỡ Vercel, tài liệu
 - Để lại / đề xuất: chuyển ảnh chuyển khoản sang R2 khi Storage Supabase > 600 MB (RK-37); thông báo R-01 dùng Cron / Queues của Cloudflare; gửi thư thật qua `lib/smtp-workers.ts` cần `SMTP_USER` / `SMTP_PASS` (A-12) – kiểm ở CF-05; Next 16 chờ OpenNext hỗ trợ middleware Node
 
 #### Đợt 14 – Chạy thử MVP (pilot) ⏸ (bắt đầu 02/10/2026 – tạm dừng 04/10 chờ Đợt 17)
@@ -365,7 +526,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - Để lại / đề xuất: A-1 staging đưa lên trước chạy thử; R-01 thông báo kéo vào nếu bỏ sót phiếu / đơn
 
 #### Đợt 16 – Hạ tầng gói Free ✅ (02/10/2026)
-- [x] Đánh giá hạ tầng cho 100–500 người cùng lúc / 1.000 bệnh nhân → RK-35 → RK-42 (project-review §7.8)
+- [x] Đánh giá hạ tầng cho 100–500 người cùng lúc / 1.000 khách hàng → RK-35 → RK-42 (project-review §7.8)
 - [x] Chủ dự án chốt: thử nghiệm trên gói Free, chuyển gói theo ngưỡng (§3.3)
 - [x] `vercel.json`: vùng server `sin1` (Singapore) – RK-38
 - [x] `.github/workflows/keepalive.yml`: mỗi 3 ngày đọc danh sách khóa → Supabase Free không bị tạm dừng – RK-36
@@ -381,16 +542,16 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] UI-01 `PasswordInput` + icon mắt · [x] áp dụng 7 ô mật khẩu
 - [x] UI-02 sidebar quản trị bên trái, thứ tự mới · [x] tab cuộn ngang < 1024px · [x] số đếm đơn chờ / phiếu mới / khách mới (`NavCount`, stream qua Suspense)
 - [x] Trang admin 2 cột (nội dung + form) chia cột từ `xl` thay vì `lg` để không chật cạnh sidebar
-- [x] UI-03 `ProgressRing` · [x] thay 5 chỗ + cột % danh sách bệnh nhân · [x] xóa `ProgressBar`
+- [x] UI-03 `ProgressRing` · [x] thay 5 chỗ + cột % danh sách khách hàng · [x] xóa `ProgressBar`
 - [x] typecheck / lint / build · [x] E2E TC-99 → TC-101 + chạy lại toàn bộ (98/98) · [x] tài liệu (SRS FR-191 → 193, design-system, screen-specs, sitemap, source-structure, user-stories, test-plan)
 - Để lại / đề xuất: "Tiến độ theo chương trình" ở Tổng quan giữ thanh ngang (so sánh nhiều chương trình – thanh dễ so hơn vòng tròn); số đếm trên menu chỉ làm mới khi tải trang / sau thao tác (không tự cập nhật theo thời gian thực – RK-33 vẫn mở)
 
 #### Đợt 11 → 13 + cải tiến (làm song song) ✅ (27/09/2026 · E2E 96/96)
-**Đợt 11 – Bệnh nhân từ Zalo**
+**Đợt 11 – Khách hàng từ Zalo**
 - [x] Schema: `profiles.source / created_by / must_change_password`, `account_events`, `patient_notes` (ghi chú nội bộ tách khỏi profiles), policy `registrations_staff_insert`, trigger `registrations_stamp_insert` + `registrations_log_insert`
-- [x] `/admin/patients` (lọc nguồn, trạng thái gói, mới 7/30 ngày, không tập > 7 ngày; % tiến độ; tab Nhân viên & Admin cho admin), `/admin/users` tự chuyển
-- [x] `/admin/patients/new`: mật khẩu tự sinh hiện 1 lần + "Chép tin nhắn gửi Zalo"; cấp gói ngay (số tiền, hình thức, ảnh tùy chọn)
-- [x] `/admin/patients/[id]`: gói & tiến độ, lịch sử đơn, phiếu, nhật ký; cấp gói / gia hạn (cấp bù RK-16), sửa thông tin + ghi chú, cấp lại mật khẩu (R-02)
+- [x] `/admin/customers` (lọc nguồn, trạng thái gói, mới 7/30 ngày, không tập > 7 ngày; % tiến độ; tab Nhân viên & Admin cho admin), `/admin/users` tự chuyển
+- [x] `/admin/customers/new`: mật khẩu tự sinh hiện 1 lần + "Chép tin nhắn gửi Zalo"; cấp gói ngay (số tiền, hình thức, ảnh tùy chọn)
+- [x] `/admin/customers/[id]`: gói & tiến độ, lịch sử đơn, phiếu, nhật ký; cấp gói / gia hạn (cấp bù RK-16), sửa thông tin + ghi chú, cấp lại mật khẩu (R-02)
 - [x] Hộp nhắc đổi mật khẩu (`LoginReminders`), đổi mật khẩu tắt cờ
 - [x] Chặn qua API: đơn web / đơn chờ / gói chương trình khác / tự cấp cho tài khoản nhân viên (RK-34)
 
@@ -409,7 +570,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] RK-18: sửa chương trình không còn ô Giá (giá ở bảng gói)
 - [x] Hiệu năng (ADR-016): middleware chỉ đọc cookie, bỏ truy vấn vai trò; `getCurrentUser` cache theo request; profile phía trình duyệt dùng chung
 - [x] E2E TC-85 → TC-98; tài liệu toàn bộ (SRS, BR, user stories, database, API, UI, bảo mật, test-plan, ADR-014 → 016, runbook, README)
-- Để lại / đề xuất: thông báo khi có phiếu / lead mới (RK-33); link "tới bệnh nhân đó" khi tạo trùng SĐT (US-14.01 AC2); phân trang danh sách > 200 (RV-12)
+- Để lại / đề xuất: thông báo khi có phiếu / lead mới (RK-33); link "tới khách hàng đó" khi tạo trùng SĐT (US-14.01 AC2); phân trang danh sách > 200 (RV-12)
 
 #### Đợt 10 – Buổi – bài, trình học, checklist, tiến độ ✅ (27/09/2026 · E2E 83/83)
 - [x] Schema: `course_sessions`, `lessons.session_id` (bài cũ → "Buổi 1"), `video_url` không bắt buộc, `lesson_progress`; `can_view_lesson`, `session_completed`, `course_progress`; `course_outline` theo buổi
@@ -438,7 +599,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] Đợt 8 – Danh mục khóa, khóa miễn phí, premium + lead, chính sách bảo mật (V-01, V-10, V-11)
 - [x] Đợt 9 – Gói tháng, hạn học, gia hạn (V-02, V-07)
 - [x] Đợt 10 – Buổi – bài, trình học, checklist, tiến độ (V-03, V-04)
-- [x] Đợt 11 – Nhân viên tạo bệnh nhân từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
+- [x] Đợt 11 – Nhân viên tạo khách hàng từ Zalo, cấp gói, cấp lại mật khẩu (V-08)
 - [x] Đợt 12 – Phiếu tham vấn bác sĩ (V-05)
 - [x] Đợt 13 – Dashboard quản trị tập trung (V-06)
 - [ ] Chuyển đổi dữ liệu ✅ (schema) · dọn dữ liệu test trước chạy thử ⬜ (V-12 → Đợt 14 bước 2.1 → 2.3)
@@ -455,7 +616,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] RV-09 Nội dung lỗi thời ("Gmail")
 - [ ] RV-10 Git + CI – 🟡 có git, remote, workflow CI; chờ A-2, A-3
 - [x] RV-11 Người xử lý đơn + lý do + lịch sử
-- [ ] RV-12 Phân trang admin – 🟡 Đợt 11: trang Bệnh nhân không còn tải toàn bộ bảng đơn (chỉ đơn của 200 người đang hiển thị); chưa phân trang
+- [ ] RV-12 Phân trang admin – 🟡 Đợt 11: trang Khách hàng không còn tải toàn bộ bảng đơn (chỉ đơn của 200 người đang hiển thị); chưa phân trang
 - [x] RV-13 Index `profiles.email`
 - [ ] RV-14 `updateProfileAction` không hoàn tác khi lỗi giữa chừng (cùng mẫu ở `updatePatientAction`)
 - [ ] RV-15 Thông báo kỹ thuật khi trùng SĐT do race
@@ -473,14 +634,19 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
   [x] RK-16 (có công cụ cấp bù) · 🔵 RK-17 · [x] RK-18 · 🟡 RK-19 · [ ] RK-20 (A-7) · 🔵 RK-21 · [x] RK-22 · 🟡 RK-23 · 🟡 RK-24 · 🔵 RK-25 ·
   🔵 RK-26 · [x] RK-27 · [x] RK-28 · [x] RK-29 · 🟡 RK-30 · 🔵 RK-31 · 🔵 RK-32 · [ ] RK-33 · [x] RK-34
 - Hạ tầng (chi tiết ở [project-review §7.8](project-review.md#78-đánh-giá-hạ-tầng--quy-mô-500-người-học-cùng-lúc-02102026)):
-  🟡 RK-35 (→ đóng khi xong Đợt 17 – ADR-017) · [x] RK-36 (workflow đang chạy) · 🟡 RK-37 · [x] RK-38 (chờ A-15) · [ ] RK-39 · [ ] RK-40 · [ ] RK-41 (= RV-12) · 🔵 RK-42
+  [x] RK-35 (đóng 18/10 – web trên Cloudflare Workers Paid, Vercel gỡ khỏi mã nguồn) · [x] RK-36 (workflow đang chạy) · 🟡 RK-37 · [x] RK-38 (chờ A-15) · [ ] RK-39 · [ ] RK-40 · [ ] RK-41 (= RV-12) · 🔵 RK-42
 - Chuyển hạ tầng & quản lý (chi tiết ở [project-review §7.9](project-review.md#79-rà-soát-chuyển-hạ-tầng-sang-cloudflare-workers-04102026)):
   [x] RK-43 · [x] RK-44 · [x] RK-45 · [x] RK-46 (chờ thử thư thật CF-05) · [x] RK-47 · 🟡 RK-48 (P3) · 🟡 RK-49 (P3 / P5) · [x] RK-50 · [ ] RK-51 · [ ] RK-52 (Đợt 18) · [x] RK-53 · 🟡 RK-54 (kiểm lại CF-41)
+  · 🟡 RK-55 (ảnh / số liệu trang chủ – A-26) · [x] RK-56 (hiệu ứng chạy liên tục làm treo thao tác Playwright – E2E cuộn bằng DOM) – Đợt 19
+  · 🟡 RK-59 (đăng nhập lại 1 lần sau deploy – A-28) · 🔵 RK-60 (xem video > 2 giờ không chạm bị đăng xuất – chấp nhận) · 🟡 RK-61 (chặn xóa khóa chỉ ở server action – Đợt 25) · 🔵 RK-62 (làm quen giao diện quản trị mới) – Đợt 21 → 24
+  · 🔴 RK-71 (Next 15 hết hỗ trợ 21/10/2026 → OpenNext chặn build; tạm dùng cờ – A-33, nâng Next 16 ở Đợt 27) – 26/10
+  · 🟡 RK-63 (xóa khách hàng không hoàn tác) · [x] RK-64 (nhân viên đã xóa: "Tạo bởi" của khách hàng mất tên – chấp nhận) · [x] RK-65 (schema Đợt 26 đã chạy 18/10) · 🟡 RK-66 (project / app Vercel còn trên tài khoản – A-31) – Đợt 26
+  · 🟡 RK-57 (chỉ trang chủ có tiếng Anh – chấp nhận, A-27) · 🟡 RK-58 (hiệu ứng nặng hơn trên điện thoại yếu: blur, backdrop-blur – đo Lighthouse sau deploy) – Đợt 20
 
 ### 5.4. Tính năng mở rộng (R)
 - [x] R-00 Xử lý kết quả review (Đợt 1 → 5)
 - [ ] R-01 Thông báo email / Zalo khi đơn được duyệt, khi có phiếu / lead mới → backlog ưu tiên 1
-- [x] R-02 Nhân viên cấp lại mật khẩu bệnh nhân → Đợt 11
+- [x] R-02 Nhân viên cấp lại mật khẩu khách hàng → Đợt 11
 - [x] R-03 Ảnh bìa khóa học → Đợt 8
 - [x] R-04 Tiến độ học → Đợt 10
 - [x] R-05 Lý do từ chối + lịch sử + người xử lý → Đợt 3
@@ -493,15 +659,18 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 - [x] R-12 Vai trò nhân viên → Đợt 7
 - [ ] R-13 Mã giảm giá / combo
 
-### 5.5. Yêu cầu giao diện (UI) – 29/09/2026
+### 5.5. Yêu cầu giao diện (UI) – 29/09/2026, 17/10/2026
 - [x] UI-01 Icon mắt hiện / ẩn mật khẩu → Đợt 15
 - [x] UI-02 Menu quản trị dọc bên trái, thứ tự mới (Khóa học lên thứ 4), số đếm → Đợt 15
 - [x] UI-03 Vòng tròn % tiến độ → Đợt 15
+- [x] UI-04 Chuyển động trang chủ · [x] UI-05 Câu chữ thu hút + số liệu · [x] UI-06 Hồ sơ + ảnh bác sĩ, 3 cơ sở · [x] UI-07 Bỏ phần trùng → Đợt 19 (17/10/2026)
+- [x] UI-08 Nút chuyển ngữ VI | EN, trang chủ tiếng Anh `/en` · [x] UI-09 Giao diện hiện đại hơn (hero tối, bento, hiệu ứng theo cuộn) → Đợt 20 (17/10/2026)
+- [x] UI-10 Giao diện quản trị hiện đại (thanh bên tối, tiêu đề trang, KPI, bộ lọc viên) → Đợt 23 (17/10/2026)
 
 ### 5.6. Quản lý danh sách (QL) – 04/10/2026
-- [x] QL-01 Thêm bệnh nhân (có sẵn từ Đợt 11)
-- [ ] QL-02 Cột thao tác + sửa nhanh ở danh sách bệnh nhân · [ ] QL-03 Khóa / mở khóa tài khoản · [ ] QL-04 Xóa bệnh nhân (admin) · [ ] QL-05 Sửa gói đã cấp (tùy chọn)
-- [ ] QL-06 Hàng thao tác ở danh sách khóa học · [ ] QL-07 Nút thêm khóa dễ thấy · [ ] QL-08 Chặn xóa khóa còn học viên
+- [x] QL-01 Thêm khách hàng (có sẵn từ Đợt 11)
+- [x] QL-02 Cột thao tác ở danh sách khách hàng (Hồ sơ · Sửa · Xóa – Đợt 26) · [ ] QL-03 Khóa / mở khóa tài khoản · [x] QL-04 Xóa khách hàng (nhân viên + admin – Đợt 26) · [ ] QL-05 Sửa gói đã cấp (tùy chọn)
+- [x] QL-06 Hàng thao tác ở danh sách khóa học · [x] QL-07 Nút thêm khóa dễ thấy · [x] QL-08 Chặn xóa khóa còn học viên → Đợt 24 (17/10/2026)
 
 ## 6. Phụ lục – thiết kế sơ bộ tính năng mở rộng (R-xx)
 
@@ -526,7 +695,7 @@ Làm xong đợt nào tick đợt đó. Mục **"Để lại / đề xuất"** l
 (đơn chờ, phiếu mới, lead mới) bằng Cloudflare Cron Triggers (sau Đợt 17) gọi route handler có secret. Zalo OA ZNS nếu cần (tốn phí).
 
 **R-06 – Phân trang, xuất Excel.** Query param `?page=&from=&to=&q=`; `.range()` + `count: 'exact'`. Xuất CSV qua route handler
-`app/admin/export/route.ts` (kiểm tra quyền, UTF-8 BOM cho Excel). Với bệnh nhân: thêm `p_offset` cho `admin_patients()`.
+`app/admin/export/route.ts` (kiểm tra quyền, UTF-8 BOM cho Excel). Với khách hàng: thêm `p_offset` cho `admin_patients()`.
 
 **R-07 – Doanh thu (phần còn lại).** Chọn khoảng thời gian tùy ý (`revenue_report(from, to)` đã hỗ trợ), xuất Excel; biểu đồ theo tháng
 (một chuỗi, cột theo tháng – theo `dataviz`/design system).

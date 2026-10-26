@@ -75,7 +75,7 @@ export function CourseFields({ values = {}, isNew = false, defaultKind = 'progra
         <textarea name="description" rows={3} defaultValue={values.description ?? ''} className="input" />
       </div>
       {editingProgram ? (
-        <p className="self-end rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Giá bán của chương trình sửa ở bảng <strong>Gói theo thời hạn</strong> phía trên.</p>
+        <p className="self-end rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Giá bán của chương trình sửa ở bảng <strong>Gói theo thời hạn</strong> bên dưới.</p>
       ) : (
         <div>
           <label className="label">Giá (VNĐ) – chương trình: giá gói 1 tháng khi tạo mới; premium: giá hiển thị</label>

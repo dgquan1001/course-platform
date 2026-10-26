@@ -60,6 +60,13 @@ const nextConfig = {
     // Mặc định Server Action chỉ nhận 1MB, cần tăng để upload ảnh chuyển khoản (tối đa 5MB)
     serverActions: { bodySizeLimit: '6mb' },
   },
+  // Đợt 26 (18/10/2026): "bệnh nhân" đổi thành "khách hàng" – giữ link cũ (dấu trang, tin nhắn) còn dùng được
+  async redirects() {
+    return [
+      { source: '/admin/patients', destination: '/admin/customers', permanent: false },
+      { source: '/admin/patients/:path*', destination: '/admin/customers/:path*', permanent: false },
+    ]
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },

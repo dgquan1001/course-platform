@@ -6,15 +6,20 @@ Bác sĩ Đỗ Mạnh Cường. Video bài học được nhúng từ YouTube ho
 
 Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Storage) + Tailwind CSS; chạy trên Cloudflare Workers (OpenNext) từ Đợt 17.
 
-## Hiện trạng (05/10/2026)
+## Hiện trạng (17/10/2026)
 
-- **Website**: https://hv-web.bsdomanhcuong.workers.dev – Cloudflare Workers Paid + Supabase Free (ADR-017). Deploy từ máy: `npm run deploy:win`.
-- **Chức năng**: phiên bản 0.2 đầy đủ – chương trình tập phục hồi chức năng cho **bệnh nhân** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng,
+- **Website**: https://hv-web.bsdomanhcuong.workers.dev – Cloudflare Workers Paid + Supabase Free (ADR-017).
+- **Deploy**: Pull Request vào `main` → merge → Cloudflare Workers Builds tự build + deploy (2 – 4 phút). Khẩn cấp từ máy: `npm run deploy:win` (phải commit + push trước).
+- **Chức năng**: phiên bản 0.2 đầy đủ – chương trình tập phục hồi chức năng cho **khách hàng** (vẹo lưng, vẹo ngực) theo gói 1/3/6/12 tháng,
   khóa miễn phí công khai, khóa premium 1:4 / 1:2 / 1:1 liên hệ Zalo, lộ trình **buổi → bài tập** mở lần lượt + checklist + % tiến độ,
-  phiếu tham vấn bác sĩ, vai trò **bệnh nhân / nhân viên / admin**, nhân viên tạo tài khoản cho khách Zalo, dashboard quản trị.
-- **Kiểm thử**: E2E Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
-- **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) (cấu hình Supabase / SMTP → nghiệm thu
-  trên Cloudflare → gộp `main` + tự động deploy → Đợt 18 thêm / sửa / xóa → Đợt 14 chạy thử MVP).
+  phiếu tham vấn bác sĩ, vai trò **khách hàng / nhân viên / admin**, nhân viên tạo tài khoản cho khách Zalo, dashboard quản trị.
+- **Kiểm thử**: Node 107/107 · Workers 108/108 (20 lỗi hydration RK-54 ở trang quản trị ghi riêng) (18/10/2026, sau Đợt 26); E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) (17/10/2026, sau Đợt 21 → 24); sau Đợt 19: Node 101/101 · Workers 102/102; trước đó Node 99/99, Cloudflare Workers 100/100 (05/10/2026).
+- **Đợt 19 (17/10/2026)**: thiết kế lại trang chủ – chuyển động (hiện dần khi cuộn, số đếm, dải chuyên môn), hồ sơ + ảnh hoạt động của bác sĩ, 3 cơ sở, bỏ phần trùng; nhánh `hv-dgquan-20261017` chờ Pull Request vào `main`.
+- **Đợt 20 (17/10/2026)**: nút chuyển ngữ **VI | EN** ở trang chủ – bản tiếng Anh tại `/en` (ADR-018); giao diện hiện đại hơn: hero nền tối, tiêu đề hiện từng từ, bento, cột ảnh bác sĩ dính khi cuộn, parallax / thanh tiến độ cuộn (CSS), ánh sáng theo con trỏ, chân trang tối.
+- **Đợt 21 → 24 (17/10/2026)**: phiên đăng nhập **hết khi đóng trình duyệt**, tự đăng xuất khi không thao tác (nhân viên 30 phút, học viên 2 giờ, tối đa 12 giờ; học viên có "Ghi nhớ 30 ngày"), đổi mật khẩu đăng xuất máy khác; hiệu năng điện thoại 90 – 94 điểm (`scripts/perf.mjs`); **giao diện quản trị mới** (thanh bên tối, tiêu đề trang, KPI); **thêm / sửa / xóa khóa học** (nút "+ Thêm khóa học", trang sửa riêng, xóa an toàn).
+- **Đợt 26 (18/10/2026)**: gọi chung **khách hàng** (thay "bệnh nhân"); tách menu **Khách hàng** (`/admin/customers` – nhân viên + admin thêm / sửa / **xóa**) và **Nhân viên** (`/admin/staff` – chỉ admin thêm / sửa / đổi vai trò / cấp lại mật khẩu / xóa); nhân viên vẫn không sửa khóa học; **gỡ Vercel** khỏi mã nguồn (Cloudflare là nơi chạy duy nhất). Schema đã chạy trên Supabase (18/10).
+- **Việc cần làm tiếp theo – từng bước**: [`roadmap §0.1`](web%20design%20structure/10-review/roadmap.md) – chủ dự án chạy `supabase/schema.sql` (A-30), xóa project Vercel (A-31), Pull Request vào `main`;
+  sau đó Đợt 25 (khóa tài khoản, sửa gói); email quên mật khẩu khi chốt Gmail trung tâm; Đợt 14 chạy thử MVP.
 - Cần **Node.js 22+** (`@supabase/supabase-js` 2.117 trở lên).
 
 ### Dòng thời gian (cũ → mới)
@@ -22,19 +27,24 @@ Công nghệ: Next.js 15 (App Router, React 19) + Supabase (Auth, Postgres, Stor
 | Ngày | Mốc | Kết quả |
 | --- | --- | --- |
 | 26/09/2026 | v0.1 + Đợt 1 → 5: sửa review, nhiều admin, CI, chống lạm dụng, header bảo mật | E2E 63/63 |
-| 27/09/2026 | Định vị lại v0.2 + Đợt 7 → 13: nhân viên, loại khóa / premium, gói tháng, buổi – bài, bệnh nhân từ Zalo, phiếu tham vấn, dashboard | E2E 96/96 |
+| 27/09/2026 | Định vị lại v0.2 + Đợt 7 → 13: nhân viên, loại khóa / premium, gói tháng, buổi – bài, khách hàng từ Zalo, phiếu tham vấn, dashboard | E2E 96/96 |
 | 29/09/2026 | Đợt 15: icon mắt ô mật khẩu, menu quản trị dọc có số việc cần xử lý, vòng tròn % tiến độ | E2E 98/98 |
 | 02/10/2026 | Đợt 16: hạ tầng gói Free, giữ Supabase hoạt động + sao lưu tuần (GitHub Actions); Đợt 14: kế hoạch chạy thử MVP 7 giai đoạn | Workflow chạy thật ✅ |
 | 04/10/2026 | Chốt chuyển web sang Cloudflare Workers (ADR-017); Đợt 17 P0 → P2: Next 15 / React 19, OpenNext, IP `cf-connecting-ip`, SMTP cho Workers | E2E Node 99/99, Workers 100/100 |
 | 04/10/2026 | Đợt 17 P3: deploy lên Cloudflare (`hv-web.bsdomanhcuong.workers.dev`) | Smoke test ✅ |
 | 05/10/2026 | Rà soát performance & security (project-review §7.10), roadmap §0.1 to-do từng bước | E2E Node 99/99, Workers 100/100 |
+| 06/10/2026 | Tắt đăng ký công khai Supabase, nghiệm thu trên website thật; **deploy tự động từ `main` qua Workers Builds** (PR #8) | Workers Builds ✅ |
+| 17/10/2026 | Đợt 19: thiết kế lại trang chủ (chuyển động, hồ sơ bác sĩ, bỏ phần trùng) | E2E Node 101/101 · Workers 102/102 (14 lỗi RK-54 ghi riêng) |
+| 17/10/2026 | Đợt 20: song ngữ trang chủ VI ↔ EN (`/en`), giao diện hiện đại hơn | E2E Node 102/102 · Workers 103/103 (18 lỗi hydration RK-54 ở trang quản trị ghi riêng, không liên quan Đợt 20) |
+| 17/10/2026 | Đợt 21 → 24: bảo mật phiên đăng nhập, hiệu năng, giao diện quản trị mới, thêm / sửa / xóa khóa học | E2E Node 105/105 · Workers 106/106 (11 lỗi hydration RK-54 ở trang quản trị ghi riêng – trước 18) |
 
 Chi tiết từng lần cập nhật tài liệu: [`web design structure/README.md`](web%20design%20structure/README.md) › "Lịch sử tài liệu".
 
 ## Tính năng
 
-**Bệnh nhân / học viên**
-- Trang giới thiệu (`/`): thông tin trung tâm, bác sĩ; khóa học chia 3 nhóm **Miễn phí** · **Chương trình phục hồi**
+**Khách hàng / học viên**
+- Trang giới thiệu (`/`, bản tiếng Anh `/en` – nút **VI | EN** trên header): hero có số liệu đếm tăng, dải chuyên môn chạy ngang, nội dung hiện dần khi cuộn (tắt khi máy bật "giảm chuyển động");
+  hồ sơ bác sĩ (học vấn & chứng chỉ, lĩnh vực chuyên môn, quá trình công tác, ảnh hoạt động), 3 cơ sở ở chân trang; khóa học chia 3 nhóm **Miễn phí** · **Chương trình phục hồi**
   (lọc vẹo lưng / vẹo ngực) · **Premium** 1:4 / 1:2 / 1:1, có ảnh bìa; box đăng ký ngay trên trang (mọi nút "Đăng ký" đều cuộn tới box này)
 - Trang giới thiệu từng khóa (`/khoa-hoc/<id>`): "Bạn sẽ đạt được", đề cương (không lộ link video), bác sĩ hướng dẫn
 - Khóa **miễn phí** xem ngay, không cần tài khoản. Khóa **premium**: để lại họ tên + SĐT hoặc bấm "Mở Zalo ngay" →
@@ -67,18 +77,21 @@ Chi tiết từng lần cập nhật tài liệu: [`web design structure/README.
   danh sách bài, nút bài trước/bài tiếp theo
 - Học viên đã có tài khoản có thể đăng nhập và đăng ký thêm khóa khác
 
-**Quản trị** (`/admin`) – vai trò **Admin** (toàn quyền) và **Nhân viên** (vận hành hằng ngày; không sửa khóa học, không phân quyền, không xem doanh thu)
-- **Menu quản trị** dọc bên trái (máy tính; điện thoại là hàng tab cuộn ngang): Tổng quan · Đơn đăng ký · Bệnh nhân · Khóa học · Phiếu tham vấn ·
-  Khách quan tâm · Mẫu phiếu (nhân viên không thấy Khóa học, Mẫu phiếu); cạnh mục có **số đơn chờ duyệt, phiếu tham vấn mới, khách mới**
-- **Tổng quan** (`/admin`): 8 thẻ chỉ số bấm được (bệnh nhân, mới 30 ngày Web / Zalo, đơn chờ, gói hiệu lực, sắp hết hạn, đã hết hạn,
-  phiếu tham vấn mới, khách premium mới), việc cần làm (kèm Gọi / Zalo bệnh nhân sắp hết hạn), tiến độ trung bình theo chương trình,
-  bệnh nhân không tập > 7 ngày; **doanh thu** tháng này / tháng trước theo chương trình, hình thức, nguồn, người xử lý (chỉ admin)
-- **Bệnh nhân** (`/admin/patients`): lọc nguồn Web / Zalo, trạng thái gói (đang học, sắp hết hạn, hết hạn, không tập > 7 ngày, chưa có gói),
-  mới 7 / 30 ngày; % tiến độ, lần tập gần nhất. **Tạo bệnh nhân** cho khách Zalo (mật khẩu tự sinh hiện một lần + nút chép tin nhắn gửi Zalo,
-  cấp gói ngay: số tiền, tiền mặt / chuyển khoản / khác, ảnh tùy chọn). **Hồ sơ bệnh nhân**: gói & tiến độ, lịch sử đơn, phiếu tham vấn,
-  nhật ký; cấp gói / gia hạn (cộng dồn), sửa thông tin + ghi chú nội bộ, **cấp lại mật khẩu**. Admin đổi vai trò, tab "Nhân viên & Admin"
+**Quản trị** (`/admin`) – vai trò **Admin** (toàn quyền) và **Nhân viên** (vận hành hằng ngày, thêm / sửa / xóa khách hàng; không thêm / sửa / xóa khóa học, không phân quyền, không quản lý nhân viên, không xem doanh thu)
+- **Menu quản trị** dọc bên trái (máy tính; điện thoại là hàng tab cuộn ngang): Tổng quan · Đơn đăng ký · Khách hàng · Khóa học · Phiếu tham vấn ·
+  Khách quan tâm · Nhân viên · Mẫu phiếu (nhân viên không thấy Khóa học, Nhân viên, Mẫu phiếu); cạnh mục có **số đơn chờ duyệt, phiếu tham vấn mới, khách mới**
+- **Tổng quan** (`/admin`): 8 thẻ chỉ số bấm được (khách hàng, mới 30 ngày Web / Zalo, đơn chờ, gói hiệu lực, sắp hết hạn, đã hết hạn,
+  phiếu tham vấn mới, khách premium mới), việc cần làm (kèm Gọi / Zalo khách hàng sắp hết hạn), tiến độ trung bình theo chương trình,
+  khách hàng không tập > 7 ngày; **doanh thu** tháng này / tháng trước theo chương trình, hình thức, nguồn, người xử lý (chỉ admin)
+- **Khách hàng** (`/admin/customers`): lọc nguồn Web / Zalo, trạng thái gói (đang học, sắp hết hạn, hết hạn, không tập > 7 ngày, chưa có gói),
+  mới 7 / 30 ngày; % tiến độ, lần tập gần nhất. **Tạo khách hàng** cho khách Zalo (mật khẩu tự sinh hiện một lần + nút chép tin nhắn gửi Zalo,
+  cấp gói ngay: số tiền, tiền mặt / chuyển khoản / khác, ảnh tùy chọn). **Hồ sơ khách hàng**: gói & tiến độ, lịch sử đơn, phiếu tham vấn,
+  nhật ký; cấp gói / gia hạn (cộng dồn), sửa thông tin + ghi chú nội bộ, **cấp lại mật khẩu**, **xóa** (chỉ khi hết gói / không có đơn chờ, gõ lại SĐT;
+  giữ đơn + ảnh chuyển khoản). Danh sách có cột Thao tác Hồ sơ · Sửa · Xóa. Admin đổi vai trò ở mục "Phân quyền" của hồ sơ
+- **Nhân viên** (`/admin/staff`, chỉ admin): danh sách nhân viên / admin + người cấp quyền, **thêm nhân viên** (mật khẩu hiện 1 lần), sửa, đổi vai trò,
+  cấp lại mật khẩu, xóa (không tự xóa, luôn còn ≥ 1 admin); nhật ký xóa tài khoản
 - **Phiếu tham vấn** (`/admin/consultations`): xem câu trả lời, gọi / Zalo, chuyển Mới → Đã liên hệ → Hoàn tất / Hủy kèm ghi chú nội bộ
-  (bệnh nhân không thấy); **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin): thêm / sửa / bật tắt / sắp xếp câu hỏi
+  (khách hàng không thấy); **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin): thêm / sửa / bật tắt / sắp xếp câu hỏi
 - Đơn đăng ký (`/admin/registrations`, nhân viên và admin): **bảng** dùng chung cho cả 4 tab Chờ duyệt / Đã duyệt / Từ chối / Tất cả,
   các cột: STT, Ảnh chuyển khoản, Họ và tên, Email, Số điện thoại, Khóa học, Học phí,
   Ngày đăng ký, Trạng thái, Ngày xử lý, Thao tác (Duyệt / Từ chối / Thu hồi). Cột Thao tác
@@ -171,11 +184,11 @@ Nếu Gmail đã có tài khoản, lệnh sẽ nâng quyền lên admin và đ�
    - đăng nhập luôn cho học viên và chuyển tới `/courses` để theo dõi trạng thái
    - nếu một bước lỗi, các bước trước được hoàn tác (không để lại tài khoản rác)
 3. Nhân viên / admin vào `/admin/registrations`, xem ảnh chuyển khoản, bấm **Duyệt** → database tính hạn học (cộng dồn khi gia hạn)
-4. Bệnh nhân vào **Khóa học của tôi** thấy khóa đã mở, tập theo buổi (mở lần lượt). Quyền xem bài học được kiểm soát
+4. Khách hàng vào **Khóa học của tôi** thấy khóa đã mở, tập theo buổi (mở lần lượt). Quyền xem bài học được kiểm soát
    ngay trong database bằng Row Level Security (hàm `can_view_lesson`: hạn học, số buổi đã mua, buổi trước đã tick đủ)
-5. Khách chốt qua **Zalo**: nhân viên tạo tài khoản ở `/admin/patients/new`, cấp gói (ghi số tiền, hình thức thanh toán),
+5. Khách chốt qua **Zalo**: nhân viên tạo tài khoản ở `/admin/customers/new`, cấp gói (ghi số tiền, hình thức thanh toán),
    gửi mật khẩu cho khách qua Zalo; khách đăng nhập bằng SĐT và được nhắc đổi mật khẩu
-6. Bệnh nhân gửi **phiếu tham vấn** bất cứ lúc nào → nhân viên xem ở `/admin/consultations`, hẹn bác sĩ qua điện thoại / Zalo
+6. Khách hàng gửi **phiếu tham vấn** bất cứ lúc nào → nhân viên xem ở `/admin/consultations`, hẹn bác sĩ qua điện thoại / Zalo
 
 Middleware chỉ kiểm tra đăng nhập bằng cookie (không gọi mạng); quyền nhân viên / admin được kiểm tra ở từng trang
 (`requireStaffPage` / `requireAdminPage`) và trong database (RLS) – xem ADR-016.
@@ -193,16 +206,16 @@ mã quên mật khẩu. Hai chế độ: Node (`npm run test:e2e`) và **Cloudfl
 | `[Hệ thống]` | Bảng, bucket, trigger; RLS: khách không đọc được bài học, đơn đăng ký, mã đặt lại mật khẩu, khóa đang ẩn; email mã 6 số, mã lưu dạng băm, chặn gửi lại liên tục |
 | `[Khách]` | Trang cần đăng nhập bị chặn (`/admin`, `/courses`, `/account`); box đăng ký 3 bước; nút "Đăng ký" cuộn tới form và chọn sẵn khóa; dropdown chỉ có khóa đang mở; QR đúng số tiền; chặn file không phải ảnh; nén ảnh lớn; báo lỗi SĐT sai; đăng ký có email (điện thoại) và **không email** (máy tính); chặn email trùng, SĐT trùng |
 | `[Học viên]` | Khóa chưa duyệt bị khóa; không vào được admin; đăng ký thêm khóa khi đã đăng nhập; chặn đăng ký trùng khóa đang chờ; xem video sau khi duyệt; đăng nhập bằng email, bằng SĐT (cả dạng `+84`); menu Tài khoản (rê chuột / bấm); sửa thông tin, thêm email; đổi mật khẩu; quên mật khẩu (không email → báo hotline; có email → mã sai bị chặn, mã đúng đặt được mật khẩu mới, mật khẩu cũ hết hiệu lực) |
-| `[Bệnh nhân]` | Gói tháng: hạn học, gia hạn cộng dồn, hết hạn mất video nhưng còn đề cương; buổi mở lần lượt, checklist "Hoàn thành & bài tiếp theo", bỏ tick khóa lại buổi sau, buổi vượt gói cần gia hạn, database chặn tick / đọc video buổi chưa mở; tiến độ + "Tiếp tục Buổi X – Bài Y"; tài khoản Zalo: nhắc đổi mật khẩu; gửi phiếu tham vấn (5 / ngày), không đọc được ghi chú nội bộ / dữ liệu người khác |
-| `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang chỉ admin, duyệt đơn, xử lý khách quan tâm premium, xem trước mọi buổi (không tick); tạo bệnh nhân Zalo + cấp gói, hồ sơ bệnh nhân (gia hạn, sửa, cấp lại mật khẩu), lọc bệnh nhân, xử lý phiếu tham vấn, Tổng quan không có doanh thu; không tự nâng quyền / sửa khóa học / sửa tài khoản admin / tạo đơn sai quy tắc qua API |
-| `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (miễn phí / chương trình / premium, ảnh bìa, mở/ẩn), khóa theo loại, gói tháng, khung N buổi × M bài, sao chép / xóa / đổi thứ tự buổi, bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; danh sách bệnh nhân; mẫu phiếu tham vấn; Tổng quan khớp database + doanh thu; xóa khóa / tài khoản vẫn giữ lead, phiếu, đơn |
+| `[Khách hàng]` | Gói tháng: hạn học, gia hạn cộng dồn, hết hạn mất video nhưng còn đề cương; buổi mở lần lượt, checklist "Hoàn thành & bài tiếp theo", bỏ tick khóa lại buổi sau, buổi vượt gói cần gia hạn, database chặn tick / đọc video buổi chưa mở; tiến độ + "Tiếp tục Buổi X – Bài Y"; tài khoản Zalo: nhắc đổi mật khẩu; gửi phiếu tham vấn (5 / ngày), không đọc được ghi chú nội bộ / dữ liệu người khác |
+| `[Nhân viên]` | Menu quản trị đúng quyền, bị chặn trang chỉ admin, duyệt đơn, xử lý khách quan tâm premium, xem trước mọi buổi (không tick); tạo khách hàng Zalo + cấp gói, hồ sơ khách hàng (gia hạn, sửa, cấp lại mật khẩu), lọc khách hàng, xử lý phiếu tham vấn, Tổng quan không có doanh thu; không tự nâng quyền / sửa khóa học / sửa tài khoản admin / tạo đơn sai quy tắc qua API |
+| `[Admin]` | Đăng nhập sai/đúng; nút Quản trị được tô nổi bật; tạo khóa (miễn phí / chương trình / premium, ảnh bìa, mở/ẩn), khóa theo loại, gói tháng, khung N buổi × M bài, sao chép / xóa / đổi thứ tự buổi, bài học; xem ảnh chuyển khoản; duyệt / từ chối / thu hồi; danh sách khách hàng; mẫu phiếu tham vấn; Tổng quan khớp database + doanh thu; xóa khóa / tài khoản vẫn giữ lead, phiếu, đơn |
 
 Lần chạy gần nhất: 04/10/2026, sau Đợt 17 P0 → P2 – **Node 99/99**, **Cloudflare Workers 100/100 bước PASS** (chi tiết: `web design structure/08-testing/test-plan.md`).
 
     npm run build
     npm run test:e2e                     # Node (next start)
 
-    npx opennextjs-cloudflare build
+    npm run build:cf                     # OpenNext build (có cờ cho Next 15 – RK-71)
     npm run test:e2e:workers             # Cloudflare Workers (workerd) – giống production
 
 Nếu đang chạy `npm run dev` (dev server ghi đè thư mục `.next`), build và test vào thư mục riêng:
@@ -232,17 +245,15 @@ Các bước chi tiết (tài khoản, R2 / D1, Workers Builds, biến môi trư
 `web design structure/09-operations/cloudflare-migration.md` §4 P3 → P5.
 
     npm run preview      # build + chạy thử bản Workers trên máy (cần .dev.vars – xem runbook)
-    npm run deploy       # build + deploy (khi đã đăng nhập wrangler; bình thường dùng Workers Builds tự deploy khi push main)
+    npm run deploy:win   # CHỈ khẩn cấp: build + deploy từ máy Windows (phải commit + push trước)
+                         # Bình thường: merge Pull Request vào main → Workers Builds tự deploy
 
-## Deploy (Vercel – đường lùi, gỡ sau Đợt 17)
+### Sao lưu & giữ Supabase hoạt động (gói Free)
 
-1. Đẩy code lên GitHub (file `.env.local` đã được bỏ qua, không bị đẩy lên)
-2. Vào https://vercel.com, **Import** repo, thêm các biến môi trường ở bước 3 (gồm cả SMTP), **Deploy**
-3. `vercel.json` đặt server ở vùng **Singapore** (`sin1`) cho gần Supabase – project Supabase cũng nên ở Singapore
-   (nếu khác, sửa `regions` cho cùng vùng)
-4. Gói Free: bật sao lưu hằng tuần và giữ Supabase không bị tạm dừng – cấu hình secrets theo
-   `web design structure/09-operations/deployment-runbook.md` §7.1. Tải ảnh Storage về máy bất cứ lúc nào: `npm run backup:storage`.
-   Khi nào nên chuyển gói Pro: runbook §12
+Bật sao lưu hằng tuần và giữ Supabase không bị tạm dừng – cấu hình secrets theo
+`web design structure/09-operations/deployment-runbook.md` §7.1. Tải ảnh Storage về máy bất cứ lúc nào: `npm run backup:storage`.
+Khi nào nên chuyển gói Pro: runbook §12. Quay lại bản trước khi deploy lỗi: Cloudflare › Workers › hv-web › Deployments › **Rollback**
+(runbook §8). Vercel đã được gỡ khỏi mã nguồn từ Đợt 26 (18/10/2026 – P6 của Đợt 17).
 
 ## Cấu trúc thư mục
 
@@ -263,12 +274,13 @@ Các bước chi tiết (tài khoản, R2 / D1, Workers Builds, biến môi trư
       admin/
         page.tsx                Tổng quan (dashboard)
         registrations/          Đơn đăng ký
-        patients/               Bệnh nhân: danh sách, tạo mới (new/), hồ sơ ([id]/), actions
+        customers/              Khách hàng: danh sách, tạo mới (new/), hồ sơ ([id]/), actions, usage (điều kiện xóa)
+        staff/                  Nhân viên (chỉ admin): danh sách, thêm (new/), hồ sơ ([id]/), actions
         consultations/          Phiếu tham vấn
         leads/                  Khách quan tâm premium
         courses/                Khóa học theo loại, gói; courses/[courseId] là buổi – bài (chỉ admin)
         settings/consultation/  Mẫu phiếu tham vấn (chỉ admin)
-        users/                  Đường dẫn cũ → patients
+        users/                  Đường dẫn cũ → customers (/admin/patients/** chuyển hướng trong next.config.mjs)
         actions.ts              Server action quản trị dùng chung (trả kết quả để hiện toast)
         layout.tsx, AdminNav.tsx      Khung quản trị: sidebar trái / tab ngang trên điện thoại; NavCount.tsx: số việc cần xử lý
         error.tsx               Trang lỗi khu quản trị (không dùng loading.tsx – lỗi đổi tab ở Next 15.5, RK-53)
@@ -317,5 +329,5 @@ Bộ tài liệu đầy đủ (yêu cầu, user story, kiến trúc, database, A
 Danh sách ưu tiên sau đợt chạy thử: `web design structure/10-review/roadmap.md` §3.2. Tóm tắt:
 - Thông báo email / Zalo khi đơn được duyệt, khi có phiếu tham vấn / khách premium mới (đã có sẵn `lib/mailer.ts`)
 - Giám sát lỗi; staging + CI chạy E2E (sao lưu database + ảnh đã có từ Đợt 16)
-- Phân trang, xuất Excel đơn / bệnh nhân / doanh thu
+- Phân trang, xuất Excel đơn / khách hàng / doanh thu
 - Để video YouTube ở chế độ **Unlisted** để tránh bị tìm thấy công khai

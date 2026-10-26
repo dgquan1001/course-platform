@@ -8,7 +8,7 @@
 | E2E | `next start` (:3123) – `npm run test:e2e`; hoặc **workerd** qua `opennextjs-cloudflare preview` – `npm run test:e2e:workers` (chuẩn nghiệm thu từ Đợt 17) | **Project kiểm thử (staging)** – script từ chối chạy nếu `E2E_SUPABASE_REF` không khớp | Email gửi tới hộp thư giả (`MAIL_OUTBOX_URL`) |
 | CI | GitHub Actions `.github/workflows/ci.yml` | `check`: không cần Supabase; `e2e`: project staging (secrets) | Xem mục 1.1 |
 | Preview | Cloudflare **Workers Builds** – link xem trước cho mỗi nhánh khác `main` | **Nên** là project staging | Biến môi trường riêng cho bản xem trước |
-| Production | Cloudflare Workers `hv-web` (nhánh `main`) – ADR-017 | Project production | Vercel chỉ còn là đường lùi tới hết Đợt 17 P5 |
+| Production | Cloudflare Workers `hv-web` (nhánh `main`) – ADR-017 | Project production | Vercel đã gỡ khỏi mã nguồn (Đợt 26, 18/10/2026) – lùi phiên bản bằng Rollback của Cloudflare |
 
 > Sau Đợt 17 (ADR-017): Preview / Production chạy trên **Cloudflare Workers** (Workers Builds), E2E chuẩn chạy trên preview workerd –
 > xem [cloudflare-migration.md](cloudflare-migration.md).
@@ -72,14 +72,14 @@ Kế hoạch đầy đủ, rà soát ảnh hưởng, checklist nghiệm thu CF-0
    `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `… SMTP_PASS`, `… TURNSTILE_SECRET_KEY` (nếu bật Turnstile).
    Biến thường (Workers › hv-web › Settings › Variables): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `MAIL_FROM`.
 5. **Workers Builds** (Workers › hv-web › Settings › Builds › Connect GitHub): repo này, nhánh production `main`,
-   Build command `npx opennextjs-cloudflare build`, Deploy command `npx opennextjs-cloudflare deploy`. **Từ 06/10/2026 không cần nhập Build variables**: 3 biến công khai nằm trong file `.env.production` (commit trong repo), Node 22 theo `.node-version`. (Trước đây hướng dẫn nhập ở Build variables – dễ nhầm với Variables and Secrets lúc chạy; nếu vẫn nhập thì giá trị ở đó được ưu tiên.) Các biến công khai:
+   Build command **`npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion`** (từ 26/10/2026 – trước đó không có cờ, xem §8 "Next.js version … is not supported"; ghi thẳng cờ vào lệnh để build được cả commit cũ chưa có script `build:cf`), Deploy command `npx opennextjs-cloudflare deploy`. **Từ 06/10/2026 không cần nhập Build variables**: 3 biến công khai nằm trong file `.env.production` (commit trong repo), Node 22 theo `.node-version`. (Trước đây hướng dẫn nhập ở Build variables – dễ nhầm với Variables and Secrets lúc chạy; nếu vẫn nhập thì giá trị ở đó được ưu tiên.) Các biến công khai:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (tạm `https://hv-web.<tài-khoản>.workers.dev`),
    `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (nếu bật), `NODE_VERSION=22`. **Không** đặt `MAIL_OUTBOX_URL`, `E2E_SUPABASE_REF`.
 6. Deploy lần đầu: push `main` (Workers Builds tự chạy) hoặc trên máy `npm run deploy` (lấy biến build từ `.env.local`).
 7. Supabase › Authentication › URL Configuration: Site URL + Redirect URLs = địa chỉ `workers.dev` (sau này là tên miền).
 8. Workers › hv-web › Settings: kiểm tra **Observability (Workers Logs)** đang bật và Placement = **Smart** (đã khai báo trong `wrangler.jsonc`).
 
-**Đã làm 04/10/2026**: tài khoản Cloudflare (tạm đăng nhập bằng GitHub, email `dgquan1001@gmail.com` – khi chốt email trung tâm: Manage Account › Members › mời làm **Super Administrator** + 2FA), Workers Paid, subdomain `bsdomanhcuong.workers.dev`, R2 `hv-web-cache`, D1 `hv-web-tag-cache` (`55b32318-…`, bảng `revalidations` đã tạo), Secret `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_PORT`; deploy **https://hv-web.bsdomanhcuong.workers.dev**. Chưa làm: `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` (A-12), Supabase Site URL (bước 7), Workers Builds (bước 5 – sau khi gộp nhánh vào `main`).
+**Đã làm 04/10/2026**: tài khoản Cloudflare (tạm đăng nhập bằng GitHub, email `dgquan1001@gmail.com` – khi chốt email trung tâm: Manage Account › Members › mời làm **Super Administrator** + 2FA), Workers Paid, subdomain `bsdomanhcuong.workers.dev`, R2 `hv-web-cache`, D1 `hv-web-tag-cache` (`55b32318-…`, bảng `revalidations` đã tạo), Secret `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_PORT`; deploy **https://hv-web.bsdomanhcuong.workers.dev**. 06/10/2026: Supabase Site URL ✅, tắt đăng ký công khai ✅, **Workers Builds ✅** (deploy tự động từ `main`, PR #8). Chưa làm: `SMTP_USER` / `SMTP_PASS` / `MAIL_FROM` (A-12, chờ Gmail trung tâm).
 
 **Quy trình deploy chuẩn (từ 06/10/2026)**: code trên nhánh → push → Pull Request vào `main` (CI: typecheck, lint, build OpenNext) → chủ dự án merge → **Workers Builds** tự build từ `main` và deploy → lỗi thì Rollback. Website luôn khớp với `main` trên GitHub.
 
@@ -90,11 +90,14 @@ Chi tiết lệnh `npm run deploy:win` (`scripts/deploy-cloudflare.mjs`: build �
 **Các lần sau**: push `main` → tự build + deploy (khi đã bật Workers Builds) hoặc `npm run deploy:win`. **Lùi phiên bản**: Workers › hv-web › Deployments › chọn bản trước › **Rollback** (< 1 phút).
 **Chạy thử bản Workers trên máy**: `npm run preview` (cần `.dev.vars` chứa các biến lúc chạy – định dạng `.env`, **không commit**). Windows: xem §8 "npm run preview treo". Trước khi build bản Cloudflare trên máy nên xóa `.next/cache` (bộ nhớ đệm cũ của `next dev` có thể bị đóng gói vào cache R2).
 
-### 4.1. Vercel (đường lùi tới hết Đợt 17 P5, sau đó gỡ)
+### 4.1. Gỡ Vercel (Đợt 17 P6 – Đợt 26, 18/10/2026)
 
-1. Vercel › Import repo › Framework: Next.js; Node.js Version 22.x.
-2. Thêm toàn bộ biến ở mục 2 (trừ `MAIL_OUTBOX_URL`) cho Production; `vercel.json` đặt vùng `sin1`.
-3. Khi cần lùi: deploy lên Vercel, đổi Supabase Site URL về địa chỉ Vercel (cloudflare-migration §7).
+Cloudflare chạy ổn định từ 06/10 (chủ dự án xác nhận 18/10) nên **không còn đường lùi về Vercel**:
+1. ✅ (dev) Xóa `vercel.json`, mục deploy Vercel trong README; mã nguồn không còn tham chiếu Vercel (CI chỉ build OpenNext).
+2. ⬜ (chủ dự án) Vercel › project › Settings › **Delete Project** (sau khi xác nhận không còn link `*.vercel.app` nào đang dùng).
+3. ⬜ (chủ dự án) GitHub › Settings › Applications › **Vercel** › Configure › gỡ repo (hết check "Vercel Preview Comments" trên Pull Request).
+4. Lùi phiên bản khi deploy lỗi: Workers › hv-web › Deployments › **Rollback** (< 1 phút, CF-29); lỗi nền tảng kéo dài: deploy lại commit ổn định gần nhất
+   từ máy bằng `npm run deploy:win` (§4) – dữ liệu không đổi vì Supabase giữ nguyên.
 
 ### Checklist sau deploy (smoke test)
 
@@ -118,16 +121,16 @@ Chi tiết lệnh `npm run deploy:win` (`scripts/deploy-cloudflare.mjs`: build �
 | Tác vụ | Cách làm |
 | --- | --- |
 | Tạo admin đầu tiên | `npm run create-admin -- <email> <mật khẩu ≥ 8 ký tự> ["Tên"]` (tài khoản có sẵn sẽ bị đặt lại mật khẩu) |
-| Cấp / gỡ quyền nhân viên, admin | Quản trị › Bệnh nhân › ô "Vai trò" (chỉ admin; tài khoản đã là nhân viên / admin ở tab "Nhân viên & Admin"). Ghi `role_events`; không tự đổi quyền mình, luôn còn ≥ 1 admin |
-| Tạo tài khoản cho khách chốt qua Zalo | Quản trị › Bệnh nhân › "+ Tạo bệnh nhân" (tùy chọn cấp gói ngay) → chép tin nhắn mật khẩu gửi Zalo (mật khẩu chỉ hiện một lần) |
-| Cấp gói / gia hạn tại quầy, qua Zalo | Hồ sơ bệnh nhân › "Cấp gói / Gia hạn": chọn gói, số tiền đã nhận, hình thức (tiền mặt / chuyển khoản / khác), ảnh nếu có |
+| Cấp / gỡ quyền nhân viên, admin | Quản trị › Khách hàng › ô "Vai trò" (chỉ admin; tài khoản đã là nhân viên / admin ở tab "Nhân viên & Admin"). Ghi `role_events`; không tự đổi quyền mình, luôn còn ≥ 1 admin |
+| Tạo tài khoản cho khách chốt qua Zalo | Quản trị › Khách hàng › "+ Tạo khách hàng" (tùy chọn cấp gói ngay) → chép tin nhắn mật khẩu gửi Zalo (mật khẩu chỉ hiện một lần) |
+| Cấp gói / gia hạn tại quầy, qua Zalo | Hồ sơ khách hàng › "Cấp gói / Gia hạn": chọn gói, số tiền đã nhận, hình thức (tiền mặt / chuyển khoản / khác), ảnh nếu có |
 | Nhân viên cấp nhầm / cần hủy gói | Quản trị › Đơn đăng ký › tab Đã duyệt › "Thu hồi" kèm lý do (hạn học của đơn đó bị xóa; nếu có đơn gia hạn sau đó, cấp bù – RK-16) |
 | Sửa câu hỏi phiếu tham vấn | Quản trị › Mẫu phiếu (chỉ admin) – phiếu đã gửi không bị ảnh hưởng |
 | Mở khóa đăng nhập bị khóa tạm | Tự hết sau 15 phút; gỡ ngay: `delete from rate_limits where key like 'login-fail:%<SĐT hoặc email>%';` |
 | Bật Turnstile | Cloudflare › Turnstile › Add site (domain production) (thêm hostname `workers.dev` / tên miền) → `NEXT_PUBLIC_TURNSTILE_SITE_KEY` ở Build variables + `npx wrangler secret put TURNSTILE_SECRET_KEY` → deploy lại → thử đăng ký trên điện thoại thật |
-| Đặt lại mật khẩu cho bệnh nhân không có email | Hồ sơ bệnh nhân › "Cấp lại mật khẩu" (nhân viên / admin; mật khẩu mới hiện một lần, bệnh nhân được nhắc đổi). Tài khoản nhân viên / admin: Supabase › Authentication › Users hoặc `npm run create-admin` |
+| Đặt lại mật khẩu cho khách hàng không có email | Hồ sơ khách hàng › "Cấp lại mật khẩu" (nhân viên / admin; mật khẩu mới hiện một lần, khách hàng được nhắc đổi). Tài khoản nhân viên / admin: Supabase › Authentication › Users hoặc `npm run create-admin` |
 | Tìm tài khoản theo SĐT | `select * from profiles where phone = '0912345678';` |
-| Xóa tài khoản theo yêu cầu | Supabase › Authentication › Users › Delete: xóa profile, mã reset, tiến độ, ghi chú nội bộ; **đơn đăng ký, phiếu tham vấn, lead được giữ** (`user_id` → null). Nếu bệnh nhân yêu cầu xóa hẳn dữ liệu sức khỏe: `delete from consultations where phone = '<SĐT>';`. Chỉ xóa thư mục `payment-proofs/<user_id>/` khi được yêu cầu xóa cả dữ liệu thanh toán (khi đó xóa luôn các đơn tương ứng) |
+| Xóa tài khoản theo yêu cầu | Supabase › Authentication › Users › Delete: xóa profile, mã reset, tiến độ, ghi chú nội bộ; **đơn đăng ký, phiếu tham vấn, lead được giữ** (`user_id` → null). Nếu khách hàng yêu cầu xóa hẳn dữ liệu sức khỏe: `delete from consultations where phone = '<SĐT>';`. Chỉ xóa thư mục `payment-proofs/<user_id>/` khi được yêu cầu xóa cả dữ liệu thanh toán (khi đó xóa luôn các đơn tương ứng) |
 | Rà soát link video không hợp lệ | `select l.id, c.title, l.title, l.video_url from lessons l join courses c on c.id = l.course_id where l.video_url !~ '^https://'` rồi mở trang admin khóa học: bài lỗi có cảnh báo đỏ (26/09/2026: 0 bài lỗi) |
 | Đổi thông tin ngân hàng/hotline | Sửa `lib/site-config.ts` → push `main` (Workers Builds tự deploy) |
 | Làm mới trang chủ ngay | Sửa bất kỳ khóa học trong admin (gọi `revalidatePath`), hoặc redeploy |
@@ -182,6 +185,7 @@ Cách nạp chi tiết theo hướng dẫn "Backup and restore using the CLI" c�
 
 | Triệu chứng | Nguyên nhân thường gặp | Xử lý |
 | --- | --- | --- |
+| Workers Builds / CI đỏ ngay đầu build: `ERROR Next.js version 15.5.28 is not supported by the Next.js team … use the --dangerouslyUseUnsupportedNextVersion flag` (gặp 26/10/2026) | OpenNext tự chặn khi bản Next đã quá 2 năm kể từ ngày ra mắt: **Next 15 (21/10/2024) hết hỗ trợ 21/10/2026** – chặn theo ngày, mã nguồn không lỗi (RK-71) | Workers › hv-web › Settings › **Build** › Build command đổi thành `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` → Save → Retry build. **Đừng dùng `npm run build:cf`** cho tới khi nhánh có script này đã merge vào `main` – nếu không sẽ gặp `npm error Missing script: "build:cf"` (gặp 26/10/2026 09:12). CI và `npm run deploy:win` đã dùng cờ này. Lâu dài: nâng **Next 16** (Đợt 27) rồi bỏ cờ |
 | "Thiếu biến môi trường SUPABASE_SERVICE_ROLE_KEY" | Chưa đặt Secret trên Cloudflare | `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (không cần build lại) |
 | Workers Builds đỏ: `supabaseUrl is required` khi dựng `/register` (hoặc từ 06/10: "Thiếu biến môi trường lúc build") | Chưa đặt `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở **Build variables** (đặt ở Variables của Worker là biến lúc chạy, không có tác dụng khi build) | Kiểm file `.env.production` có trong repo (từ commit 06/10/2026); hoặc thêm ở Workers › hv-web › Settings › **Build** › Build variables and secrets (không phải Variables and Secrets phía trên) → Retry build (gặp 06/10/2026: chủ dự án nhập vào Variables and Secrets lúc chạy) |
 | Workers Builds đỏ ở bước deploy của **nhánh khác `main`**: `Your Wrangler configuration needs a previews block` (lệnh `npx wrangler preview`) | Đang bật **Non-production branch builds**; bản xem trước cần D1 / R2 / Durable Object riêng (khối `previews` trong `wrangler.jsonc`) | Settings › Build › Branch control: tắt Non-production branch builds (khuyên dùng tới khi có Supabase staging). Không ảnh hưởng website và `main` (gặp 06/10/2026) |
@@ -243,7 +247,7 @@ Làm theo thứ tự giai đoạn 1 → 7; trong một giai đoạn các bước
 | --- | --- | --- | --- |
 | 2.1 | Script dọn dữ liệu test (A-11) | **Dev** viết `supabase/cleanup-test-data.sql` gồm 2 phần: (1) **xem trước** – đếm và liệt kê khóa, tài khoản, đơn, phiếu, lead sẽ xóa; (2) **xóa** – giữ tài khoản admin, mẫu phiếu tham vấn | File có trong repo, chủ dự án đã đọc danh sách xem trước |
 | 2.2 | Sao lưu ngay trước khi xóa (sau 2.1) | Actions › "Sao lưu production" › Run workflow (tick ảnh Storage) | Có artifact mới trong ngày |
-| 2.3 | Chạy dọn dữ liệu (sau 2.2) | Supabase › SQL Editor: chạy phần xem trước → đối chiếu → chạy phần xóa; xóa ảnh test trong Storage › `payment-proofs`, `course-covers` | Quản trị › Tổng quan: 0 bệnh nhân, 0 đơn; Khóa học trống (hoặc chỉ còn khóa thật) |
+| 2.3 | Chạy dọn dữ liệu (sau 2.2) | Supabase › SQL Editor: chạy phần xem trước → đối chiếu → chạy phần xóa; xóa ảnh test trong Storage › `payment-proofs`, `course-covers` | Quản trị › Tổng quan: 0 khách hàng, 0 đơn; Khóa học trống (hoặc chỉ còn khóa thật) |
 | 2.4 | Schema mới nhất (A-5) | Đợt 15, 16 không đổi schema; nếu chưa chạy `supabase/schema.sql` từ sau Đợt 13 thì chạy lại (an toàn khi chạy nhiều lần) | Không lỗi khi chạy |
 | 2.5 | Project staging (A-1) – **đề xuất làm trước chạy thử** | §1.1. Gói Free cho 2 project nên không tốn tiền; từ nay mọi đợt code mới cần staging để chạy E2E | `npm run test:e2e` chạy được trên staging |
 
@@ -262,33 +266,33 @@ Làm theo thứ tự giai đoạn 1 → 7; trong một giai đoạn các bước
 
 | Bước | Việc | Cách làm | Xong khi |
 | --- | --- | --- | --- |
-| 4.1 | Tài khoản nhân viên (A-9) | Nhân viên tự đăng ký ở `/register` (hoặc admin tạo ở Bệnh nhân › Tạo bệnh nhân) → admin: Bệnh nhân › ô Vai trò → **Nhân viên** | Nhân viên đăng nhập thấy menu 5 mục |
-| 4.2 | Hướng dẫn nhân viên (~30 phút) | Đi qua §6: duyệt đơn (mở ảnh, **đối chiếu sao kê ngân hàng** trước khi Duyệt), tạo bệnh nhân Zalo + gửi tin nhắn mật khẩu, cấp gói / gia hạn, cấp lại mật khẩu, xử lý phiếu tham vấn, khách quan tâm | Mỗi nhân viên tự làm thử 1 lần trên tài khoản test |
+| 4.1 | Tài khoản nhân viên (A-9) | Nhân viên tự đăng ký ở `/register` (hoặc admin tạo ở Khách hàng › Tạo khách hàng) → admin: Khách hàng › ô Vai trò → **Nhân viên** | Nhân viên đăng nhập thấy menu 5 mục |
+| 4.2 | Hướng dẫn nhân viên (~30 phút) | Đi qua §6: duyệt đơn (mở ảnh, **đối chiếu sao kê ngân hàng** trước khi Duyệt), tạo khách hàng Zalo + gửi tin nhắn mật khẩu, cấp gói / gia hạn, cấp lại mật khẩu, xử lý phiếu tham vấn, khách quan tâm | Mỗi nhân viên tự làm thử 1 lần trên tài khoản test |
 | 4.3 | Mẫu tin nhắn Zalo | Chủ dự án soạn: lời mời chạy thử, gửi tài khoản (nút "Chép tin nhắn gửi Zalo" đã có sẵn), nhắc tập khi "không tập > 7 ngày", nhắc gia hạn | Lưu ở Zalo "Tin nhắn nhanh" |
 | 4.4 | Phân công | Ai mở **Tổng quan đầu mỗi ca** (chưa có thông báo – RK-33), ai đối soát tiền cuối tuần, ai liên hệ dev khi lỗi | Có danh sách người phụ trách |
 
-### Giai đoạn 5 – Nghiệm thu trước khi mời bệnh nhân (dev + chủ dự án, ~1 giờ)
+### Giai đoạn 5 – Nghiệm thu trước khi mời khách hàng (dev + chủ dự án, ~1 giờ)
 
 Thử trên **iPhone (Safari)**, **Android (Chrome)** và máy tính (admin). Tài khoản thử là người nội bộ; xong có thể giữ làm tài khoản thật hoặc xóa.
 
 - [ ] Khách: trang chủ hiện đúng 3 nhóm khóa, ảnh bìa; xem video khóa miễn phí không cần đăng nhập
 - [ ] Khách: khóa premium → để lại SĐT / "Mở Zalo ngay" → nhân viên thấy ở Khách quan tâm
-- [ ] Đăng ký chương trình bằng điện thoại: chọn gói, **chuyển khoản thật** theo QR (gói rẻ nhất), tải ảnh → nhân viên **Duyệt** → bệnh nhân thấy "Còn N ngày"
-- [ ] Nhân viên tạo bệnh nhân Zalo + cấp gói tiền mặt → đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi mật khẩu
-- [ ] Bệnh nhân: tick hết Buổi 1 → Buổi 2 mở; vòng tiến độ đổi; nút "Tiếp tục Buổi X – Bài Y" đúng
-- [ ] Bệnh nhân gửi phiếu tham vấn → nhân viên chuyển Mới → Đã liên hệ → Hoàn tất
+- [ ] Đăng ký chương trình bằng điện thoại: chọn gói, **chuyển khoản thật** theo QR (gói rẻ nhất), tải ảnh → nhân viên **Duyệt** → khách hàng thấy "Còn N ngày"
+- [ ] Nhân viên tạo khách hàng Zalo + cấp gói tiền mặt → đăng nhập bằng SĐT + mật khẩu được cấp → hộp nhắc đổi mật khẩu
+- [ ] Khách hàng: tick hết Buổi 1 → Buổi 2 mở; vòng tiến độ đổi; nút "Tiếp tục Buổi X – Bài Y" đúng
+- [ ] Khách hàng gửi phiếu tham vấn → nhân viên chuyển Mới → Đã liên hệ → Hoàn tất
 - [ ] Quên mật khẩu bằng email thật nhận mã
 - [ ] Admin: Tổng quan khớp số liệu, doanh thu hiện đúng 2 giao dịch thử
 - [ ] Workers › hv-web › Logs không có lỗi đỏ trong lúc thử; kèm checklist CF-01 → CF-41 ([cloudflare-migration §5](cloudflare-migration.md#5-checklist-nghiệm-thu-inspection))
 
-### Giai đoạn 6 – Chạy thử (đề xuất 4 tuần, 10–30 bệnh nhân – chủ dự án chốt ở bước 6.1)
+### Giai đoạn 6 – Chạy thử (đề xuất 4 tuần, 10–30 khách hàng – chủ dự án chốt ở bước 6.1)
 
 | Bước | Việc | Cách làm |
 | --- | --- | --- |
 | 6.1 | Chốt nhóm chạy thử | Số người, nhóm bệnh (vẹo lưng / vẹo ngực), thời gian, giá (đầy đủ / ưu đãi / cấp gói 0đ ghi chú "chạy thử") – ghi vào roadmap §3.1 |
-| 6.2 | Mời theo đợt nhỏ | Tuần 1: 5–10 người (người quen, bệnh nhân cũ) → sửa lỗi phát sinh → tuần 2 trở đi mời thêm |
-| 6.3 | Hằng ngày | Mở **Tổng quan** đầu ca: đơn chờ duyệt, phiếu tham vấn mới, khách quan tâm mới; gọi / Zalo bệnh nhân sắp hết hạn |
-| 6.4 | Hằng tuần | Đối soát doanh thu "Theo người duyệt / cấp gói" với sao kê + tiền mặt; xem Actions có ✅ "Sao lưu production"; nhắn bệnh nhân "không tập > 7 ngày"; ghi góp ý / lỗi vào nhật ký §10.1 |
+| 6.2 | Mời theo đợt nhỏ | Tuần 1: 5–10 người (người quen, khách hàng cũ) → sửa lỗi phát sinh → tuần 2 trở đi mời thêm |
+| 6.3 | Hằng ngày | Mở **Tổng quan** đầu ca: đơn chờ duyệt, phiếu tham vấn mới, khách quan tâm mới; gọi / Zalo khách hàng sắp hết hạn |
+| 6.4 | Hằng tuần | Đối soát doanh thu "Theo người duyệt / cấp gói" với sao kê + tiền mặt; xem Actions có ✅ "Sao lưu production"; nhắn khách hàng "không tập > 7 ngày"; ghi góp ý / lỗi vào nhật ký §10.1 |
 | 6.5 | Hằng tháng | Ghi Usage vào §12.2 (A-16); tải 1 bản sao lưu `.gpg` cất vào Google Drive của trung tâm |
 | 6.6 | Khi có lỗi | Tra §8; gửi dev: ảnh chụp màn hình, giờ xảy ra, tài khoản (SĐT), thao tác vừa làm |
 
@@ -296,11 +300,11 @@ Thử trên **iPhone (Safari)**, **Android (Chrome)** và máy tính (admin). T�
 
 | Chỉ số | Lấy ở đâu |
 | --- | --- |
-| Số bệnh nhân tham gia / đã kích hoạt gói | Tổng quan, Bệnh nhân |
-| Tỷ lệ tập đều (không nằm trong "không tập > 7 ngày") | Bệnh nhân › lọc "Không tập > 7 ngày" |
+| Số khách hàng tham gia / đã kích hoạt gói | Tổng quan, Khách hàng |
+| Tỷ lệ tập đều (không nằm trong "không tập > 7 ngày") | Khách hàng › lọc "Không tập > 7 ngày" |
 | Tiến độ trung bình theo chương trình | Tổng quan |
 | Số phiếu tham vấn, thời gian từ Mới → Đã liên hệ | Phiếu tham vấn |
-| Tỷ lệ gia hạn; khách từ khóa miễn phí / premium chuyển thành bệnh nhân | Đơn đăng ký, Khách quan tâm |
+| Tỷ lệ gia hạn; khách từ khóa miễn phí / premium chuyển thành khách hàng | Đơn đăng ký, Khách quan tâm |
 | Thời gian duyệt đơn trung bình; số lỗi; góp ý chính | Đơn đăng ký (Ngày đăng ký → Ngày xử lý), nhật ký §10.1 |
 
 Quyết định: **(a) mở rộng** → hạ tầng theo ngưỡng (Supabase Pro khi chạm hạn mức – roadmap §3.3; web đã ở Cloudflare Workers Paid), bật Turnstile, quảng bá;
@@ -330,20 +334,20 @@ Phân tích tải đầy đủ: [project-review §7.8](../10-review/project-revi
 
 ### 12.1. Gói Free chứa được bao nhiêu
 
-Giả định mỗi bệnh nhân đang tập: ~30 buổi/tháng × ~8 lượt mở trang / tick; ~4 ảnh chuyển khoản/năm, mỗi ảnh ~0,5 MB (đã nén).
+Giả định mỗi khách hàng đang tập: ~30 buổi/tháng × ~8 lượt mở trang / tick; ~4 ảnh chuyển khoản/năm, mỗi ảnh ~0,5 MB (đã nén).
 Hạn mức gói theo bảng giá tại thời điểm viết – **đối chiếu lại trang giá** của Supabase / Cloudflare (tra 04/10/2026) khi quyết định.
 
 | Hạn mức Free | Đủ cho khoảng | Cạn trước? |
 | --- | --- | --- |
-| Supabase database 500 MB | Hàng nghìn bệnh nhân (< 100 KB / người) | Không |
+| Supabase database 500 MB | Hàng nghìn khách hàng (< 100 KB / người) | Không |
 | Supabase Storage 1 GB | ~2.000 ảnh chuyển khoản **tích lũy** (30 giao dịch/tháng → > 5 năm; 100/tháng → ~1,5 năm) | ⚠️ |
-| Supabase egress 5 GB/tháng | ~1.000 bệnh nhân hoạt động (video ở YouTube, không tính); sao lưu ảnh hằng tháng cũng tính vào đây | Không |
+| Supabase egress 5 GB/tháng | ~1.000 khách hàng hoạt động (video ở YouTube, không tính); sao lưu ảnh hằng tháng cũng tính vào đây | Không |
 | Supabase 50.000 MAU | Thoải mái | Không |
-| Cloudflare Workers Paid: 10 triệu request, 30 triệu ms CPU / tháng (vượt: 0,30 USD / triệu request, 0,02 USD / triệu ms CPU) | Vài nghìn bệnh nhân tập đều | Không |
+| Cloudflare Workers Paid: 10 triệu request, 30 triệu ms CPU / tháng (vượt: 0,30 USD / triệu request, 0,02 USD / triệu ms CPU) | Vài nghìn khách hàng tập đều | Không |
 | R2 10 GB, D1 5 GB, Durable Objects 1 triệu request (bộ nhớ đệm trang) | Thoải mái | Không |
 | Gmail SMTP ~500 thư/ngày | Chỉ dùng quên mật khẩu | Không |
 
-→ Gói Free chịu được khoảng **50 người cùng lúc, 300–500 bệnh nhân hoạt động, vài nghìn giao dịch tích lũy**.
+→ Gói Free chịu được khoảng **50 người cùng lúc, 300–500 khách hàng hoạt động, vài nghìn giao dịch tích lũy**.
 Hạn chế không phải tải mà là: **tạm dừng sau 7 ngày** (bù bằng `keepalive.yml`), **không backup** (bù bằng `backup.yml`),
 Vercel Hobby chỉ cho mục đích phi thương mại → đã giải quyết bằng Cloudflare Workers Paid (ADR-017).
 
@@ -353,13 +357,13 @@ Vercel Hobby chỉ cho mục đích phi thương mại → đã giải quyết b
 | --- | --- | --- | --- |
 | 0. Thử nghiệm + kinh doanh nhỏ (sau Đợt 17) | — | Supabase Free + **Cloudflare Workers Paid** + keepalive + backup | ~5 USD |
 | 1. Chạm hạn mức Supabase Free | Storage > 600 MB · egress > 3,5 GB/tháng · cần backup hằng ngày tự động / hỗ trợ kỹ thuật | + **Supabase Pro** (hoặc chuyển ảnh sang R2 để kéo dài Free – RK-37) | ~30 USD |
-| 2. Mở rộng | > 200 bệnh nhân (danh sách admin chỉ hiện 200 dòng) · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên + đợt code: phân trang (RV-12), nới giới hạn đăng nhập theo IP (RK-39), giới hạn Supabase Auth (RK-40), giám sát lỗi | 5–30 USD + 1 đợt code |
-| 3. Quy mô mục tiêu | 300–500 người cùng lúc, ~1.000 bệnh nhân · CPU database > 60% giờ cao điểm | Supabase Pro + compute Small; staging + chạy thử tải trước | ~45–65 USD |
+| 2. Mở rộng | > 200 khách hàng (danh sách admin chỉ hiện 200 dòng) · > 100 người cùng lúc · trang chậm > 1 giây giờ cao điểm | Như trên + đợt code: phân trang (RV-12), nới giới hạn đăng nhập theo IP (RK-39), giới hạn Supabase Auth (RK-40), giám sát lỗi | 5–30 USD + 1 đợt code |
+| 3. Quy mô mục tiêu | 300–500 người cùng lúc, ~1.000 khách hàng · CPU database > 60% giờ cao điểm | Supabase Pro + compute Small; staging + chạy thử tải trước | ~45–65 USD |
 
 Supabase Free là mặc định – **không nâng theo lịch**, chỉ nâng khi gặp dấu hiệu ở dòng 1 (chủ dự án chốt 04/10/2026).
 
 **Theo dõi hằng tháng** (điền khi xem Usage):
 
-| Tháng | Bệnh nhân hoạt động | DB (MB) | Storage (MB) | Egress (GB) | Workers request / CPU (ms) | Ghi chú |
+| Tháng | Khách hàng hoạt động | DB (MB) | Storage (MB) | Egress (GB) | Workers request / CPU (ms) | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
 | 10/2026 | | | | | | |

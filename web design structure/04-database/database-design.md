@@ -94,10 +94,10 @@ Thông tin hồ sơ, 1-1 với `auth.users`. Tạo tự động bởi trigger.
 | `consent_version` | text | ✓ | — | Phiên bản chính sách đã đồng ý (`lib/consent.ts`) |
 | `source` | text | ✗ | `'web'` | (Đợt 11) `web` = khách tự đăng ký · `zalo` = nhân viên tạo (constraint `profiles_source_check`) |
 | `created_by` | uuid | ✓ | — | (Đợt 11) Nhân viên tạo tài khoản, FK `profiles` on delete set null |
-| `must_change_password` | boolean | ✗ | `false` | (Đợt 11) Mật khẩu do nhân viên cấp → nhắc đổi sau đăng nhập; tắt khi bệnh nhân đổi mật khẩu |
+| `must_change_password` | boolean | ✗ | `false` | (Đợt 11) Mật khẩu do nhân viên cấp → nhắc đổi sau đăng nhập; tắt khi khách hàng đổi mật khẩu |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
-> Ghi chú nội bộ về bệnh nhân **không** nằm ở `profiles` (bệnh nhân đọc được dòng của mình) mà ở `patient_notes` (§2.10).
+> Ghi chú nội bộ về khách hàng **không** nằm ở `profiles` (khách hàng đọc được dòng của mình) mà ở `patient_notes` (§2.10).
 
 ### 2.2. `public.courses`
 
@@ -272,15 +272,15 @@ thỉnh thoảng (1%) dọn khóa cũ hơn 1 ngày.
 | Cột | Kiểu | Null | Mặc định | Ý nghĩa |
 | --- | --- | --- | --- | --- |
 | `id` | uuid | ✗ | `gen_random_uuid()` | PK |
-| `user_id` | uuid | ✓ | — | Bệnh nhân, FK `profiles` on delete set null |
+| `user_id` | uuid | ✓ | — | Khách hàng, FK `profiles` on delete set null |
 | `user_name` | text | ✓ | — | Tên lúc ghi (còn khi tài khoản bị xóa) |
 | `actor`, `actor_name` | uuid, text | ✓ | — | Nhân viên / admin thao tác (FK `profiles` on delete set null) |
-| `action` | text | ✗ | — | `created` / `password_reset` / `profile_updated` – **không** lưu mật khẩu |
+| `action` | text | ✗ | — | `created` / `password_reset` / `profile_updated` / `deleted` (Đợt 26 – `user_id` null, `user_name` = người bị xóa) – **không** lưu mật khẩu |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
-Index `account_events_user_idx (user_id, created_at desc)`. RLS: nhân viên / admin đọc; chỉ server (service role) ghi.
+Index `account_events_user_idx (user_id, created_at desc)`, `account_events_action_idx (action, created_at desc)` (Đợt 26 – nhật ký xóa ở trang Nhân viên). RLS: nhân viên / admin đọc; chỉ server (service role) ghi. Ghi cả tài khoản nhân viên / admin (danh mục Nhân viên – Đợt 26).
 
-### 2.10. `public.patient_notes` (ghi chú nội bộ về bệnh nhân – Đợt 11)
+### 2.10. `public.patient_notes` (ghi chú nội bộ về khách hàng – Đợt 11)
 
 | Cột | Kiểu | Null | Mặc định | Ý nghĩa |
 | --- | --- | --- | --- | --- |
@@ -288,7 +288,7 @@ Index `account_events_user_idx (user_id, created_at desc)`. RLS: nhân viên / a
 | `note` | text | ✗ | `''` | ≤ 1000 ký tự |
 | `updated_by`, `updated_by_name`, `updated_at` | uuid, text, timestamptz | ✓/✗ | — | Trigger `patient_notes_stamp` ghi theo phiên đăng nhập |
 
-RLS: chỉ nhân viên / admin đọc, thêm, sửa. Bệnh nhân không đọc được.
+RLS: chỉ nhân viên / admin đọc, thêm, sửa. Khách hàng không đọc được.
 
 ### 2.11. `public.consult_questions` (mẫu phiếu tham vấn – Đợt 12)
 
@@ -308,19 +308,19 @@ Seed 6 câu mẫu (§10.8) chỉ khi bảng còn trống. RLS: người đăng n
 | Cột | Kiểu | Null | Mặc định | Ý nghĩa |
 | --- | --- | --- | --- | --- |
 | `id` | uuid | ✗ | `gen_random_uuid()` | PK |
-| `user_id` | uuid | ✓ | — | Bệnh nhân, FK `auth.users` on delete set null |
+| `user_id` | uuid | ✓ | — | Khách hàng, FK `auth.users` on delete set null |
 | `full_name`, `phone` | text | ✓ | — | Ảnh chụp lúc gửi (vẫn liên hệ được khi tài khoản bị xóa) |
 | `course_id`, `course_title` | uuid, text | ✓ | — | Chương trình đang tập (tùy chọn), FK on delete set null + ảnh chụp tên |
 | `answers` | jsonb | ✗ | `'[]'` | `[{label, kind, value}]` – ảnh chụp câu hỏi + trả lời (sửa mẫu không làm sai phiếu cũ) |
-| `note` | text | ✓ | — | Ghi chú của bệnh nhân ≤ 1000 |
+| `note` | text | ✓ | — | Ghi chú của khách hàng ≤ 1000 |
 | `origin` | text | ✗ | `'manual'` | `manual` / `course_end` (thẻ chúc mừng) / `expiring` (gói ≤ 7 ngày) |
 | `status` | text | ✗ | `'new'` | `new` → `contacted` → `done`, hoặc `cancelled` |
-| `staff_note` | text | ✓ | — | Ghi chú nội bộ ≤ 1000 – bệnh nhân **không** thấy |
+| `staff_note` | text | ✓ | — | Ghi chú nội bộ ≤ 1000 – khách hàng **không** thấy |
 | `handled_by`, `handled_by_name`, `handled_at` | uuid, text, timestamptz | ✓ | — | Trigger `consultations_stamp` ghi khi đổi trạng thái / ghi chú |
 | `created_at` | timestamptz | ✗ | `now()` | |
 
 Index `consultations_status_idx (status, created_at)`, `consultations_user_idx (user_id, created_at desc)`. Chỉ server ghi
-(`submitConsultationAction`, tối đa 5 phiếu / ngày / tài khoản). RLS: chỉ nhân viên / admin đọc & cập nhật; bệnh nhân đọc phiếu của
+(`submitConsultationAction`, tối đa 5 phiếu / ngày / tài khoản). RLS: chỉ nhân viên / admin đọc & cập nhật; khách hàng đọc phiếu của
 mình qua `my_consultations()` (không có `staff_note`). Dữ liệu sức khỏe (BR-107).
 
 ## 3. Hàm & trigger
@@ -340,6 +340,7 @@ mình qua `my_consultations()` (không có `staff_note`). Dữ liệu sức kh�
 | `course_progress(course)` | SQL, `stable` | `security definer`, grant anon/authenticated | `done, total` (bài trong số buổi đã mua; free: cả khóa), `next_lesson_id`, `purchased`, `last_activity` – Đợt 10 |
 | `purchased_sessions(course)` | SQL, `stable` | `security definer` | Tổng `plan_sessions` các đơn đã duyệt của người đang đăng nhập (kể cả hết hạn); `null` nếu có đơn không gói (Đợt 9, dùng ở Đợt 10). Được gọi cả trong RLS lẫn qua RPC ở trang chi tiết khóa |
 | `stamp_registration_review()` | trigger function | `security definer`, `search_path = public` | (Đợt 9) Người có phiên đăng nhập không sửa được gói, học phí, nguồn, thanh toán, hạn học (service role được). Duyệt → tính `access_starts_at`, `access_until` theo BR-80 (khóa `pg_advisory_xact_lock` theo học viên + khóa); rời duyệt → xóa hạn. Khi `status` đổi: về `pending` → xóa `reviewed_at/by/by_name`; trạng thái khác → `now()`, `auth.uid()`, tên admin từ `profiles`. Khi `status` không đổi → giữ nguyên giá trị cũ (không sửa tay được; riêng `reviewed_by` được về `null` để khóa ngoại hoạt động khi xóa admin) |
+| `guard_admin_delete()` | trigger function (Đợt 26) | `security definer`, `search_path = public` | `before delete on profiles` (cả khi xóa từ `auth.users` – cascade): xóa tài khoản admin mà không còn admin nào khác → "Phải còn ít nhất 1 tài khoản admin."; dùng chung khóa tư vấn `profiles_admin_role` với `guard_role_change` |
 | `guard_role_change()` | trigger function | `security definer`, `search_path = public` | Khi `profiles.role` đổi: người có phiên đăng nhập mà không phải admin → "Chỉ admin được thay đổi vai trò tài khoản." (service role/script vẫn đổi được); chặn tự gỡ quyền admin của mình; `pg_advisory_xact_lock` rồi chặn gỡ admin cuối cùng; ghi `role_events` |
 | `profiles_guard_role` | trigger | — | `before update of role on profiles for each row` |
 | `registrations_stamp_review` | trigger | — | `before update on registrations for each row`. Mỗi lần đổi `status` ghi thêm 1 dòng `registration_events` (kèm `review_note`). Cập nhật bằng service role (không có phiên) → `reviewed_by` null |
@@ -347,10 +348,10 @@ mình qua `my_consultations()` (không có `staff_note`). Dữ liệu sức kh�
 | `log_registration_insert()` / trigger `registrations_log_insert` | trigger, `after insert` | `security definer` | (Đợt 11) Đơn `source = 'staff'` đã duyệt → 1 dòng `registration_events` `new → approved` (ghi chú = ghi chú thanh toán) |
 | `stamp_patient_note()` / trigger `patient_notes_stamp` | trigger | `security definer` | (Đợt 11) Ghi `updated_by`, `updated_by_name`, `updated_at` theo phiên; khóa ngoại đặt null (không có phiên) thì giữ nguyên |
 | `stamp_consultation()` / trigger `consultations_stamp` | trigger | `security definer` | (Đợt 12) Như `leads_stamp`: chỉ cho đổi `status`, `staff_note`; `user_id` / `course_id` chỉ được về null (xóa tài khoản / khóa học) |
-| `_patient_courses(p_user default null)` | SQL, `stable` (không `security definer`) | **Không** cấp quyền gọi cho người dùng | (Đợt 11–13) Mỗi cặp (bệnh nhân, chương trình) đã duyệt: hạn học (`infinity` = không thời hạn), lần duyệt đầu, số buổi đã mua, số bài đã tick / tổng bài trong buổi đã mua, lần tập gần nhất. Chỉ dùng bên trong các hàm dưới |
-| `admin_patients(p_q, p_source, p_status, p_new_days, p_limit)` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 11) Danh sách bệnh nhân (`role = 'user'`) kèm số chương trình còn hạn, hạn gần nhất, cờ sắp hết hạn / đã hết hạn / không tập > 7 ngày, % trung bình, người tạo; lọc từ khóa, nguồn, trạng thái gói, mới N ngày. Không phải nhân viên → rỗng |
-| `patient_progress(p_user)` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 11) Tiến độ + hạn học từng chương trình của 1 bệnh nhân (trang hồ sơ). Không phải nhân viên → rỗng |
-| `dashboard_stats()` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 13) jsonb: tổng bệnh nhân, mới 7/30 ngày theo nguồn, đơn chờ (+ cũ nhất), gói hiệu lực, sắp hết hạn, đã hết hạn, không tập > 7 ngày, phiếu mới, lead mới, danh sách sắp hết hạn / không tập (10), tiến độ trung bình theo chương trình. Không phải nhân viên → `null`. Không có doanh thu |
+| `_patient_courses(p_user default null)` | SQL, `stable` (không `security definer`) | **Không** cấp quyền gọi cho người dùng | (Đợt 11–13) Mỗi cặp (khách hàng, chương trình) đã duyệt: hạn học (`infinity` = không thời hạn), lần duyệt đầu, số buổi đã mua, số bài đã tick / tổng bài trong buổi đã mua, lần tập gần nhất. Chỉ dùng bên trong các hàm dưới |
+| `admin_patients(p_q, p_source, p_status, p_new_days, p_limit)` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 11) Danh sách khách hàng (`role = 'user'`) kèm số chương trình còn hạn, hạn gần nhất, cờ sắp hết hạn / đã hết hạn / không tập > 7 ngày, % trung bình, người tạo; lọc từ khóa, nguồn, trạng thái gói, mới N ngày. Không phải nhân viên → rỗng |
+| `patient_progress(p_user)` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 11) Tiến độ + hạn học từng chương trình của 1 khách hàng (trang hồ sơ). Không phải nhân viên → rỗng |
+| `dashboard_stats()` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 13) jsonb: tổng khách hàng, mới 7/30 ngày theo nguồn, đơn chờ (+ cũ nhất), gói hiệu lực, sắp hết hạn, đã hết hạn, không tập > 7 ngày, phiếu mới, lead mới, danh sách sắp hết hạn / không tập (10), tiến độ trung bình theo chương trình. Không phải nhân viên → `null`. Không có doanh thu |
 | `revenue_report(p_from, p_to)` | plpgsql, `stable` | `security definer`, grant authenticated | (Đợt 13) Chỉ admin (khác → lỗi "Chỉ admin được xem doanh thu."). Tổng `amount` đơn đang `approved` theo `reviewed_at` trong khoảng: dòng `total` + theo `course` / `method` / `source` / `handler` |
 | `my_consultations(p_limit default 20)` | SQL, `stable` | `security definer`, grant authenticated | (Đợt 12) Phiếu của người đang đăng nhập: `id, course_title, status, created_at, handled_at` (không có ghi chú nội bộ) |
 
@@ -389,7 +390,7 @@ mình qua `my_consultations()` (không có `staff_note`). Dữ liệu sức kh�
 | patient_notes | SELECT / INSERT / UPDATE | `patient_notes_staff_*` | `is_staff()` |
 | consult_questions | SELECT | `consult_questions_select` | `(active and auth.uid() is not null) or is_admin()` |
 | consult_questions | INSERT / UPDATE / DELETE | `consult_questions_admin_*` | `is_admin()` |
-| consultations | SELECT / UPDATE | `consultations_staff_select` / `_update` | `is_staff()`; bệnh nhân đọc qua `my_consultations()`; INSERT chỉ service role; không ai xóa qua API |
+| consultations | SELECT / UPDATE | `consultations_staff_select` / `_update` | `is_staff()`; khách hàng đọc qua `my_consultations()`; INSERT chỉ service role; không ai xóa qua API |
 
 Ma trận quyền theo vai trò: [07-security/security-design.md](../07-security/security-design.md#3-ma-trận-phân-quyền).
 
@@ -415,8 +416,8 @@ Truy cập đọc: admin tạo signed URL 1 giờ (`createSignedUrls(paths, 3600
 | Đăng nhập bằng SĐT | `profiles where phone=?` | `profiles_phone_key` |
 | Đăng nhập bằng email | `profiles where email=?` | `profiles_email_idx` (RV-13) |
 | Mã reset gần nhất | `password_resets where user_id=? [and used_at is null] order by created_at desc limit 1` | `password_resets_user_idx` |
-| Tìm bệnh nhân | `admin_patients(q, …)`: `profiles where full_name/email/phone ilike '%q%'` + tổng hợp `_patient_courses()` | Full scan (chấp nhận với < 10k dòng; lớn hơn dùng `pg_trgm`). `_patient_courses` tính cho mọi bệnh nhân mỗi lần gọi (RK-30) |
-| Đơn của các bệnh nhân đang hiển thị | `registrations where user_id in (…200 id)` | `registrations_user_idx` |
+| Tìm khách hàng | `admin_patients(q, …)`: `profiles where full_name/email/phone ilike '%q%'` + tổng hợp `_patient_courses()` | Full scan (chấp nhận với < 10k dòng; lớn hơn dùng `pg_trgm`). `_patient_courses` tính cho mọi khách hàng mỗi lần gọi (RK-30) |
+| Đơn của các khách hàng đang hiển thị | `registrations where user_id in (…200 id)` | `registrations_user_idx` |
 | Dashboard | `dashboard_stats()` – 1 lần gọi, CTE `_patient_courses` dùng chung | `registrations_access_idx`, `lesson_progress_course_idx`, `consultations_status_idx`, `leads_status_idx` |
 | Phiếu theo trạng thái | `consultations where status=? order by created_at limit 200` | `consultations_status_idx` |
 
@@ -593,7 +594,7 @@ erDiagram
 | `course_progress(course)` | ✅ Đợt 10 – Trả `(done, total, next_lesson_id, purchased, last_activity)` cho người gọi – dùng cho thẻ khóa, trang khóa, trình học (hạn học lấy từ `registrations`) |
 | `revenue_report(from, to)` | ✅ Đợt 13 – chỉ `is_admin()`; tổng `amount` đơn approved theo chương trình, hình thức, nguồn, người xử lý (§3) |
 | `dashboard_stats()` | ✅ Đợt 13 – `is_staff()`; mọi chỉ số FR-181 → FR-183 trong 1 lần gọi (§3) |
-| `admin_patients(…)`, `patient_progress(user)`, `_patient_courses(user)` | ✅ Đợt 11 – danh sách / hồ sơ bệnh nhân (§3) |
+| `admin_patients(…)`, `patient_progress(user)`, `_patient_courses(user)` | ✅ Đợt 11 – danh sách / hồ sơ khách hàng (§3) |
 | `my_consultations(limit)` | ✅ Đợt 12 – phiếu của người đang đăng nhập, không có ghi chú nội bộ |
 
 ### 10.5. Trigger
@@ -612,7 +613,7 @@ erDiagram
 | Bảng | Thao tác | Điều kiện |
 | --- | --- | --- |
 | profiles | SELECT | `auth.uid() = id or is_staff()` |
-| profiles | UPDATE | `is_admin()` (mọi dòng) **hoặc** `is_staff() and role = 'user'` (chỉ tài khoản bệnh nhân); đổi `role` do trigger kiểm tra thêm |
+| profiles | UPDATE | `is_admin()` (mọi dòng) **hoặc** `is_staff() and role = 'user'` (chỉ tài khoản khách hàng); đổi `role` do trigger kiểm tra thêm |
 | courses | SELECT | `status = 'published' or has_course_access(id)` (đã gồm staff) |
 | courses, course_plans, course_sessions, lessons | INSERT/UPDATE/DELETE | `is_admin()` (✅ `course_plans` ở Đợt 9) |
 | course_plans | SELECT | ✅ Đợt 9 – `active or is_admin()` |
@@ -627,7 +628,7 @@ erDiagram
 | registration_events, role_events | SELECT | `is_staff()` / `is_admin()` |
 | consult_questions | SELECT | ✅ `(active and auth.uid() is not null) or is_admin()` |
 | consult_questions | INSERT/UPDATE/DELETE | `is_admin()` |
-| consultations | SELECT | ✅ `is_staff()` (bệnh nhân đọc qua `my_consultations()` – không lộ `staff_note`) |
+| consultations | SELECT | ✅ `is_staff()` (khách hàng đọc qua `my_consultations()` – không lộ `staff_note`) |
 | consultations | UPDATE | `is_staff()` (chỉ `status`, `staff_note`; trigger giữ nguyên các cột khác) |
 | consultations | INSERT | Chỉ service role (`submitConsultationAction` – kiểm tra giới hạn, dựng snapshot) |
 | leads | SELECT / UPDATE | `is_staff()` |

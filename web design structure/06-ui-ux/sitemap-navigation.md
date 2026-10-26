@@ -5,7 +5,8 @@
 ```mermaid
 flowchart TB
   root["/ Trang chủ"]
-  root --> s1["#bac-si"]
+  root --> s1["#bac-si (hồ sơ bác sĩ) · #chuyen-mon"]
+  root <--> en["/en – trang chủ tiếng Anh (nút VI | EN, ADR-018)"]
   root --> s2["#khoa-hoc"]
   root --> s3["#dang-ky (box đăng ký)"]
   root --> s4["#lien-he (footer)"]
@@ -47,9 +48,10 @@ flowchart TB
 
 | Vùng | Máy tính (≥ lg) | Điện thoại / tablet (< lg) |
 | --- | --- | --- |
-| Logo | Icon cột sống + "Trung tâm HV" + tagline, về `/` | Như máy tính |
-| Menu neo | Chương trình · Miễn phí · Premium · Bác sĩ · Liên hệ (Đợt 8) | Trong menu hamburger |
-| Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold) | Trong menu hamburger |
+| Logo | Icon cột sống + "Trung tâm HV" + tagline, về trang chủ cùng ngôn ngữ (`/` hoặc `/en`) | Như máy tính |
+| Chuyển ngữ (Đợt 20) | Viên **VI | EN** (`LangSwitch`, `nav aria-label="Chọn ngôn ngữ"` / "Choose language") – **chỉ ở `/` và `/en`**, giữ `#mục` khi chuyển | Luôn hiện cạnh nút hamburger |
+| Menu neo | Chương trình · Miễn phí · Premium · Bác sĩ · Liên hệ (Đợt 8); ở `/en`: Programs · Free · Premium · Doctor · Contact, trỏ `/en#…` | Trong menu hamburger |
+| Khách | "Đăng nhập" (ghost) · "Đăng ký học" (gold); ở `/en`: "Sign in" · "Enroll" (vẫn tới trang tiếng Việt `/login`, `/register`) | Trong menu hamburger |
 | Đã đăng nhập | [Quản trị] (nhân viên, admin) · Avatar chữ cái + "Tài khoản" ▾ | Avatar ▾ (ẩn chữ "Tài khoản" < sm) |
 | Menu Tài khoản | Tên + email/SĐT · Tài khoản của tôi · Khóa học của tôi · Quản trị (admin) · Đăng xuất (đỏ) | Như máy tính, mở bằng chạm |
 
@@ -60,16 +62,19 @@ Quy tắc:
 
 ## 4. Điều hướng trong khu admin (`AdminNav`)
 
-`nav aria-label="Menu quản trị"` (Đợt 15 – UI-02): màn hình ≥ 1024px là **cột dọc bên trái** (sidebar dính khi cuộn, icon + nhãn),
-nhỏ hơn là hàng tab gạch chân cuộn ngang. Thứ tự: **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`, số đơn chờ duyệt) ·
-**Bệnh nhân** (`/admin/patients`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Phiếu tham vấn** (`/admin/consultations`, số phiếu mới) ·
-**Khách quan tâm** (`/admin/leads`, số khách mới để lại SĐT) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
+`nav aria-label="Menu quản trị"` (Đợt 15 – UI-02, giao diện mới Đợt 23 – UI-10): màn hình ≥ 1024px là **thanh bên tối** bên trái (dính khi cuộn, icon + nhãn, số việc màu vàng, "Xem website" ở đáy),
+nhỏ hơn là dải tối với hàng tab "viên" cuộn ngang. Trong khu quản trị header ẩn menu neo trang chủ (vẫn có "Quản trị" + menu Tài khoản), không có chân trang. Thứ tự: **Tổng quan** (`/admin`) · **Đơn đăng ký** (`/admin/registrations`, số đơn chờ duyệt) ·
+**Khách hàng** (`/admin/customers`) · **Khóa học** (`/admin/courses`, chỉ admin) · **Phiếu tham vấn** (`/admin/consultations`, số phiếu mới) ·
+**Khách quan tâm** (`/admin/leads`, số khách mới để lại SĐT) · **Nhân viên** (`/admin/staff`, chỉ admin – Đợt 26) · **Mẫu phiếu** (`/admin/settings/consultation`, chỉ admin).
 Số đếm là truy vấn `count` riêng (stream qua `Suspense`, không chặn trang), làm mới sau mỗi thao tác quản trị.
-Trang Khóa học có bộ lọc loại: Tất cả (chia 3 nhóm) · Chương trình · Miễn phí · Premium. Trang Bệnh nhân có tab Nhân viên & Admin (chỉ admin).
+Trang Khóa học có bộ lọc loại: Tất cả (chia 3 nhóm) · Chương trình · Miễn phí · Premium. Đợt 26: **Khách hàng** chỉ còn tài khoản khách hàng (cột Thao tác: Hồ sơ · Sửa · Xóa); tài khoản nhân viên / admin ở danh mục riêng **Nhân viên** (link cũ `?role=team` chuyển tới đó).
 Cạnh tiêu đề "Bảng quản trị" có nhãn vai trò (Admin / Nhân viên).
 Trong tab Đơn đăng ký có bộ lọc dạng nút: Chờ duyệt · Đã duyệt · Từ chối · Tất cả (kèm số lượng).
 
 ## 5. Footer (`#lien-he`)
+
+Đợt 20: nền xanh đậm `ocean-950`, dùng cho mọi trang; ở `/en` hiện bản tiếng Anh (`lang="en"`), link "Rehabilitation programs" trỏ `/en#khoa-hoc`.
+
 
 Tên + tên đầy đủ + tagline + mô tả · Liên kết (Khóa học, Đăng ký học, Đăng nhập) ·
 Liên hệ (hotline `tel:`, email `mailto:`, Zalo) · Chính sách bảo mật · Dòng miễn trừ y khoa.
@@ -92,7 +97,7 @@ flowchart TB
     cd --> ls
   end
 
-  subgraph Bệnh nhân – cần đăng nhập
+  subgraph Khách hàng – cần đăng nhập
     acc["/account"]
     crs["/courses (Khóa học của tôi + Phiếu tham vấn của tôi)"]
     cs["/courses/consultation"]
@@ -103,14 +108,18 @@ flowchart TB
   subgraph Quản trị – staff & admin
     adm["/admin (Tổng quan)"]
     ar["/admin/registrations"]
-    ap["/admin/patients"] --> apn["/admin/patients/new"]
-    ap --> apd["/admin/patients/:id"]
+    ap["/admin/customers"] --> apn["/admin/customers/new"]
+    ap --> apd["/admin/customers/:id (#sua-thong-tin, #xoa-khach-hang)"]
     ac["/admin/consultations"]
     al["/admin/leads"]
   end
 
   subgraph Chỉ admin
-    aco["/admin/courses"] --> acd["/admin/courses/:id (gói, buổi – bài)"]
+    ast["/admin/staff (Đợt 26)"] --> astn["/admin/staff/new"]
+    ast --> astd["/admin/staff/:id (#xoa-nhan-vien)"]
+    aco["/admin/courses"] --> acn["/admin/courses/new (Đợt 24)"]
+    aco --> ace["/admin/courses/:id/edit (thông tin, gói, xóa – Đợt 24)"]
+    ace <--> acd["/admin/courses/:id (buổi – bài)"]
     ast["/admin/settings/consultation"]
   end
 
@@ -121,20 +130,21 @@ flowchart TB
 
 ### 6.2. Ma trận truy cập trang v0.2
 
-| Trang | Khách | Bệnh nhân | Staff | Admin |
+| Trang | Khách | Khách hàng | Staff | Admin |
 | --- | --- | --- | --- | --- |
 | `/`, `/khoa-hoc/:id`, `/register`, `/chinh-sach-bao-mat` | ✅ | ✅ | ✅ | ✅ |
 | `/courses/:id/**` khóa **free** | ✅ | ✅ (lưu tiến độ) | ✅ | ✅ |
 | `/courses/:id/**` khóa **program** | → `/login` | ✅ theo hạn học + buổi mở | ✅ xem trước | ✅ xem trước |
 | `/courses`, `/courses/consultation`, `/account` | → `/login` | ✅ | ✅ | ✅ |
-| `/admin`, `/admin/registrations`, `/admin/patients/**`, `/admin/consultations`, `/admin/leads` | → `/login` | → `/courses` | ✅ (dashboard không có doanh thu) | ✅ |
-| `/admin/courses/**`, `/admin/settings/**` | → `/login` | → `/courses` | → `/admin` | ✅ |
+| `/admin`, `/admin/registrations`, `/admin/customers/**`, `/admin/consultations`, `/admin/leads` | → `/login` | → `/courses` | ✅ (dashboard không có doanh thu) | ✅ |
+| `/admin/courses/**`, `/admin/settings/**`, `/admin/staff/**` | → `/login` | → `/courses` | → `/admin` | ✅ |
+| `/admin/patients/**` (cũ) | → `/admin/customers/**` (chuyển hướng ở `next.config.mjs`) | | | |
 
 ### 6.3. Header & menu v0.2
 
 - Menu neo: **Miễn phí** · **Chương trình** · **Premium** · Bác sĩ · Liên hệ.
 - Menu Tài khoản thêm "Phiếu tham vấn của tôi"; staff/admin có "Quản trị".
-- `AdminNav`: ✅ Đợt 15 theo §4 (thứ tự mới, có số đếm; "Cài đặt" thành "Mẫu phiếu"). Nút "+ Tạo bệnh nhân" nằm ở góc phải trang Tổng quan / Bệnh nhân.
+- `AdminNav`: ✅ Đợt 15 theo §4 (thứ tự mới, có số đếm; "Cài đặt" thành "Mẫu phiếu"). Nút "+ Tạo khách hàng" nằm ở góc phải trang Tổng quan / Khách hàng.
 - Footer: thêm link "Chính sách bảo mật".
 
 ## 7. Luồng chuyển hướng sau hành động
@@ -149,6 +159,6 @@ flowchart TB
 | "Đăng nhập" trong box đăng ký | `/login?next=/register` |
 | "Đăng ký khóa học này" (khóa chưa mở) | `/register?course=<id>` |
 | *(v0.2)* Chọn gói ở trang giới thiệu / "Gia hạn" | `/register?course=<id>&plan=<planId>` |
-| *(v0.2)* Nhân viên tạo bệnh nhân thành công | `/admin/patients/<id>?created=1` (hiện mật khẩu một lần) |
+| *(v0.2)* Nhân viên tạo khách hàng thành công | `/admin/customers/<id>?created=1` (hiện mật khẩu một lần) |
 | *(v0.2)* Gửi phiếu tham vấn | `/courses?consultation=sent` |
 | *(v0.2)* Staff mở trang chỉ-admin | `/admin` |

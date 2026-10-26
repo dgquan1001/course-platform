@@ -6,6 +6,8 @@ import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import StatusBadge from '@/components/StatusBadge'
 import { ArrowLeftIcon } from '@/components/icons'
+import PageHeader from '@/components/admin/PageHeader'
+import CourseTabs from '../CourseTabs'
 import { isSupportedVideoUrl } from '@/lib/video'
 import {
   createLesson,
@@ -113,16 +115,20 @@ export default async function AdminCourseContentPage(props: { params: Promise<{ 
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-ocean-700">
-          <ArrowLeftIcon className="h-4 w-4" /> Tất cả khóa học
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-bold">{course.title}</h2>
-          <StatusBadge status={course.status} />
-        </div>
-        <p className="mt-1 text-sm text-slate-500">
-          {sessions.length} buổi · {lessons.length} bài tập
-        </p>
+        <PageHeader
+          back={
+            <Link href="/admin/courses" className="inline-flex items-center gap-1.5 text-slate-500 hover:text-ocean-700">
+              <ArrowLeftIcon className="h-4 w-4" /> Tất cả khóa học
+            </Link>
+          }
+          title={course.title}
+          description={
+            <span className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={course.status} />
+              {sessions.length} buổi · {lessons.length} bài tập
+            </span>
+          }
+        />
         {(!!missingVideos || longest.sessions > sessions.length) && (
           <ul className="mt-2 space-y-1 text-sm font-medium text-gold-800">
             {!!missingVideos && <li>⚠ {missingVideos} bài chưa có video</li>}
@@ -134,6 +140,7 @@ export default async function AdminCourseContentPage(props: { params: Promise<{ 
           </ul>
         )}
       </div>
+      <CourseTabs courseId={course.id} kind={course.kind} active="content" />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section aria-label="Buổi tập" className="space-y-4">

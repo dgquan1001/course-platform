@@ -6,6 +6,8 @@ import { requireStaffPage } from '@/lib/auth'
 import { daysLeft } from '@/lib/courses'
 import { formatDateTime, formatDay, paymentLabel, registrationSourceLabel } from '@/lib/format'
 import StatCard from '@/components/StatCard'
+import PageHeader from '@/components/admin/PageHeader'
+import { AlertIcon, ClipboardIcon, ClockIcon, LayersIcon, PlusIcon, StarIcon, StethoscopeIcon, TrendingIcon, UsersIcon } from '@/components/icons'
 import ProgressRing from '@/components/ProgressRing'
 
 export const metadata: Metadata = { title: 'Tổng quan' }
@@ -69,34 +71,37 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">Tổng quan</h2>
-        <Link href="/admin/patients/new" className="btn-gold">
-          + Tạo bệnh nhân
-        </Link>
-      </div>
+      <PageHeader
+        title="Tổng quan"
+        description={`Chào ${me.fullName || 'bạn'} – số liệu khách hàng, đơn đăng ký và việc cần làm hôm nay${me.isAdmin ? ', doanh thu tháng' : ''}.`}
+        actions={
+          <Link href="/admin/customers/new" className="btn-gold">
+            <PlusIcon className="h-4 w-4" /> Tạo khách hàng
+          </Link>
+        }
+      />
 
-      <section aria-label="Chỉ số" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Bệnh nhân" value={s.patients} hint={`Mới 7 ngày: Web ${s.new_7d_web} · Zalo ${s.new_7d_zalo}`} href="/admin/patients" />
-        <StatCard label="Mới 30 ngày" value={s.new_30d_web + s.new_30d_zalo} hint={`Web ${s.new_30d_web} · Zalo ${s.new_30d_zalo}`} href="/admin/patients?new=30" />
+      <section aria-label="Chỉ số" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <StatCard label="Khách hàng" value={s.patients} icon={<UsersIcon className="h-5 w-5" />} hint={`Mới 7 ngày: Web ${s.new_7d_web} · Zalo ${s.new_7d_zalo}`} href="/admin/customers" />
+        <StatCard label="Mới 30 ngày" icon={<TrendingIcon className="h-5 w-5" />} value={s.new_30d_web + s.new_30d_zalo} hint={`Web ${s.new_30d_web} · Zalo ${s.new_30d_zalo}`} href="/admin/customers?new=30" />
         <StatCard
-          label="Đơn chờ duyệt"
+          label="Đơn chờ duyệt" icon={<ClipboardIcon className="h-5 w-5" />}
           value={s.pending_registrations}
           hint={sinceText(s.oldest_pending_at) || 'Không có đơn chờ'}
           href="/admin/registrations"
           tone={s.pending_registrations ? 'warning' : 'default'}
         />
-        <StatCard label="Gói đang hiệu lực" value={s.active_plans} hint={`${s.active_patients} bệnh nhân đang học`} href="/admin/patients?status=active" />
-        <StatCard label="Sắp hết hạn (7 ngày)" value={s.expiring_7d} hint="Gọi nhắc gia hạn" href="/admin/patients?status=expiring" tone={s.expiring_7d ? 'warning' : 'default'} />
-        <StatCard label="Đã hết hạn" value={s.expired} hint="Chưa gia hạn" href="/admin/patients?status=expired" />
+        <StatCard label="Gói đang hiệu lực" icon={<LayersIcon className="h-5 w-5" />} value={s.active_plans} hint={`${s.active_patients} khách hàng đang học`} href="/admin/customers?status=active" />
+        <StatCard label="Sắp hết hạn (7 ngày)" icon={<ClockIcon className="h-5 w-5" />} value={s.expiring_7d} hint="Gọi nhắc gia hạn" href="/admin/customers?status=expiring" tone={s.expiring_7d ? 'warning' : 'default'} />
+        <StatCard label="Đã hết hạn" icon={<AlertIcon className="h-5 w-5" />} value={s.expired} hint="Chưa gia hạn" href="/admin/customers?status=expired" />
         <StatCard
-          label="Phiếu tham vấn mới"
+          label="Phiếu tham vấn mới" icon={<StethoscopeIcon className="h-5 w-5" />}
           value={s.consultations_new}
           hint="Cần hẹn bác sĩ"
           href="/admin/consultations"
           tone={s.consultations_new ? 'critical' : 'default'}
         />
-        <StatCard label="Khách premium mới" value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
+        <StatCard label="Khách premium mới" icon={<StarIcon className="h-5 w-5" />} value={s.leads_new} hint="Để lại SĐT, chưa liên hệ" href="/admin/leads" tone={s.leads_new ? 'warning' : 'default'} />
       </section>
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -125,7 +130,7 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
               <li key={`${x.user_id}-${x.course_title}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
                 <span>
                   Sắp hết hạn:{' '}
-                  <Link href={`/admin/patients/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">
+                  <Link href={`/admin/customers/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">
                     {x.full_name ?? x.phone}
                   </Link>{' '}
                   – {x.course_title} <span className="text-gold-800">(còn {daysLeft(x.until)} ngày)</span>
@@ -146,14 +151,14 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
 
         <section aria-label="Tiến độ theo chương trình" className="card p-5">
           <h3 className="font-bold">Tiến độ theo chương trình</h3>
-          <p className="text-xs text-slate-500">Trung bình % bài đã tập của bệnh nhân đang còn hạn</p>
+          <p className="text-xs text-slate-500">Trung bình % bài đã tập của khách hàng đang còn hạn</p>
           {s.programs.length ? (
             <ul className="mt-3 space-y-3">
               {s.programs.map((p) => (
                 <li key={p.course_id}>
                   <div className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="font-semibold text-ocean-900">{p.course_title}</span>
-                    <span className="tabular-nums text-slate-600">{p.avg_percent}% · {p.patients} bệnh nhân</span>
+                    <span className="tabular-nums text-slate-600">{p.avg_percent}% · {p.patients} khách hàng</span>
                   </div>
                   <div
                     role="meter"
@@ -169,19 +174,19 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-slate-500">Chưa có bệnh nhân đang học.</p>
+            <p className="mt-3 text-sm text-slate-500">Chưa có khách hàng đang học.</p>
           )}
 
           <div className="mt-5 border-t border-slate-100 pt-4">
             <div className="flex items-center justify-between gap-3">
               <h4 className="text-sm font-bold">Không tập &gt; 7 ngày ({s.inactive_7d})</h4>
-              {!!s.inactive_7d && <Link href="/admin/patients?status=inactive" className="text-sm font-semibold text-ocean-700 hover:underline">Xem tất cả</Link>}
+              {!!s.inactive_7d && <Link href="/admin/customers?status=inactive" className="text-sm font-semibold text-ocean-700 hover:underline">Xem tất cả</Link>}
             </div>
             <ul className="mt-2 space-y-2 text-sm">
               {s.inactive.map((x) => (
                 <li key={`${x.user_id}-${x.course_title}`} className="flex flex-wrap items-center justify-between gap-2">
                   <span>
-                    <Link href={`/admin/patients/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">{x.full_name ?? x.phone}</Link>{' '}
+                    <Link href={`/admin/customers/${x.user_id}`} className="font-semibold text-ocean-800 hover:underline">{x.full_name ?? x.phone}</Link>{' '}
                     <span className="text-slate-500">
                       – {x.course_title} · {x.last_activity ? `tập gần nhất ${formatDay(x.last_activity)}` : 'chưa tập buổi nào'}
                     </span>
@@ -189,7 +194,7 @@ export default async function AdminDashboardPage(props: { searchParams: Promise<
                   <ProgressRing done={x.done} total={x.total} size="sm" />
                 </li>
               ))}
-              {!s.inactive.length && <li className="text-slate-500">Mọi bệnh nhân đang học đều tập trong 7 ngày qua.</li>}
+              {!s.inactive.length && <li className="text-slate-500">Mọi khách hàng đang học đều tập trong 7 ngày qua.</li>}
             </ul>
           </div>
         </section>

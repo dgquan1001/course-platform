@@ -22,7 +22,7 @@ export default async function NavCount({ kind }: { kind: NavCountKind }) {
     <span
       data-testid={`nav-count-${kind}`}
       title={`${count} ${hint}`}
-      className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-ocean-600 px-1.5 text-[11px] font-bold leading-none text-white"
+      className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-gold-400 px-1.5 text-[11px] font-bold leading-none text-ocean-950"
     >
       {count > 99 ? '99+' : count}
       <span className="sr-only"> {hint}</span>

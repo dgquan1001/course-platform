@@ -7,6 +7,7 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | --- | --- | --- | --- |
 | SCR-00 | Header / Footer / Toast | (chung) | US-08.x |
 | SCR-01 | Trang chủ | `/` | US-01.x |
+| SCR-01b | Trang chủ tiếng Anh (Đợt 20) | `/en` | US-01.06 |
 | SCR-02 | Trang đăng ký | `/register` | US-02.x |
 | SCR-03 | Box đăng ký 3 bước | `/#dang-ky`, `/register` | US-02.01–02.07 |
 | SCR-04 | Đăng nhập | `/login` | US-03.01 |
@@ -18,6 +19,8 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-10 | Admin – Đơn đăng ký | `/admin/registrations` | US-05.x |
 | SCR-11 | Admin – Học viên | `/admin/users` | US-06.x |
 | SCR-12 | Admin – Khóa học | `/admin/courses` | US-07.01–07.04, 07.06 |
+| SCR-12b | Admin – Thêm khóa học (Đợt 24) | `/admin/courses/new` | US-07.08 |
+| SCR-12c | Admin – Sửa khóa học + gói + xóa (Đợt 24) | `/admin/courses/:id/edit` | US-07.02, 07.04, 07.08 |
 | SCR-13 | Admin – Bài học | `/admin/courses/:id` | US-07.05 |
 | SCR-14 | 404 | (bất kỳ) | — |
 | SCR-15 | *(v0.2)* Trang chủ – khóa theo nhóm | `/#khoa-hoc` | US-11.01 |
@@ -28,8 +31,11 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 | SCR-20 | *(v0.2)* Phiếu tham vấn | `/courses/consultation` | US-15.02 |
 | SCR-21 | *(v0.2)* Hộp nhắc đổi mật khẩu / đồng ý | (sau đăng nhập) | US-14.02, 11.06 |
 | SCR-22 | *(v0.2)* Admin – Tổng quan | `/admin` | EP-16 |
-| SCR-23 | *(v0.2)* Admin – Tạo bệnh nhân | `/admin/patients/new` | US-14.01 |
-| SCR-24 | *(v0.2)* Admin – Chi tiết bệnh nhân | `/admin/patients/:id` | US-14.03, 14.04 |
+| SCR-23 | *(v0.2)* Admin – Tạo khách hàng | `/admin/customers/new` | US-14.01 |
+| SCR-24 | *(v0.2)* Admin – Chi tiết khách hàng | `/admin/customers/:id` | US-14.03, 14.04, 17.01 |
+| SCR-26 | *(Đợt 26)* Admin – Nhân viên (danh sách) | `/admin/staff` | US-17.02, 17.03 |
+| SCR-26b | *(Đợt 26)* Admin – Thêm nhân viên | `/admin/staff/new` | US-17.02 |
+| SCR-26c | *(Đợt 26)* Admin – Hồ sơ nhân viên | `/admin/staff/:id` | US-17.03 |
 | SCR-25 | *(v0.2)* Admin – Phiếu tham vấn / Khách quan tâm | `/admin/consultations`, `/admin/leads` | US-15.04, 11.05 |
 | SCR-26 | *(v0.2)* Admin – Khóa học: loại, ảnh bìa, gói | `/admin/courses` | US-11.02, 12.01 |
 | SCR-27 | *(v0.2)* Admin – Nội dung buổi – bài | `/admin/courses/:id` | US-13.01, 13.02 |
@@ -61,38 +67,70 @@ Mỗi màn hình liệt kê: mục đích, dữ liệu, thành phần, trạng t
 
 ## SCR-01 – Trang chủ
 
+*Đợt 19 (17/10/2026): chuyển động, hồ sơ bác sĩ (nguồn bsdomanhcuong.com/bac-si.html), bỏ phần trùng. **Đợt 20 (17/10/2026)**: giao diện hiện đại hơn
+(hero tối, bento, cột ảnh dính, hiệu ứng theo cuộn) + song ngữ (SCR-01b). Mã nguồn: `components/home/HomePage.tsx` (dùng chung `/` và `/en`), chữ ở `lib/i18n.ts`.
+Hiệu ứng: [design-system §5, §5.1](design-system.md#5-chuyển-động).*
+
 ```text
-┌─ HERO ───────────────────────────────────────────────────────────────────┐
-│ [HOLISTIC THERAPY CENTER…]                        ┌───────────────┐      │
-│ Trị liệu cột sống – cơ xương khớp                 │  Ảnh bác sĩ   │      │
-│ TOÀN DIỆN cho người Việt                          │  (vuông)      │      │
-│ Khóa học video do Bác sĩ … hướng dẫn…             └┬─────────────┬┘      │
-│ [Đăng ký khóa học →]  [☎ 0973 027 017]             │BS Đỗ Mạnh C.│       │
-│ ✓ 10 năm kinh nghiệm ✓ Mọi thiết bị ✓ Hỗ trợ       └─────────────┘       │
-├─ #bac-si ────────────────────────────────────────────────────────────────┤
-│ [Ảnh trung tâm]        CHUYÊN GIA ĐỒNG HÀNH / Tên / chức danh            │
-│                        ✓ credential ×4   [10+] [YHCT] [1:1]              │
-├─ VẤN ĐỀ ─────────────────────────────────────────────────────────────────┤
-│ Những vấn đề cơ xương khớp phổ biến   │ [✓ đau cổ vai gáy] [✓ đau lưng]  │
-│                                       │ [✓ lệch vai…]      [✓ tê bì…]    │
-├─ LỢI ÍCH (4 thẻ) ────────────────────────────────────────────────────────┤
-├─ #khoa-hoc ──────────────────────────────────────────────────────────────┤
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐                             │
-│ │ ▶ Tên khóa │ │ …          │ │ …          │   grid 1 / 2 / 3 cột        │
-│ │ mô tả 3 dòng│ │            │ │            │                            │
-│ │ 1.500.000đ [Đăng ký]│      │ │            │                             │
-│ └────────────┘ └────────────┘ └────────────┘                             │
-├─ #dang-ky → SCR-03 ──────────────────────────────────────────────────────┤
-├─ FAQ (details/summary, dấu + xoay 45° khi mở) ───────────────────────────┤
-├─ CTA: Sẵn sàng chăm sóc cột sống? [Đăng ký học ngay →] [Tư vấn qua Zalo] ┤
+▔▔▔▔▔▔▔▔▔▔▔ thanh tiến độ cuộn (vàng → xanh, CSS scroll-driven) ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+Header: Logo · menu neo · [🌐 VI|EN] · Đăng nhập · [Đăng ký học]
+┌─ HERO (nền ocean-950 + lưới mờ + 3 vệt màu trôi) ────────────────────────┐
+│ (● HOLISTIC THERAPY CENTER…)                         ╭─ viền conic xoay ─╮│
+│ Trị liệu cột sống – cơ xương khớp                [10+]  Ảnh bác sĩ 4:5  ││
+│ TOÀN DIỆN (vàng→xanh) cho người Việt  ← hiện từng từ │       [🏅 Schroth]││
+│ Đừng để cơn đau lưng…                                ╰─[BS Đỗ Mạnh Cường]╯│
+│ [Đăng ký chương trình → ✨] [▶ Tập thử miễn phí (kính)]   (parallax)       │
+│ ☎ Tư vấn miễn phí: 0973 027 017                 ( chuột "Cuộn xuống" )    │
+╞═ 2 dải chuyên môn chéo ±2°: vàng (đọc được) / xanh (ngược chiều, ẩn) ═══╡
+├─ SỐ LIỆU: 10+ │ 13.000+ │ 3 │ 1:1  (chữ gradient 6xl, đếm tăng) ─────────┤
+├─ #van-de BENTO ──────────────────────────────────────────────────────────┤
+│ ┌──────────── ô lớn 2×2 (gradient xanh) ┐ ┌ Bác sĩ trực tiếp ┐┌ Lộ trình ┐│
+│ │ Cơn đau không tự hết – nhưng CÓ THỂ…  │ └──────────────────┘└──────────┘│
+│ │ [✓ đau cổ vai gáy] [✓ đau lưng] …     │ ┌ Mọi lúc mọi nơi  ┐┌ An toàn  ┐│
+│ └───────────────────────────────────────┘ └──────────────────┘└──────────┘│
+├─ #bac-si (nền ocean-50) ─────────────────────────────────────────────────┤
+│ ┌ cột DÍNH khi cuộn ───┐  CHUYÊN GIA ĐỒNG HÀNH / Bác sĩ Đỗ Mạnh Cường (H2) │
+│ │ ảnh giảng dạy        │  giới thiệu                                       │
+│ │   + ảnh SSOL nổi     │  [Học vấn & chứng chỉ ×4]                         │
+│ │ “Kết quả trị liệu    │  #chuyen-mon Lĩnh vực chuyên môn 2×2 (h4)         │
+│ │  khác nhau…” — BS    │  Quá trình công tác: đường thời gian tự vẽ khi cuộn│
+│ └──────────────────────┘                                                   │
+│ Hoạt động chuyên môn: 4 ảnh dọc 4:5, chú thích trồi lên khi rê            │
+├─ #mien-phi → #khoa-hoc (SCR-15, lọc dạng viên) → #premium (nền tối + lưới)┤
+│ Thẻ khóa: nhấc lên, ảnh bìa phóng nhẹ, ánh sáng theo con trỏ             │
+├─ #dang-ky → SCR-03 (bản tiếng Anh: SCR-01b) ─────────────────────────────┤
+├─ FAQ (dấu + đổi vàng khi mở)      │ Thẻ tối "Chưa biết chọn chương trình  │
+│                                   │ nào?" [Tư vấn qua Zalo ✨] [☎]         │
 └──────────────────────────────────────────────────────────────────────────┘
-Mobile: thanh cố định đáy  [☎ Gọi ngay] [Đăng ký học]
+Footer tối (#lien-he): thương hiệu, 3 cơ sở, liên kết, liên hệ.
+Mobile: thanh cố định đáy  [☎ Gọi ngay] [Đăng ký học]; bento / hồ sơ xếp 1 cột, cột ảnh không dính.
 ```
 
 | Trạng thái | Hiển thị |
 | --- | --- |
-| Không có khóa | Thẻ "Khóa học đang được cập nhật. Gọi <hotline>…"; select trong box đăng ký bị disable |
-| Dữ liệu | Server render, ISR 300s |
+| Không có khóa | Thẻ "Chương trình đang được cập nhật. Gọi <hotline>…"; select trong box đăng ký bị disable |
+| Không có khóa miễn phí | Ẩn mục `#mien-phi`; nút thứ 2 ở hero đổi thành "Xem chương trình" (`#khoa-hoc`) |
+| Dữ liệu | Server render, ISR 300s; hồ sơ bác sĩ, số liệu, 3 cơ sở lấy từ `lib/site-config.ts` (tiếng Việt) và `lib/i18n.ts` (tiếng Anh) |
+| Ảnh | `public/images/bac-si-do-manh-cuong.jpg` (hero) + `public/images/bac-si/*.jpg` (6 ảnh hoạt động, đã nén ≤ 800px, ≤ 63KB) – CSP chỉ cho ảnh cùng domain |
+| Tắt JS / giảm chuyển động | Mọi nội dung hiện ngay, số liệu đúng giá trị cuối, dải chuyên môn / parallax / thanh tiến độ / vệt sáng đứng yên (TC-112) |
+| Trình duyệt chưa hỗ trợ CSS scroll-driven (Firefox) | Không có parallax, thanh tiến độ, đường thời gian tự vẽ – các hiệu ứng khác vẫn chạy |
+
+**Đã bỏ (Đợt 19, trùng lặp)**: ảnh banner trung tâm `trung-tam-hv.jpg` ở mục bác sĩ (chữ trong ảnh lặp 4 dòng tiểu sử; vẫn là ảnh chia sẻ Open Graph),
+hàng ✓ dưới nút hero và 3 ô "10+ / YHCT / 1:1" (gộp vào dải số liệu), khối CTA cuối trang "Sẵn sàng chăm sóc cột sống?" (thay bằng thẻ tư vấn cạnh FAQ),
+mục Lợi ích tách riêng (gộp vào bento Vấn đề → giải pháp).
+
+## SCR-01b – Trang chủ tiếng Anh `/en` (Đợt 20, ADR-018)
+
+Cùng bố cục SCR-01, chữ tiếng Anh từ `lib/i18n.ts`. Khác biệt:
+
+| Vùng | `/en` |
+| --- | --- |
+| Header | Programs · Free · Premium · Doctor · Contact (→ `/en#…`), "Sign in", "Enroll"; viên VI \| EN chọn EN |
+| Thẻ khóa | Nhãn "Free / Premium / Lumbar scoliosis / Thoracic scoliosis", "From 199.000đ · Plans 1 month · 3 months", nút "View program", "Register", "Watch now", "Get the offer", giá 0 = "Contact us"; **tên, mô tả khóa giữ tiếng Việt** |
+| `#dang-ky` | Khối xanh: 3 bước bằng tiếng Anh + [Open the registration form (in Vietnamese) →] (`/#dang-ky`) + [Chat on Zalo] – **không nhúng form** |
+| Thanh đáy điện thoại | [Call now] [Enroll → `/#dang-ky`] |
+| Chân trang | Bản tiếng Anh ("Our clinics", "Clinic 1:"…; "Privacy policy (Vietnamese)") |
+| `<head>` | title / description / Open Graph `en_US`; `canonical` `/en`; hreflang vi `/`, en `/en`; `<html lang="en">` (client) + `<main lang="en">` |
 
 ## SCR-02 – Trang đăng ký `/register`
 Tiêu đề trang + SCR-03. Metadata title "Đăng ký khóa học".
@@ -241,10 +279,10 @@ Không có quyền / không tìm thấy: "Không tìm thấy bài học hoặc k
 >
 > ```text
 > ┌─ Bảng quản trị ─┐  ┌──────────── nội dung trang ─────────────┐
-> │ [Admin]         │  │ Tổng quan                 [+ Tạo bệnh nhân]│
+> │ [Admin]         │  │ Tổng quan                 [+ Tạo khách hàng]│
 > │▌⌂ Tổng quan     │  │ …                                          │
 > │ ▤ Đơn đăng ký ③ │  │                                            │
-> │ 👥 Bệnh nhân    │  │                                            │
+> │ 👥 Khách hàng    │  │                                            │
 > │ 📖 Khóa học     │  │                                            │
 > │ 🩺 Phiếu t.vấn ① │  │                                            │
 > │ ☆ Khách q.tâm   │  │                                            │
@@ -280,6 +318,28 @@ Bảng quản trị [Admin]            ← nhãn vai trò; nhân viên: [Nhân v
 
 ## SCR-11 – Admin: Học viên
 
+> **Đợt 26 (18/10/2026)**: thay bằng **Khách hàng** (`/admin/customers` – chỉ tài khoản khách hàng, cột **Thao tác**: Hồ sơ · Sửa · Xóa,
+> không còn ô vai trò) và **Nhân viên** (SCR-26 – chỉ admin). Bản vẽ dưới đây giữ làm lịch sử.
+
+### SCR-26 – Admin: Nhân viên (Đợt 26)
+
+```text
+Nhân viên                                                        [+ Thêm nhân viên]
+[Tìm theo tên, email hoặc số điện thoại____] [Mọi vai trò ▾] [Lọc]
+3 tài khoản
+┌ Nhân viên ──────────────────┬ SĐT ──────┬ Vai trò ───┬ Ngày tạo ─┬ Thao tác ────────┐
+│ Nguyễn A (bạn)              │ 0912…     │ [Admin]    │ 26/09/2026│ [Sửa]            │
+│ Cấp quyền bởi Hệ thống · 26/09                                                       │
+│ Trần B                      │ 0987…     │ [Nhân viên]│ 18/10/2026│ [Sửa] [Xóa]      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+Nhật ký xóa tài khoản: 18/10 10:12 · Nguyễn A đã xóa Lê C
+```
+SCR-26b: họ tên*, SĐT* (đăng nhập), email, vai trò (Nhân viên / Admin) → mật khẩu 8 ký tự hiện 1 lần + "Chép tin nhắn gửi nhân viên".
+SCR-26c: thông tin, lịch sử phân quyền, nhật ký; cột phải: Sửa thông tin · Vai trò (Nhân viên / Admin / Khách hàng) · Cấp lại mật khẩu · **Xóa nhân viên**
+(gõ lại SĐT). Hồ sơ của chính mình chỉ có Sửa thông tin + lời nhắc đổi mật khẩu ở Tài khoản của tôi.
+SCR-24 (hồ sơ khách hàng) thêm vùng **Xóa khách hàng** (`#xoa-khach-hang`): còn gói còn hạn / đơn chờ → chỉ hiện lý do; không thì ô gõ SĐT + nút đỏ.
+Khung quản trị: tài khoản quản trị dùng mật khẩu được cấp → dải vàng "Bạn đang dùng mật khẩu được cấp. Đổi mật khẩu ngay".
+
 ```text
 [Tất cả tài khoản] [Nhân viên & Admin (3)]
 [Tìm theo tên, email hoặc số điện thoại_______] [Tìm]
@@ -294,16 +354,50 @@ Mobile (< md): mỗi tài khoản là một thẻ, nút quyền ở cuối thẻ
 Admin đổi vai trò bằng ô chọn Học viên / Nhân viên / Admin + [Lưu vai trò] (hộp xác nhận nêu quyền từng vai trò); dòng của chính mình không có ô chọn.
 Nhân viên xem trang này nhưng cột Vai trò chỉ hiện nhãn, không đổi được.
 
-## SCR-12 – Admin: Khóa học
+## SCR-12 – Admin: Khóa học (Đợt 24 – QL-06, QL-07)
 
 ```text
-┌ Danh sách (trái) ───────────────────────────────┐ ┌ Thêm khóa học mới (sticky) ┐
-│ Khóa A [Đang hiển thị]      [Quản lý bài học]   │ │ Tên khóa học *             │
-│ 1.500.000đ                  [Ẩn khóa học]       │ │ Mô tả                      │
-│ 📖 12 bài học  👥 40 học viên · 3 chờ duyệt      │ │ Giá (VNĐ, 0 = Liên hệ) | Thứ tự│
-│ Sửa thông tin ▸ (mở: form + [Lưu thay đổi]       │ │ Trạng thái [Hiển thị ▾]    │
-│                 ┄┄ [Xóa khóa học] (xác nhận))    │ │ [Thêm khóa học]            │
-└─────────────────────────────────────────────────┘ └────────────────────────────┘
+Khóa học                                                    [+ Thêm khóa học] (gold → /admin/courses/new?kind=<tab>)
+Chương trình phục hồi (bán theo gói), khóa miễn phí, premium…
+( Tất cả (8) | Chương trình (4) | Miễn phí (2) | Premium (2) )      ← .seg
+Chương trình phục hồi (4) – Trả phí theo gói tháng…
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [ảnh 16:10]  [Chương trình · Cong vẹo cột sống] [Đang hiển thị]           │
+│              Tên khóa (link → trang sửa)                                  │
+│              Mô tả ngắn…                                                  │
+│              Từ 1.500.000đ · 1 tháng, 3 tháng                             │
+│              📖 36 bài · 2 chưa có video   👥 40 học viên · 3 chờ duyệt   │
+├──────────────────────────────────────────────────────────────────────────┤
+│ [✎ Sửa] [Quản lý buổi – bài] [Ẩn khóa học] [↗ Xem trang giới thiệu]  [🗑 Xóa]│
+└──────────────────────────────────────────────────────────────────────────┘
+Nhóm rỗng: ⌧ "Chưa có khóa nào." [+ Thêm khóa miễn phí]
+```
+
+"Xóa" mở trang sửa ở vùng `#xoa-khoa-hoc` (không xóa ngay từ danh sách).
+
+## SCR-12b – Admin: Thêm khóa học `/admin/courses/new` (Đợt 24)
+
+Tiêu đề "Thêm khóa học mới" + "← Tất cả khóa học"; thẻ form (`CourseFields isNew`: tên, loại – chọn sẵn theo `?kind=`, nhóm bệnh, ảnh bìa, khung buổi tập nhanh,
+mô tả ngắn, "Bạn sẽ đạt được", giới thiệu, giá, thứ tự, trạng thái) + [Thêm khóa học] [Hủy]. Thành công → toast "Đã thêm khóa học …" → chuyển `/admin/courses/<id>/edit`.
+
+## SCR-12c – Admin: Sửa khóa học `/admin/courses/:id/edit` (Đợt 24 – QL-06, QL-08)
+
+```text
+← Tất cả khóa học
+Tên khóa                                                          [↗ Xem trang giới thiệu]
+[Chương trình] [Đang hiển thị] 40 học viên đang học · 3 đơn chờ duyệt
+( Thông tin & gói | Buổi – bài )
+┌ Thông tin khóa học ─────────────────────┐ ┌ Hiển thị trên website ─────────┐
+│ CourseFields (chương trình: không ô Giá) │ │ Đang hiện / đang ẩn + giải thích│
+│ [Lưu thay đổi]                           │ │ [Ẩn khóa học] / [Hiển thị]      │
+└──────────────────────────────────────────┘ └────────────────────────────────┘
+┌ Gói theo thời hạn (chỉ chương trình) ───┐ ┌ ⚠ Xóa khóa học (viền đỏ) ──────┐
+│ 1 tháng · giá · số buổi · đang bán [Lưu] │ │ Bị chặn: "Không xóa được: khóa  │
+│ [+ Thêm gói 3/6/12 tháng]                │ │ còn 40 học viên… Hãy Ẩn…"       │
+└──────────────────────────────────────────┘ │ Hoặc: Gõ lại tên khóa [_______] │
+                                             │ [🗑 Xóa vĩnh viễn khóa học]      │
+                                             │ (chỉ mở khi gõ đúng tên)         │
+                                             └────────────────────────────────┘
 ```
 
 ## SCR-13 – Admin: Bài học của khóa
@@ -454,12 +548,12 @@ Câu `scale` bắt buộc chọn; `check` bắt buộc; `text` không bắt bu�
 ## SCR-22 – Admin: Tổng quan
 
 ```text
-Tổng quan                                                   [+ Tạo bệnh nhân]
-┌ Bệnh nhân ┐┌ Mới 7 ngày ┐┌ Đơn chờ ┐┌ Gói hiệu lực ┐┌ Sắp hết hạn ┐┌ Đã hết hạn ┐┌ Phiếu mới ┐┌ Lead mới ┐
+Tổng quan                                                   [+ Tạo khách hàng]
+┌ Khách hàng ┐┌ Mới 7 ngày ┐┌ Đơn chờ ┐┌ Gói hiệu lực ┐┌ Sắp hết hạn ┐┌ Đã hết hạn ┐┌ Phiếu mới ┐┌ Lead mới ┐
 │   128     ││ 9 (Web 4 · Zalo 5)││ 3 ││ 96 ││ 7 ││ 12 ││ 2 ││ 5 │
 └───────────┘└────────────┘└─────────┘└──────────────┘└─────────────┘└────────────┘└───────────┘└──────────┘
 Việc cần làm                                   │ Tiến độ theo chương trình
-• Đơn chờ lâu nhất (3)          [Mở]            │ Vẹo lưng  ██████░░ 58% (40 bệnh nhân)
+• Đơn chờ lâu nhất (3)          [Mở]            │ Vẹo lưng  ██████░░ 58% (40 khách hàng)
 • Sắp hết hạn: Nguyễn A (2 ngày) [☎][Zalo]      │ Vẹo ngực  ████░░░░ 41% (31)
 • Phiếu tham vấn mới (2)        [Mở]            │ Không tập > 7 ngày: 11  [Xem]
 • Lead premium mới (5)          [Mở]            │
@@ -469,27 +563,27 @@ theo chương trình · theo hình thức (CK / tiền mặt / khác) · theo ng
 ```
 Mỗi thẻ là link tới danh sách đã lọc. Biểu đồ tuân theo design system (không màu mè, số liệu có nhãn).
 
-> ✅ Đợt 13: 8 thẻ (Bệnh nhân · Mới 30 ngày · Đơn chờ duyệt · Gói đang hiệu lực · Sắp hết hạn 7 ngày · Đã hết hạn · Phiếu tham vấn mới · Khách premium mới), "Việc cần làm" (đơn chờ, phiếu mới, lead mới, bệnh nhân sắp hết hạn kèm Gọi / Zalo), "Tiến độ theo chương trình" + "Không tập > 7 ngày"; khối Doanh thu chỉ admin (tháng này so tháng trước, 4 bảng phân tích).
+> ✅ Đợt 13: 8 thẻ (Khách hàng · Mới 30 ngày · Đơn chờ duyệt · Gói đang hiệu lực · Sắp hết hạn 7 ngày · Đã hết hạn · Phiếu tham vấn mới · Khách premium mới), "Việc cần làm" (đơn chờ, phiếu mới, lead mới, khách hàng sắp hết hạn kèm Gọi / Zalo), "Tiến độ theo chương trình" + "Không tập > 7 ngày"; khối Doanh thu chỉ admin (tháng này so tháng trước, 4 bảng phân tích).
 
-## SCR-23 – Admin: Tạo bệnh nhân
+## SCR-23 – Admin: Tạo khách hàng
 
 ```text
-Tạo tài khoản bệnh nhân (khách từ Zalo)
+Tạo tài khoản khách hàng (khách từ Zalo)
 Họ và tên * [____]   SĐT * [____]   Email [____]
 Ghi chú nội bộ [____]
-[✓] Bệnh nhân đã đồng ý Chính sách bảo mật (đã gửi link qua Zalo) *
+[✓] Khách hàng đã đồng ý Chính sách bảo mật (đã gửi link qua Zalo) *
 ── Cấp gói ngay (tùy chọn) ─────────────────────────
 Chương trình [Vẹo ngực ▾]  Gói (•)1 tháng ( )3 tháng …
 Số tiền đã nhận * [990.000]  Hình thức * (•)Chuyển khoản ( )Tiền mặt ( )Khác
 Ảnh chuyển khoản [chọn ảnh]  Ghi chú thanh toán [____]
 [ Tạo tài khoản ]
 ```
-> ✅ Đợt 11: như trên; số tiền tự điền theo giá gói (sửa được). Thành công ở lại trang, hiện khung mật khẩu + [Xem hồ sơ bệnh nhân] [Tạo bệnh nhân khác].
+> ✅ Đợt 11: như trên; số tiền tự điền theo giá gói (sửa được). Thành công ở lại trang, hiện khung mật khẩu + [Xem hồ sơ khách hàng] [Tạo khách hàng khác].
 
 Thành công → khung xanh: "Mật khẩu: **K7mPq4xa** (chỉ hiện một lần)" + [Chép tin nhắn gửi Zalo]:
 "Chào chị Mai, tài khoản tập luyện tại Trung tâm HV: Đăng nhập: <link> · SĐT: 09xx · Mật khẩu: … · Chị nên đổi mật khẩu sau khi đăng nhập."
 
-## SCR-24 – Admin: Chi tiết bệnh nhân
+## SCR-24 – Admin: Chi tiết khách hàng
 
 > ✅ Đợt 11: cột trái – thông tin (nguồn, người tạo, ngày đồng ý, ghi chú nội bộ), Gói & tiến độ, Lịch sử đơn / gói, Phiếu tham vấn, Nhật ký tài khoản; cột phải – Cấp gói / Gia hạn, Sửa thông tin (kèm ghi chú nội bộ), Cấp lại mật khẩu. Tài khoản nhân viên / admin: chỉ hiện thông tin.
 Thông tin (sửa được), nguồn (Web/Zalo), người tạo, ngày đồng ý chính sách; **Gói & hạn học** từng chương trình (lịch sử đơn, số tiền,
@@ -498,8 +592,8 @@ hình thức, người cấp) + [Cấp gói / Gia hạn]; **Tiến độ** (than
 
 ## SCR-25 – Admin: Phiếu tham vấn / Khách quan tâm
 
-> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`). ✅ Đợt 12 phần Phiếu (`/admin/consultations`): tab kèm số lượng; thẻ phiếu có link hồ sơ bệnh nhân, Gọi / Zalo, chương trình, nguồn nhắc, nhãn câu thang điểm đầu tiên (mức đau), câu trả lời mở sẵn ở tab Mới; ô trạng thái + ghi chú nội bộ. % tiến độ xem ở hồ sơ bệnh nhân.
-- Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: bệnh nhân (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
+> ✅ Đợt 8 phần Khách quan tâm (`/admin/leads`). ✅ Đợt 12 phần Phiếu (`/admin/consultations`): tab kèm số lượng; thẻ phiếu có link hồ sơ khách hàng, Gọi / Zalo, chương trình, nguồn nhắc, nhãn câu thang điểm đầu tiên (mức đau), câu trả lời mở sẵn ở tab Mới; ô trạng thái + ghi chú nội bộ. % tiến độ xem ở hồ sơ khách hàng.
+- Phiếu: tab Mới · Đã liên hệ · Hoàn tất · Hủy; mỗi dòng: khách hàng (☎, Zalo), chương trình, % tiến độ, ngày gửi, tóm tắt (mức đau);
   mở rộng xem toàn bộ câu trả lời; ô ghi chú nội bộ + nút chuyển trạng thái; người xử lý.
 - Lead: tab Mới · Đã liên hệ · Đã chốt · Đóng; cột khóa premium, họ tên, SĐT, đã đăng nhập hay chưa, thời điểm; dòng thống kê
   "Lượt bấm ẩn danh 30 ngày: 42".

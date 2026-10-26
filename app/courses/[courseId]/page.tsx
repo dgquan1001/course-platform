@@ -7,7 +7,7 @@ import ProgressRing from '@/components/ProgressRing'
 import SessionOutline from '@/components/SessionOutline'
 import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, ShieldIcon } from '@/components/icons'
 
-// Trang khóa của bệnh nhân (SCR-08/18): tiến độ, nút "Tiếp tục Buổi X – Bài Y", nội dung theo buổi (🔒 buổi chưa mở).
+// Trang khóa của khách hàng (SCR-08/18): tiến độ, nút "Tiếp tục Buổi X – Bài Y", nội dung theo buổi (🔒 buổi chưa mở).
 export default async function CourseDetailPage(props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params
   const learning = await loadLearning(params.courseId)

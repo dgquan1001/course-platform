@@ -2,14 +2,15 @@
 
 ## 1. Cây thư mục
 
-Cập nhật 27/09/2026 – sau Đợt 11 → 13 (v0.2). ✅ = đã có; mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (ADR-016).
+Cập nhật 17/10/2026 – sau Đợt 20 (song ngữ trang chủ, giao diện hiện đại). ✅ = đã có; mọi trang cần quyền gọi `requireUserPage` / `requireStaffPage` / `requireAdminPage` (ADR-016).
 
 ```text
 course-platform/
 ├─ app/                              # Next.js App Router
 │  ├─ layout.tsx                     # Khung chung: font, metadata/OG, header, footer, toast, progress, LoginReminders
-│  ├─ page.tsx                       # Landing (ISR 300s): khóa theo 3 nhóm, box đăng ký #dang-ky
-│  ├─ globals.css                    # Tailwind + class dùng chung (.btn, .input, .card, .alert-*, .badge…)
+│  ├─ page.tsx                       # Trang chủ tiếng Việt (ISR 300s) → components/home/HomePage locale="vi"; hreflang (Đợt 20)
+│  ├─ en/page.tsx                    # Trang chủ tiếng Anh /en (ISR 300s), metadata en (Đợt 20, ADR-018)
+│  ├─ globals.css                    # Tailwind + class dùng chung (.btn, .input, .card, .alert-*, .badge, .section-title, .text-gradient, .card-lift) + CSS hiệu ứng [data-reveal]
 │  ├─ icon.svg, not-found.tsx
 │  ├─ register/ {page, RegisterForm (client), actions}   # registerAction – chọn gói, ảnh chuyển khoản
 │  ├─ login/ {page, actions}         # loginAction (email / SĐT, giới hạn tần suất)
@@ -20,28 +21,37 @@ course-platform/
 │  │  ├─ [courseId]/page.tsx         # Kiểu Udemy: đề cương theo buổi, chọn gói, premium CTA
 │  │  ├─ PlanPicker.tsx, LeadDialog.tsx (client)
 │  │  └─ actions.ts                  # createLeadAction
-│  ├─ courses/                       # Khu vực bệnh nhân
+│  ├─ courses/                       # Khu vực khách hàng
 │  │  ├─ page.tsx                    # Khóa học của tôi: tiến độ, hạn học, gia hạn, "Phiếu tham vấn của tôi"
 │  │  ├─ actions.ts                  # completeLessonAction, uncompleteLessonAction (Đợt 10), submitConsultationAction (Đợt 12)
 │  │  ├─ consultation/ {page, ConsultationForm (client)}  # Phiếu tham vấn (Đợt 12)
 │  │  └─ [courseId]/ {page, [lessonId]/page}              # Trang khóa, trình học theo buổi (Đợt 10)
 │  └─ admin/                         # Nhân viên + admin (layout gọi requireStaffPage)
-│     ├─ layout.tsx, AdminNav.tsx, error.tsx (bỏ loading.tsx ở Đợt 17 – RK-53)
+│     ├─ layout.tsx, AdminNav.tsx, NavCount.tsx, error.tsx (bỏ loading.tsx ở Đợt 17 – RK-53) – khung thanh bên tối (Đợt 23)
 │     ├─ actions.ts                  # Action quản trị dùng chung: đơn, lead, phiếu tham vấn, mẫu phiếu, phân quyền, khóa – gói – buổi – bài
 │     ├─ page.tsx                    # Tổng quan / dashboard (Đợt 13); /admin?status= → registrations
 │     ├─ registrations/page.tsx      # Đơn đăng ký (Đợt 7)
-│     ├─ patients/                   # Bệnh nhân (Đợt 11, thay users/)
-│     │  ├─ page.tsx                 # Danh sách + lọc (RPC admin_patients); tab Nhân viên & Admin (admin)
-│     │  ├─ new/ {page, NewPatientForm (client)}           # Tạo bệnh nhân Zalo + cấp gói
-│     │  ├─ [id]/ {page, ResetPassword (client)}           # Hồ sơ: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại MK
-│     │  ├─ actions.ts               # createPatientAction, grantPlanAction, updatePatientAction, resetPatientPasswordAction
+│     ├─ customers/                  # Khách hàng (Đợt 11 là patients/, đổi tên Đợt 26; /admin/patients/** chuyển hướng tới đây)
+│     │  ├─ page.tsx                 # Danh sách + lọc (RPC admin_patients), cột Thao tác Hồ sơ · Sửa · Xóa; ?role=team → /admin/staff
+│     │  ├─ new/ {page, NewCustomerForm (client)}           # Tạo khách hàng Zalo + cấp gói
+│     │  ├─ [id]/ {page, ResetPassword (client)}           # Hồ sơ: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại MK, xóa; admin: Phân quyền
+│     │  ├─ actions.ts               # createPatientAction, grantPlanAction, updatePatientAction, resetPatientPasswordAction, deleteCustomerAction
+│     │  ├─ usage.ts                 # customerUsage: gói còn hạn / đơn chờ (chặn xóa – Đợt 26)
 │     │  ├─ GrantFields.tsx (client), RoleForm.tsx, data.ts (getPlanOptions)
-│     ├─ users/page.tsx              # Đường dẫn cũ → /admin/patients
+│     ├─ staff/                      # Nhân viên (Đợt 26, chỉ admin – requireAdminPage / requireAdmin)
+│     │  ├─ page.tsx                 # Danh sách nhân viên / admin, người cấp quyền, nhật ký xóa tài khoản
+│     │  ├─ new/ {page, NewStaffForm (client)}              # Thêm nhân viên (mật khẩu hiện 1 lần)
+│     │  ├─ [id]/ {page, ResetStaffPassword (client)}      # Sửa, vai trò, cấp lại MK, xóa; lịch sử phân quyền
+│     │  ├─ actions.ts               # createStaffAction, updateStaffAction, resetStaffPasswordAction, deleteStaffAction
+│     ├─ users/page.tsx              # Đường dẫn cũ → /admin/customers
 │     ├─ consultations/page.tsx      # Phiếu tham vấn (Đợt 12)
 │     ├─ leads/page.tsx              # Khách quan tâm premium (Đợt 8)
 │     ├─ settings/ {page → consultation, consultation/page}  # Mẫu phiếu tham vấn (chỉ admin)
 │     └─ courses/                    # Chỉ admin
-│        ├─ page.tsx                 # Khóa theo loại (Chương trình / Miễn phí / Premium), gói
+│        ├─ page.tsx                 # Danh sách khóa theo loại, hàng thao tác trên thẻ (Đợt 24 – QL-06)
+│        ├─ new/page.tsx             # Thêm khóa (Đợt 24 – QL-07)
+│        ├─ [courseId]/edit/page.tsx # Sửa khóa + bảng gói + Ẩn / Hiện + xóa an toàn (Đợt 24)
+│        ├─ DeleteCourse.tsx (client), CourseTabs.tsx, usage.ts (courseUsage – server-only, QL-08)
 │        ├─ fields.tsx, CoverInput.tsx, PlanTable.tsx
 │        └─ [courseId]/page.tsx      # Buổi – bài (Đợt 10)
 ├─ components/                       # UI dùng chung (không chứa nghiệp vụ)
@@ -52,9 +62,21 @@ course-platform/
 │  ├─ PasswordInput.tsx                                             # Đợt 15: ô mật khẩu có nút mắt
 │  ├─ LoginReminders.tsx             # Đồng ý chính sách + nhắc đổi mật khẩu (thay ConsentReminder, Đợt 11)
 │  ├─ OneTimeSecret.tsx              # Mật khẩu hiện một lần + tin nhắn Zalo (Đợt 11)
-│  └─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
+│  ├─ StatCard.tsx                   # Thẻ chỉ số dashboard (Đợt 13)
+│  ├─ home/HomePage.tsx              # Trang chủ dùng chung vi / en: hero tối, bento, hồ sơ bác sĩ, khóa 3 nhóm, đăng ký, FAQ (Đợt 19 → 20)
+│  ├─ LangSwitch.tsx (client)        # Nút VI | EN trên header (Đợt 20)
+│  ├─ SessionGuard.tsx (client)      # Tự đăng xuất tab đang mở khi hết phiên; signOutLocally() (Đợt 21)
+│  ├─ admin/PageHeader.tsx           # Tiêu đề trang quản trị (Đợt 23)
+│  ├─ HtmlLang.tsx (client)          # Đổi <html lang> khi ở /en (Đợt 20)
+│  ├─ RevealObserver.tsx (client)    # Hiện dần khi cuộn [data-reveal] + ánh sáng theo con trỏ .spotlight (Đợt 19 → 20)
+│  └─ CountUp.tsx (client)           # Số đếm tăng khi cuộn tới (Đợt 19)
 ├─ lib/                              # Nghiệp vụ & hạ tầng (không chứa JSX)
-│  ├─ site-config.ts                 # Thương hiệu, liên hệ, ngân hàng, vietQrUrl, formatPrice
+│  ├─ site-config.ts                 # Thương hiệu, liên hệ, hồ sơ bác sĩ (học vấn, chuyên môn, công tác), 3 cơ sở, ngân hàng, vietQrUrl, formatPrice
+│  ├─ reveal.ts                      # revealDelay(i) – độ trễ so le cho hiệu ứng hiện dần (Đợt 19)
+│  ├─ i18n.ts                        # Song ngữ trang chủ: homeCopy, cardCopy, chromeCopy, localeOfPath (Đợt 20, ADR-018)
+│  ├─ session-policy.ts              # Chính sách phiên (cookie tạm, hết hạn khi không thao tác / quá 12 giờ, ghi nhớ) – Đợt 21, SEC-13
+│  ├─ session.ts                     # startSession() sau khi đăng nhập (server-only) – Đợt 21
+│  ├─ browser-cookies.ts             # Đọc / ghi cookie ở trình duyệt, tải Supabase khi cần (PERF-08) – Đợt 22
 │  ├─ auth.ts                        # getCurrentUser (cache theo request), requireAdmin/Staff, requireUserPage/StaffPage/AdminPage
 │  ├─ use-profile.ts                 # 'use client' – profile dùng chung cho header + hộp nhắc (cache 60s)
 │  ├─ accounts.ts                    # findAccount, isPhoneTaken, isEmailTaken (service role)
@@ -69,9 +91,10 @@ course-platform/
 ├─ middleware.ts                     # Nhẹ: đọc phiên từ cookie (getSession), chưa đăng nhập → /login (ADR-016)
 ├─ supabase/schema.sql               # Toàn bộ DB: bảng, index, hàm, trigger, RLS, storage (idempotent)
 ├─ scripts/ {env.mjs, create-admin.mjs, e2e.mjs, backup-storage.mjs}   # e2e ~2.400 dòng, chạy trên Node hoặc Cloudflare Workers (--workers); backup-storage: tải ảnh Storage
-├─ public/images/
+├─ public/favicon.ico               # Sinh từ app/icon.svg (Đợt 19 – trình duyệt tự xin /favicon.ico)
+├─ public/images/                   # Ảnh bác sĩ, banner OG; bac-si/ – 6 ảnh hoạt động chuyên môn (Đợt 19, đã nén ≤ 800px)
 ├─ .github/workflows/ {ci.yml, keepalive.yml, backup.yml}   # CI; giữ Supabase Free hoạt động; sao lưu tuần (runbook §7.1)
-├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized), vercel.json (vùng sin1 – đường lùi, gỡ ở Đợt 17 P6)
+├─ tailwind.config.ts, next.config.mjs (CSP, serverActions 6mb, ảnh unoptimized, chuyển hướng /admin/patients → /admin/customers)
 ├─ wrangler.jsonc (Worker hv-web: R2 / D1 / Durable Object cho ISR, Smart Placement), open-next.config.ts, public/_headers   # Cloudflare – ADR-017
 └─ .env.local(.example)
 ```
@@ -101,8 +124,10 @@ flowchart TB
 
 | Muốn thay đổi | File |
 | --- | --- |
-| Tên trung tâm, hotline, email, Zalo, thông tin bác sĩ, tài khoản ngân hàng | `lib/site-config.ts` |
-| Nội dung trang chủ (pain points, lợi ích, FAQ) | `app/page.tsx` (mảng `painPoints`, `benefits`, `faqs`) |
+| Tên trung tâm, hotline, email, Zalo, hồ sơ bác sĩ (học vấn, chuyên môn, công tác), địa chỉ cơ sở, tài khoản ngân hàng | `lib/site-config.ts` (`doctor`, `branches`) |
+| Nội dung chữ trang chủ (hero, số liệu, dải chuyên môn, nỗi đau, lợi ích, chú thích ảnh, FAQ) – cả tiếng Việt và tiếng Anh | `lib/i18n.ts` (`homeCopy.vi` / `homeCopy.en`); bố cục ở `components/home/HomePage.tsx` |
+| Chữ trên thẻ khóa, header, chân trang theo ngôn ngữ | `lib/i18n.ts` (`cardCopy`, `chromeCopy`) |
+| Hiệu ứng chuyển động trang chủ | `tailwind.config.ts` (`keyframes`/`animation`: float, blob, marquee(-reverse), fade-up-slow, word-in, glow, spin-slow, scroll-cue) + `app/globals.css` (`.spotlight`, `.btn-shine`, `.glass`, `.bg-grid`, `[data-parallax]`, `.scroll-progress`, `.timeline-fill`) + `app/globals.css` (`[data-reveal]`) + `components/RevealObserver.tsx`, `CountUp.tsx` – xem design-system §5 |
 | Màu sắc thương hiệu | `tailwind.config.ts` (`ocean`, `gold`) + `themeColor` trong `app/layout.tsx` + màu trong `lib/mailer.ts` |
 | Kiểu nút, ô nhập, thẻ | `app/globals.css` |
 | Quy tắc SĐT hợp lệ | `lib/phone.ts#normalizePhone` |

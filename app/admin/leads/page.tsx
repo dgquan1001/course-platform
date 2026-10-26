@@ -5,6 +5,7 @@ import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
 import ActionForm from '@/components/ActionForm'
 import { setLeadStatus } from '../actions'
+import PageHeader from '@/components/admin/PageHeader'
 
 const tabs = [
   { key: 'new', label: 'Mới' },
@@ -64,21 +65,20 @@ export default async function AdminLeadsPage(props: { searchParams: Promise<{ st
 
   return (
     <div className="space-y-5">
+      <PageHeader title="Khách quan tâm" description="Khách để lại số điện thoại ở khóa premium – gọi tư vấn, ghi chú và đánh dấu kết quả." />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <nav aria-label="Lọc theo trạng thái" className="seg">
           {tabs.map((t, i) => (
             <Link
               key={t.key}
               href={t.key === 'new' ? '/admin/leads' : `/admin/leads?status=${t.key}`}
               aria-current={status === t.key ? 'page' : undefined}
-              className={`btn-sm btn whitespace-nowrap border ${
-                status === t.key ? 'border-ocean-500 bg-ocean-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-ocean-300'
-              }`}
+              className="seg-item"
             >
-              {t.label} <span className="opacity-80">({counts[i].count ?? 0})</span>
+              {t.label} <span className="opacity-70">({counts[i].count ?? 0})</span>
             </Link>
           ))}
-        </div>
+        </nav>
         <p className="text-sm text-slate-500">
           Lượt bấm &quot;Mở Zalo ngay&quot; (không để lại SĐT) 30 ngày qua: <strong>{anonymous.count ?? 0}</strong>
         </p>

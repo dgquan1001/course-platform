@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { hasSessionCookie, loadBrowserClient } from '@/lib/browser-cookies'
 import { normalizePhone } from '@/lib/phone'
 import { siteConfig } from '@/lib/site-config'
 import { SpinnerIcon } from '@/components/icons'
@@ -20,9 +20,11 @@ export default function LeadDialog({ courseId }: { courseId: string }) {
 
   // Đã đăng nhập: điền sẵn họ tên, SĐT
   useEffect(() => {
-    if (!open) return
-    const supabase = createClient()
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!open || !hasSessionCookie()) return
+    loadBrowserClient().then(async (supabase) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (!session) return
       const { data: profile } = await supabase.from('profiles').select('full_name, phone').eq('id', session.user.id).single()
       setFullName((v) => v || profile?.full_name || '')

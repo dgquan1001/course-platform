@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Script from 'next/script'
-import { createClient } from '@/lib/supabase/client'
+import { hasSessionCookie, loadBrowserClient } from '@/lib/browser-cookies'
 import { formatPrice, hotlineHref, siteConfig, vietQrUrl } from '@/lib/site-config'
 import type { PublicCourse } from '@/lib/supabase/public'
 import { realEmail } from '@/lib/phone'
@@ -127,8 +127,11 @@ export default function RegisterForm({ courses }: { courses: PublicCourse[] }) {
 
   // Đã đăng nhập: điền sẵn thông tin, không cần tạo mật khẩu
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (!hasSessionCookie()) return
+    loadBrowserClient().then(async (supabase) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (!session) return
       const { data: profile } = await supabase
         .from('profiles')

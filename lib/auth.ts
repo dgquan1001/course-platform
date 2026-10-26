@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { realEmail } from '@/lib/phone'
 
-// user: bệnh nhân / học viên · staff: nhân viên · admin: quyền cao nhất
+// user: khách hàng (trước 18/10/2026 gọi là bệnh nhân / học viên) · staff: nhân viên · admin: quyền cao nhất
 export type Role = 'user' | 'staff' | 'admin'
 
 type CurrentUser = {
@@ -20,21 +20,42 @@ type CurrentUser = {
 
 export const isStaffRole = (role: string | null | undefined) => role === 'staff' || role === 'admin'
 
+// id người dùng trong access token (claim "sub") – chỉ để gửi sớm truy vấn profile, không dùng để quyết định quyền.
+// Đọc thẳng JWT thay vì session.user để Supabase không ghi cảnh báo "getSession() could be insecure" mỗi request.
+function tokenSubject(token: string | undefined) {
+  try {
+    const payload = token?.split('.')[1]
+    if (!payload) return null
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof json.sub === 'string' ? json.sub : null
+  } catch {
+    return null
+  }
+}
+
 // User đang đăng nhập (kèm profile), null nếu chưa đăng nhập.
 // Middleware chỉ đọc phiên từ cookie (không gọi mạng); ở đây xác thực phiên với Supabase Auth (getUser) –
 // `cache` gộp mọi lần gọi trong cùng một request (layout + trang + loadLearning…) thành 1 lần xác thực + 1 truy vấn profile.
+// PERF-10 (Đợt 22): đọc profile song song với xác thực (id lấy từ cookie phiên) thay vì chờ getUser xong mới truy vấn –
+// bớt 1 lượt gọi Supabase cho mọi trang cần đăng nhập. Profile chỉ được dùng khi getUser xác nhận đúng người đó
+// (truy vấn profile vẫn chịu RLS theo JWT, cookie giả không đọc được gì).
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const earlyId = tokenSubject(session?.access_token)
+  const profileQuery = (id: string) =>
+    supabase.from('profiles').select('full_name, phone, role, must_change_password').eq('id', id).maybeSingle()
+  const [
+    {
+      data: { user },
+    },
+    early,
+  ] = await Promise.all([supabase.auth.getUser(), earlyId ? profileQuery(earlyId) : Promise.resolve(null)])
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, phone, role, must_change_password')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = early && earlyId === user.id ? early : await profileQuery(user.id)
 
   const role: Role = profile?.role === 'admin' || profile?.role === 'staff' ? profile.role : 'user'
   return {

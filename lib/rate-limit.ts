@@ -14,7 +14,7 @@ export const LIMITS = {
   forgotPassword: { limit: 10, windowSeconds: 3600 },
   // Số lần bấm liên hệ Zalo ở khóa premium (lưu khách quan tâm) mỗi IP mỗi giờ
   lead: { limit: 20, windowSeconds: 3600 },
-  // Số phiếu tham vấn mỗi bệnh nhân mỗi ngày (BR-101)
+  // Số phiếu tham vấn mỗi khách hàng mỗi ngày (BR-101)
   consultation: { limit: 5, windowSeconds: 86400 },
 } as const
 

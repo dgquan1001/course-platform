@@ -7,6 +7,7 @@ import { isSupportedVideoUrl } from '@/lib/video'
 import { detectImageType, type ImageType } from '@/lib/image-type'
 import { isCourseCategory, isCourseKind, PLAN_MONTHS, SESSIONS_PER_MONTH } from '@/lib/courses'
 import type { ActionResult } from '@/lib/action-result'
+import { courseUsage, usageBlocksDelete, usageMessage } from './courses/usage'
 
 type DbResult = { data: unknown[] | null; error: { message: string; code?: string } | null }
 type RunOptions = {
@@ -256,7 +257,7 @@ export async function setLeadStatus(leadId: string, expected: string, formData: 
 
 const consultationMessages = {
   new: 'Đã chuyển phiếu về "Mới".',
-  contacted: 'Đã ghi nhận: đã liên hệ bệnh nhân.',
+  contacted: 'Đã ghi nhận: đã liên hệ khách hàng.',
   done: 'Đã hoàn tất phiếu tham vấn.',
   cancelled: 'Đã hủy phiếu.',
 }
@@ -265,7 +266,7 @@ const isConsultationStatus = (s: string): s is ConsultationStatus => Object.hasO
 const MAX_STAFF_NOTE = 1000
 
 // Như setLeadStatus: không ghi đè khi người khác vừa xử lý; người xử lý, thời điểm do trigger consultations_stamp ghi.
-// Ghi chú nội bộ bệnh nhân không đọc được (bệnh nhân xem phiếu qua my_consultations()).
+// Ghi chú nội bộ khách hàng không đọc được (khách hàng xem phiếu qua my_consultations()).
 export async function setConsultationStatus(consultationId: string, expected: string, formData: FormData) {
   const status = text(formData, 'status')
   const note = text(formData, 'staff_note')
@@ -362,7 +363,7 @@ export async function moveConsultQuestion(questionId: string, direction: 'up' | 
 const roleMessages: Record<Role, string> = {
   admin: 'Đã cấp quyền admin.',
   staff: 'Đã chuyển vai trò thành Nhân viên.',
-  user: 'Đã chuyển vai trò thành Bệnh nhân.',
+  user: 'Đã chuyển vai trò thành Khách hàng.',
 }
 
 const isRole = (s: string): s is Role => Object.hasOwn(roleMessages, s)
@@ -385,11 +386,13 @@ export async function setUserRole(userId: string, formData: FormData) {
 
 // ---------- Khóa học ----------
 
-export async function createCourse(formData: FormData) {
+// Tạo xong chuyển sang trang sửa khóa (gói, buổi – bài làm tiếp ở đó – QL-07)
+export async function createCourse(formData: FormData): Promise<ActionResult> {
   const { value, error } = readCourse(formData)
   const cover = await readCover(formData)
   const skeleton = readSkeleton(formData)
-  return run(
+  let newId: string | null = null
+  const result = await run(
     `Đã thêm khóa học "${value?.title}".`,
     async () => {
       let cover_image: string | null = null
@@ -416,10 +419,12 @@ export async function createCourse(formData: FormData) {
         const built = await insertSkeleton(supabase, result.data[0].id, skeleton.value.sessions, skeleton.value.lessons)
         if (built.error) return { data: null, error: { message: `Đã tạo khóa nhưng chưa tạo được khung buổi tập: ${built.error.message}` } }
       }
+      newId = result.data[0].id
       return result
     },
     error ?? cover.error ?? skeleton.error
   )
+  return result.ok && newId ? { ...result, redirectTo: `/admin/courses/${newId}/edit` } : result
 }
 
 export async function updateCourse(courseId: string, formData: FormData) {
@@ -467,17 +472,28 @@ export async function setCourseStatus(courseId: string, status: 'draft' | 'publi
   )
 }
 
-// Đơn đăng ký của khóa được giữ lại (course_id = null, còn tên khóa và học phí đã lưu)
-export async function deleteCourse(courseId: string) {
-  return run(
+// Xóa an toàn (QL-08): chặn khi còn học viên có gói còn hạn / đơn chờ duyệt (Q-7 – gợi ý Ẩn), phải gõ đúng tên khóa để xác nhận.
+// Đơn đăng ký của khóa được giữ lại (course_id = null, còn tên khóa và học phí đã lưu); ảnh bìa bị xóa khỏi Storage.
+export async function deleteCourse(courseId: string, formData?: FormData): Promise<ActionResult> {
+  const confirmTitle = text(formData ?? new FormData(), 'confirm_title')
+  const result = await run(
     'Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại.',
     async () => {
-      const result = await (await createClient()).from('courses').delete().eq('id', courseId).select('id, cover_image')
-      if (!result.error) await removeCover(result.data?.[0]?.cover_image)
-      return result
+      const supabase = await createClient()
+      const { data: course } = await supabase.from('courses').select('title').eq('id', courseId).maybeSingle()
+      if (!course) return { data: [], error: null }
+      if (confirmTitle !== course.title.trim()) {
+        return { data: null, error: { message: 'Tên khóa nhập để xác nhận chưa đúng – hãy gõ lại chính xác tên khóa học.' } }
+      }
+      const usage = await courseUsage(supabase, courseId)
+      if (usageBlocksDelete(usage)) return { data: null, error: { message: usageMessage(usage) } }
+      const deleted = await supabase.from('courses').delete().eq('id', courseId).select('id, cover_image')
+      if (!deleted.error) await removeCover(deleted.data?.[0]?.cover_image)
+      return deleted
     },
     checkId(courseId, 'khóa học')
   )
+  return result.ok ? { ...result, redirectTo: '/admin/courses' } : result
 }
 
 // ---------- Gói theo thời hạn của chương trình (ADR-012) ----------

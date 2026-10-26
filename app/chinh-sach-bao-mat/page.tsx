@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 // Nội dung soạn theo Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân.
 // Bản do đội phát triển soạn (27/09/2026) – trung tâm cần rà soát pháp lý trước khi quảng bá rộng (roadmap A-7).
-// 04/10/2026 (Đợt 17): máy chủ website đổi Vercel → Cloudflare. Chưa đổi CONSENT_VERSION vì bản chính sách chưa được duyệt và chưa có
-// bệnh nhân thật; khi chủ trung tâm duyệt (A-7) thì đặt ngày hiệu lực mới.
+// 04/10/2026 (Đợt 17): máy chủ website chuyển sang Cloudflare Workers. Chưa đổi CONSENT_VERSION vì bản chính sách chưa được duyệt và chưa có
+// khách hàng thật; khi chủ trung tâm duyệt (A-7) thì đặt ngày hiệu lực mới.
 const sections: { title: string; body: React.ReactNode }[] = [
   {
     title: '1. Ai chịu trách nhiệm về dữ liệu của bạn',

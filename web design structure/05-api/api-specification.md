@@ -11,7 +11,8 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 
 | Route | Quyền | Params / Query | Render | Mô tả |
 | --- | --- | --- | --- | --- |
-| `/` | Công khai | `?course=<uuid>` chọn sẵn khóa; `#dang-ky`, `#khoa-hoc`, `#bac-si`, `#lien-he` | ISR 300s | Landing + box đăng ký |
+| `/` | Công khai | `?course=<uuid>` chọn sẵn khóa; `#dang-ky`, `#mien-phi`, `#khoa-hoc`, `#premium`, `#bac-si`, `#chuyen-mon`, `#lien-he` | ISR 300s | Landing + box đăng ký |
+| `/en` | Công khai | Neo như `/` (form đăng ký không có – nút mở `/#dang-ky`) | ISR 300s | Trang chủ tiếng Anh (Đợt 20, ADR-018); hreflang vi / en |
 | `/register` | Công khai | `?course=<uuid>&plan=<uuid>` (Đợt 9) | ISR 300s | Trang đăng ký riêng |
 | `/login` | Công khai | `?error=<msg>&next=<path>` | Động | Đăng nhập |
 | `/forgot-password` | Công khai | — | Động | Quên mật khẩu 2 giai đoạn |
@@ -25,12 +26,18 @@ Hệ thống **không có REST API tự viết**. "API" gồm 4 loại:
 | `/courses/consultation` | Đăng nhập | `?course=<uuid>` chọn sẵn chương trình, `?origin=manual\|course_end\|expiring` | Động | Phiếu tham vấn bác sĩ (Đợt 12) |
 | `/admin` | Nhân viên, admin | `?status=` (đường dẫn cũ → `/admin/registrations?status=`) | Động | **Tổng quan** (Đợt 13): thẻ chỉ số, việc cần làm, tiến độ theo chương trình; doanh thu chỉ admin |
 | `/admin/registrations` | Nhân viên, admin | `?status=pending\|approved\|rejected\|all\|refund` (mặc định pending) | Động | Đơn đăng ký |
-| `/admin/patients` | Nhân viên, admin | `?q=`, `?source=web\|zalo`, `?status=active\|expiring\|expired\|inactive\|none`, `?new=7\|30`, `?role=team` (chỉ admin: Nhân viên & Admin) | Động | Bệnh nhân (Đợt 11, thay `/admin/users`); admin đổi vai trò |
-| `/admin/patients/new` | Nhân viên, admin | — | Động | Tạo bệnh nhân (khách Zalo) + cấp gói |
-| `/admin/patients/[id]` | Nhân viên, admin | `id: uuid` | Động | Hồ sơ bệnh nhân: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại mật khẩu |
-| `/admin/users` | Nhân viên, admin | `?q=`, `?role=team` | Động | Đường dẫn cũ → `/admin/patients` (giữ bộ lọc) |
+| `/admin/customers` | Nhân viên, admin | `?q=`, `?source=web\|zalo`, `?status=active\|expiring\|expired\|inactive\|none`, `?new=7\|30`; `?role=team` (cũ) → `/admin/staff` | Động | Khách hàng (Đợt 11; Đợt 26: chỉ `role = user`, cột Thao tác Hồ sơ · Sửa · Xóa) |
+| `/admin/customers/new` | Nhân viên, admin | — | Động | Tạo khách hàng (khách Zalo) + cấp gói |
+| `/admin/customers/[id]` | Nhân viên, admin | `id: uuid` | Động | Hồ sơ khách hàng: gói, tiến độ, đơn, phiếu, nhật ký; cấp gói, sửa, cấp lại mật khẩu, **xóa** (Đợt 26); admin: Phân quyền. Tài khoản nhân viên → admin chuyển `/admin/staff/[id]`, nhân viên nhận 404 |
+| `/admin/staff` | Admin | `?q=`, `?role=staff\|admin` | Động | **Nhân viên** (Đợt 26): danh sách nhân viên / admin, người cấp quyền, Sửa · Xóa; nhật ký xóa tài khoản (20 lần gần nhất) |
+| `/admin/staff/new` | Admin | — | Động | Thêm nhân viên / admin (mật khẩu hiện 1 lần) |
+| `/admin/staff/[id]` | Admin | `id: uuid` | Động | Hồ sơ nhân viên: sửa, vai trò, cấp lại mật khẩu, xóa; lịch sử phân quyền, nhật ký. Tài khoản khách hàng → `/admin/customers/[id]` |
+| `/admin/patients/**` | — | — | Chuyển hướng | Đường dẫn cũ (trước Đợt 26) → `/admin/customers/**` (`next.config.mjs` › `redirects`) |
+| `/admin/users` | Nhân viên, admin | `?q=`, `?role=team` | Động | Đường dẫn cũ → `/admin/customers` (giữ bộ lọc); `?role=team` → `/admin/staff` |
 | `/admin/consultations` | Nhân viên, admin | `?status=new\|contacted\|done\|cancelled` | Động | Phiếu tham vấn (Đợt 12) |
 | `/admin/courses` | Admin | `?kind=program\|free\|premium` (mặc định: tất cả, chia nhóm) | Động | Khóa học theo loại, gói |
+| `/admin/courses/new` | Admin | `?kind=program\|free\|premium` (chọn sẵn loại) | Động | Thêm khóa học (Đợt 24) – tạo xong chuyển sang trang sửa |
+| `/admin/courses/[courseId]/edit` | Admin | `courseId: uuid` | Động | Sửa khóa, bảng gói, Ẩn / Hiện, xóa an toàn (Đợt 24) |
 | `/admin/courses/[courseId]` | Admin | `courseId: uuid` | Động | Buổi – bài của khóa |
 | `/admin/settings/consultation` | Admin | — | Động | Mẫu phiếu tham vấn (`/admin/settings` chuyển tới đây) |
 | `/icon.svg` | Công khai | — | Tĩnh | Favicon |
@@ -166,6 +173,7 @@ lỗi DB trả `error.message`; 0 dòng → "Không tìm thấy dữ liệu, vui
 | `setLeadStatus` | `leadId`, `expected` (trạng thái đang thấy) | `status` ∈ new/contacted/converted/closed, `staff_note` ≤ 500 | update `leads` `.eq('status', expected)` (nhân viên, admin); 0 dòng → "Yêu cầu đã thay đổi (có thể người khác vừa xử lý)…" | "Đã ghi nhận: đã liên hệ khách."… |
 | `setCourseStatus` | `courseId`, `status` | — | update `courses.status` | "Khóa học đã hiển thị trên website." / "Đã ẩn khóa học khỏi website (học viên đã mua vẫn học được)." |
 | `deleteCourse` | `courseId` | — | delete `courses` (cascade bài học; đơn giữ lại, `course_id` = null) | "Đã xóa khóa học. Đơn đăng ký và lịch sử thanh toán vẫn được giữ lại." |
+| `deleteCourse(courseId, formData)` *(Đợt 24)* | Admin | `confirm_title` phải đúng tên khóa; chặn khi còn đơn đã duyệt còn hạn (`access_until` null hoặc > now) / đơn chờ (`courseUsage`, `app/admin/courses/usage.ts`) | Thành công: `redirectTo: /admin/courses`. `createCourse` thành công: `redirectTo: /admin/courses/<id>/edit` (`ActionResult.redirectTo`) |
 | `setUserRole` | `userId` (UUID, khác chính mình) | `role` ∈ user/staff/admin ("Vai trò không hợp lệ.") | update `profiles.role` (chỉ admin); trigger `profiles_guard_role` chặn người không phải admin, tự gỡ quyền, gỡ admin cuối cùng ("Chỉ admin được thay đổi vai trò tài khoản." / "Bạn không thể tự gỡ quyền admin của chính mình." / "Phải còn ít nhất 1 tài khoản admin.") và ghi `role_events` | "Đã cấp quyền admin." / "Đã chuyển vai trò thành Nhân viên." / "Đã chuyển vai trò thành Học viên." |
 | `createLesson` | `courseId` | `title, video_url` (không bắt buộc từ Đợt 10), `description, sort_order`, `session_id` (trống = buổi cuối; chưa có buổi → tạo "Buổi 1") | insert `lessons` | `Đã thêm bài học "<title>".` |
 | `generateSkeleton` | `courseId` | `session_count` 1–200, `lessons_per_session` 1–20 | tạo "Buổi k" nối tiếp + "Bài 1…M" chưa có video (tối đa 500 buổi / khóa) – Đợt 10 | `Đã tạo N buổi × M bài.` |
@@ -230,14 +238,14 @@ Thiết kế theo ADR-011 → ADR-016. Route đầy đủ ở §1, middleware �
 | `/khoa-hoc/[courseId]` | Công khai | Trang giới thiệu khóa kiểu Udemy (đề cương, gói, premium CTA); ISR, làm mới khi admin sửa | 8 |
 | `/chinh-sach-bao-mat` | Công khai | Chính sách bảo mật (tĩnh) | 8 |
 | `/courses` | Đăng nhập | Khóa học của tôi: thẻ có % tiến độ, hạn học, Tiếp tục, Gia hạn; mục "Phiếu tham vấn của tôi" | 9–12 |
-| `/courses/[courseId]` | Công khai (khóa free) / đăng nhập | Trang khóa của bệnh nhân: tiến độ + đề cương có trạng thái 🔒/✓ | 10 |
+| `/courses/[courseId]` | Công khai (khóa free) / đăng nhập | Trang khóa của khách hàng: tiến độ + đề cương có trạng thái 🔒/✓ | 10 |
 | `/courses/[courseId]/[lessonId]` | Công khai (khóa free) / theo `can_view_lesson` | Trình học; bài bị khóa hiện lý do | 10 |
 | `/courses/consultation` | Đăng nhập | ✅ Form phiếu tham vấn (`?course=`, `?origin=`) | 12 |
 | `/admin` | Staff, admin | ✅ **Tổng quan** (dashboard) | 13 |
 | `/admin/registrations` | Staff, admin | ✅ Đơn đăng ký (chuyển từ `/admin`; `/admin?status=` chuyển hướng sang đây) | 7 |
-| `/admin/patients` (thay `/admin/users`) | Staff, admin | ✅ Bệnh nhân: lọc nguồn, trạng thái gói, mới N ngày; admin có tab Nhân viên & Admin | 11 |
-| `/admin/patients/new` | Staff, admin | ✅ Tạo bệnh nhân + cấp gói | 11 |
-| `/admin/patients/[id]` | Staff, admin | ✅ Hồ sơ bệnh nhân | 11 |
+| `/admin/customers` (thay `/admin/users`) | Staff, admin | ✅ Khách hàng: lọc nguồn, trạng thái gói, mới N ngày; admin có tab Nhân viên & Admin | 11 |
+| `/admin/customers/new` | Staff, admin | ✅ Tạo khách hàng + cấp gói | 11 |
+| `/admin/customers/[id]` | Staff, admin | ✅ Hồ sơ khách hàng | 11 |
 | `/admin/consultations` | Staff, admin | ✅ Phiếu tham vấn | 12 |
 | `/admin/leads` | Staff, admin | Khách quan tâm premium | 8 |
 | `/admin/courses`, `/admin/courses/[courseId]` | Admin | Khóa học: loại, ảnh bìa, gói; nội dung buổi – bài | 8–10 |
@@ -259,14 +267,20 @@ Thiết kế theo ADR-011 → ADR-016. Route đầy đủ ở §1, middleware �
 | `generateSkeleton(courseId, formData)` | admin | Admin | `sessionCount` 1–200, `lessonsPerSession` 1–20; nối tiếp sau buổi cuối hiện có |
 | `createSession` / `updateSession` / `deleteSession` / `duplicateSession` / `moveSession` | admin | Admin | Quản lý buổi |
 | `createLesson` / `updateLesson` | admin | Admin | Thêm `session_id`; `video_url` không bắt buộc |
-| `completeLessonAction(courseId, lessonId, nextLessonId)` / `uncompleteLessonAction(courseId, lessonId)` | `app/courses/actions.ts` | Bệnh nhân | ✅ Đợt 10 – tick (redirect sang bài kế tiếp nếu `can_view_lesson`, không thì `?finished=1`) / bỏ tick (ActionResult); server client, RLS quyết định |
+| `completeLessonAction(courseId, lessonId, nextLessonId)` / `uncompleteLessonAction(courseId, lessonId)` | `app/courses/actions.ts` | Khách hàng | ✅ Đợt 10 – tick (redirect sang bài kế tiếp nếu `can_view_lesson`, không thì `?finished=1`) / bỏ tick (ActionResult); server client, RLS quyết định |
 | `acceptConsentAction()` | `app/account/actions.ts` | Đăng nhập | ✅ Đợt 8 – ghi `consent_at`, `consent_version` (service role, theo phiên) |
 | ~~`dismissPasswordReminder()`~~ | — | — | Không cần action: "Để sau" lưu `sessionStorage` trong `components/LoginReminders.tsx` |
 | `changePasswordAction` | `app/account/actions.ts` | Đăng nhập | ✅ Đợt 11: thành công → `must_change_password = false`. Vẫn bắt nhập mật khẩu hiện tại (mật khẩu nhân viên cấp) |
-| `createPatientAction(prev, formData)` | `app/admin/patients/actions.ts` | Staff | ✅ Đợt 11 – `fullName`*, `phone`*, `email`, `note` (≤ 1000, vào `patient_notes`), `consent=yes`*, tùy chọn cấp gói. Kiểm tra trùng SĐT / email → tạo user (service role) → cập nhật profile (`source='zalo'`, `created_by`, `must_change_password`, `consent_*`) → ghi chú → cấp gói → `account_events.created`. Lỗi giữa chừng → xóa tài khoản vừa tạo. Trả `SecretResult { ok, message, password, patientId, name, phone }` (dùng với `useFormState`) |
+| `createPatientAction(prev, formData)` | `app/admin/customers/actions.ts` | Staff | ✅ Đợt 11 – `fullName`*, `phone`*, `email`, `note` (≤ 1000, vào `patient_notes`), `consent=yes`*, tùy chọn cấp gói. Kiểm tra trùng SĐT / email → tạo user (service role) → cập nhật profile (`source='zalo'`, `created_by`, `must_change_password`, `consent_*`) → ghi chú → cấp gói → `account_events.created`. Lỗi giữa chừng → xóa tài khoản vừa tạo. Trả `SecretResult { ok, message, password, patientId, name, phone }` (dùng với `useFormState`) |
 | `grantPlanAction(userId, formData)` | như trên | Staff | ✅ Đợt 11 – chỉ tài khoản `role = user`; `planId`* (gói đang bán của chương trình trả phí), `amount`* 0 – 1 tỷ, `paymentMethod`* `bank_transfer\|cash\|other`, `paymentNote` ≤ 500, `proof` (ảnh ≤ 5MB, magic bytes, service role upload) → insert đơn `approved` bằng **server client** (policy + trigger) |
 | `updatePatientAction(userId, formData)` | như trên | Staff | ✅ Đợt 11 – họ tên, SĐT, email (đổi email đăng nhập như trang Tài khoản), ghi chú nội bộ; chỉ tài khoản `role = user`; ghi `account_events.profile_updated` |
 | `resetPatientPasswordAction(userId)` | như trên | Staff | ✅ Đợt 11 – chỉ tài khoản `role = user`; sinh mật khẩu mới (`lib/generate-password.ts`), `must_change_password = true`, ghi `account_events.password_reset`; trả `SecretResult` |
+| `deleteCustomerAction(userId, formData)` | như trên | Staff | ✅ Đợt 26 – chỉ tài khoản `role = user`; `confirm`* = SĐT của khách hàng (chuẩn hóa); chặn khi còn gói còn hạn / đơn chờ (`customerUsage`, `app/admin/customers/usage.ts`); xóa tài khoản Auth (service role, cascade profile / tiến độ / ghi chú) + phiếu tham vấn; giữ đơn + ảnh; ghi `account_events.deleted` (user_id null, `user_name`); trả `redirectTo: /admin/customers` |
+| `createStaffAction(prev, formData)` | `app/admin/staff/actions.ts` | Admin | ✅ Đợt 26 – `fullName`*, `phone`*, `email`, `role`* `staff\|admin`; trùng SĐT / email bị chặn (gợi ý chuyển khách hàng ở Phân quyền); tạo user + profile (`created_by`, `must_change_password`) → đổi vai trò bằng **phiên admin** (trigger ghi `role_events`) → `account_events.created`; lỗi → xóa tài khoản vừa tạo. Trả `StaffSecretResult` |
+| `updateStaffAction(userId, formData)` | như trên | Admin | ✅ Đợt 26 – chỉ tài khoản `staff` / `admin`; họ tên, SĐT, email (đổi email đăng nhập) |
+| `resetStaffPasswordAction(userId)` | như trên | Admin | ✅ Đợt 26 – không áp dụng cho chính mình; Supabase thu hồi mọi phiên của người đó |
+| `deleteStaffAction(userId, formData)` | như trên | Admin | ✅ Đợt 26 – không tự xóa; `confirm`* = SĐT; admin chỉ xóa được khi còn admin khác (database: trigger `guard_admin_delete`); ghi `account_events.deleted` |
+| Hàm dùng chung | `lib/managed-accounts.ts` | — | `readContact`, `contactConflict`, `provisionAccount`, `updateContact`, `resetPassword`, `deleteAccount`, `logAccountEvent`, `confirmMatches` (server-only) |
 | `submitConsultationAction(prev, formData)` | `app/courses/actions.ts` | Đăng nhập | ✅ Đợt 12 – câu hỏi đang bật (`q_<id>`: check `yes\|no`*, scale `0–10`*, text ≤ 500), `note` ≤ 1000, `courseId` (chỉ chương trình đã được duyệt), `origin`; giới hạn 5 phiếu / ngày (`consult:<user_id>`, chỉ tính phiếu hợp lệ); insert service role kèm ảnh chụp câu hỏi, họ tên, SĐT → `redirect('/courses?consultation=sent')` + flash |
 | `setConsultationStatus(id, expected, formData)` | `app/admin/actions.ts` | Staff | ✅ Đợt 12 – `status` (`new\|contacted\|done\|cancelled`), `staff_note` ≤ 1000; `.eq('status', expected)` – không ghi đè người khác |
 | `createConsultQuestion` / `updateConsultQuestion` / `deleteConsultQuestion` / `moveConsultQuestion` | `app/admin/actions.ts` | Admin | ✅ Đợt 12 – `label` 1–300, `kind` `check\|scale\|text`, `active` (form sửa); ↑↓ đánh lại thứ tự 1…n |
@@ -280,7 +294,7 @@ Thiết kế theo ADR-011 → ADR-016. Route đầy đủ ở §1, middleware �
 | Trình học | ~~`get_lesson_video`~~ → đọc `lessons` (RLS `can_view_lesson`) + `course_outline` | Link video nếu được xem; tên bài buổi khóa (Đợt 10) |
 | Khóa học của tôi, trang khóa, trình học | `course_progress(course_id)` | % tiến độ, bài tiếp theo, hạn học |
 | `/admin` | ✅ `dashboard_stats()`, `revenue_report(from, to)` (admin; tháng này + tháng trước theo giờ VN) | Dashboard |
-| `/admin/patients`, `/admin/patients/[id]` | ✅ `admin_patients(…)`, `patient_progress(user)` | Danh sách, hồ sơ bệnh nhân |
+| `/admin/customers`, `/admin/customers/[id]` | ✅ `admin_patients(…)`, `patient_progress(user)` | Danh sách, hồ sơ khách hàng |
 | `/courses` | ✅ `my_consultations(10)` | Phiếu tham vấn của tôi |
 
 ## 8. Hướng dẫn thêm API mới

@@ -5,14 +5,16 @@ import PasswordInput from '@/components/PasswordInput'
 import SubmitButton from '@/components/SubmitButton'
 import { siteConfig } from '@/lib/site-config'
 import { loginAction } from './actions'
+import { loginErrorMessage } from './errors'
 
 export const metadata: Metadata = { title: 'Đăng nhập' }
 
 export default async function LoginPage(props: { searchParams: Promise<{ error?: string; next?: string }> }) {
   const searchParams = await props.searchParams
+  const error = loginErrorMessage(searchParams.error)
   return (
     <main className="grid min-h-[calc(100vh-4rem)] place-items-center bg-gradient-to-b from-ocean-50 via-white to-gold-50/60 px-4 py-12">
-      <div className="card w-full max-w-md animate-fade-up p-6 shadow-md shadow-ocean-900/5 sm:p-8">
+      <div className="card w-full max-w-md animate-rise p-6 shadow-md shadow-ocean-900/5 sm:p-8">
         <div className="text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-ocean-600 text-gold-200">
             <SpineIcon className="h-6 w-6" />
@@ -21,7 +23,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
           <p className="mt-1 text-sm text-slate-500">Chào mừng bạn đến với {siteConfig.name}</p>
         </div>
 
-        {searchParams.error && <p role="alert" className="alert-error mt-6">{searchParams.error}</p>}
+        {error && <p role="alert" className="alert-error mt-6">{error}</p>}
 
         <form action={loginAction} className="mt-6 space-y-4">
           <input type="hidden" name="next" value={searchParams.next ?? ''} />
@@ -45,6 +47,14 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
             </div>
             <PasswordInput id="password" name="password" required placeholder="••••••" autoComplete="current-password" />
           </div>
+          {/* SEC-13: mặc định phiên hết khi đóng trình duyệt; tài khoản nhân viên / admin luôn như vậy */}
+          <label className="flex items-start gap-2.5 text-sm text-slate-600">
+            <input type="checkbox" name="remember" className="mt-0.5 h-4 w-4 rounded border-slate-300 text-ocean-600 focus:ring-ocean-500" />
+            <span>
+              Ghi nhớ đăng nhập 30 ngày trên thiết bị này
+              <span className="block text-xs text-slate-400">Không chọn khi dùng máy chung. Không áp dụng cho tài khoản nhân viên.</span>
+            </span>
+          </label>
           <SubmitButton className="btn-primary w-full">Đăng nhập</SubmitButton>
         </form>
 

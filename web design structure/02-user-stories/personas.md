@@ -41,7 +41,7 @@
 | Mục tiêu | Thương hiệu chuyên nghiệp, uy tín y khoa, nội dung không bị lộ tràn lan |
 | Thiết kế đáp ứng | Landing page giới thiệu chuyên môn, bảng màu xanh y tế – vàng kem, khóa học chỉ mở theo từng khóa đã thanh toán |
 
-## P6 – Chị Mai, bệnh nhân vẹo cột sống (v0.2 – persona chính)
+## P6 – Chị Mai, khách hàng vẹo cột sống (v0.2 – persona chính)
 
 | | |
 | --- | --- |
@@ -57,12 +57,12 @@
 
 | | |
 | --- | --- |
-| Vai trò | Trả lời Zalo, chốt gói, đối chiếu chuyển khoản, gọi nhắc bệnh nhân |
+| Vai trò | Trả lời Zalo, chốt gói, đối chiếu chuyển khoản, gọi nhắc khách hàng |
 | Thiết bị | Máy tính văn phòng (Zalo PC mở song song) + điện thoại |
 | Công việc | Tạo tài khoản cho khách Zalo, gửi mật khẩu, duyệt đơn web, gọi nhắc gia hạn, chuyển phiếu tham vấn cho bác sĩ |
 | Mục tiêu | Tạo tài khoản + cấp gói trong < 1 phút; một màn hình biết hôm nay cần gọi ai |
 | Nỗi lo | Gõ nhầm SĐT, cấp nhầm gói, quên khách sắp hết hạn |
-| Thiết kế đáp ứng | Form tạo bệnh nhân 1 trang + mật khẩu tự sinh + nút "Chép tin nhắn gửi Zalo", dashboard việc cần làm, không có quyền sửa khóa học |
+| Thiết kế đáp ứng | Form tạo khách hàng 1 trang + mật khẩu tự sinh + nút "Chép tin nhắn gửi Zalo", dashboard việc cần làm, không có quyền sửa khóa học |
 
 > P3 (chị Hà) từ v0.2 là **admin**: quản lý nội dung, gói giá, nhân viên, xem doanh thu.
 

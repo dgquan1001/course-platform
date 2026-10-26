@@ -172,7 +172,7 @@ export default async function CourseLandingPage(props: Props) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gold-700">Chuyên gia hướng dẫn</p>
               <p className="mt-1 text-lg font-bold text-ocean-900">{siteConfig.doctor.name}</p>
-              <p className="text-sm text-slate-600">{siteConfig.doctor.credentials[2]}</p>
+              <p className="text-sm text-slate-600">{siteConfig.doctor.summary}</p>
             </div>
           </section>
 

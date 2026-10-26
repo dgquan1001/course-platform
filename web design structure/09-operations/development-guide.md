@@ -34,7 +34,7 @@ npm run dev
 - Form nhiều bước/giữ trạng thái: `useActionState` (`react`) với kiểu State riêng; `useFormStatus` vẫn từ `react-dom`.
 - Sau khi ghi dữ liệu ảnh hưởng trang công khai: `revalidatePath('/', 'layout')`.
 - **Không** gọi `cookies()`/`headers()` trong `app/layout.tsx` và `app/page.tsx` (giữ ISR – ADR-008).
-- **Trang cần quyền**: gọi đầu trang `requireUserPage(path)` (bệnh nhân), `requireStaffPage()` (mọi trang `/admin/**`) hoặc `requireAdminPage()`
+- **Trang cần quyền**: gọi đầu trang `requireUserPage(path)` (khách hàng), `requireStaffPage()` (mọi trang `/admin/**`) hoặc `requireAdminPage()`
   (trang chỉ admin). Middleware chỉ kiểm tra đăng nhập bằng cookie, **không** kiểm tra vai trò (ADR-016).
 - Lấy người dùng hiện tại luôn qua `getCurrentUser()` (đã cache theo request) – không tự gọi `supabase.auth.getUser()` nhiều lần.
 - Client component cần profile (header, hộp nhắc): dùng `useProfile()` trong `lib/use-profile.ts`, không tự truy vấn `profiles`.

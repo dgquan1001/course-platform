@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { invalidateProfile, useProfile } from '@/lib/use-profile'
+import { useProfile } from '@/lib/use-profile'
 import { realEmail } from '@/lib/phone'
 import { siteConfig } from '@/lib/site-config'
+import { chromeCopy, homeHref, localeOfPath } from '@/lib/i18n'
 import {
   BookIcon,
   ChevronDownIcon,
@@ -18,21 +18,23 @@ import {
   SpinnerIcon,
   UserIcon,
 } from './icons'
+import LangSwitch from './LangSwitch'
+import { signOutLocally } from './SessionGuard'
 import { toast } from './Toaster'
 
 type HeaderUser = { isStaff: boolean; name: string; subtitle: string } | null
 
-const navLinks = [
-  { href: '/#khoa-hoc', label: 'Chương trình' },
-  { href: '/#mien-phi', label: 'Miễn phí' },
-  { href: '/#premium', label: 'Premium' },
-  { href: '/#bac-si', label: 'Bác sĩ' },
-  { href: '/#lien-he', label: 'Liên hệ' },
-]
 
 export default function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
+  // Trang chủ tiếng Anh (/en): menu neo, nút khách bằng tiếng Anh; trang khác luôn tiếng Việt (ADR-018)
+  const locale = localeOfPath(pathname)
+  const isHome = pathname === '/' || pathname === '/en'
+  // Khu quản trị (Đợt 23): bỏ menu neo của trang chủ – trang quản trị có thanh bên riêng
+  const isAdminArea = pathname === '/admin' || pathname.startsWith('/admin/')
+  const t = chromeCopy[locale]
+  const navLinks = t.nav.map((n) => ({ href: `${homeHref(locale)}#${n.hash}`, label: n.label }))
   // Đọc phiên đăng nhập ở trình duyệt (dùng chung với hộp nhắc, có cache), nhờ vậy các trang công khai
   // vẫn được cache tĩnh; kiểm tra lại mỗi lần chuyển trang (login/logout qua server action)
   const profile = useProfile()
@@ -72,13 +74,13 @@ export default function SiteHeader() {
 
   async function signOut() {
     setSigningOut(true)
-    const { error } = await createClient().auth.signOut()
+    // Đăng xuất mọi thiết bị (như trước) + xóa cookie mốc thời gian phiên (SEC-13)
+    const { error } = await signOutLocally('global')
     setSigningOut(false)
     if (error) {
       toast(`Đăng xuất không thành công: ${error.message}`, 'error')
       return
     }
-    invalidateProfile()
     setSignedOut(true)
     setAccountOpen(false)
     toast('Đã đăng xuất')
@@ -156,14 +158,14 @@ export default function SiteHeader() {
   const guestLinks = (
     <>
       <Link href="/login" className={`btn-ghost ${isActive('/login') ? 'nav-active' : ''}`} {...current('/login')}>
-        Đăng nhập
+        {t.login}
       </Link>
       <Link
         href="/register"
         className={`btn-gold ${isActive('/register') ? 'bg-gold-300 ring-4 ring-gold-200' : ''}`}
         {...current('/register')}
       >
-        Đăng ký học
+        {t.register}
       </Link>
     </>
   )
@@ -171,17 +173,17 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-ocean-100/70 bg-white/90 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-3">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
+        <Link href={homeHref(locale)} className="flex min-w-0 items-center gap-2.5">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ocean-600 text-gold-200">
             <SpineIcon className="h-5 w-5" />
           </span>
           <span className="min-w-0 leading-tight">
             <span className="block font-bold text-ocean-900">{siteConfig.name}</span>
-            <span className="block truncate text-[11px] text-slate-500">{siteConfig.tagline}</span>
+            <span className="block truncate text-[11px] text-slate-500">{t.tagline}</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className={isAdminArea ? 'hidden' : 'hidden items-center gap-1 lg:flex'}>
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} className="btn-ghost px-3">
               {l.label}
@@ -190,6 +192,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex min-h-[44px] items-center gap-1 sm:gap-2">
+          {isHome && <LangSwitch locale={locale} label={t.switchLabel} />}
           {user?.isStaff && (
             <Link
               href="/admin"
@@ -202,7 +205,7 @@ export default function SiteHeader() {
           {user === null && <div className="hidden items-center gap-2 lg:flex">{guestLinks}</div>}
           {accountMenu}
           <button
-            className="btn-ghost -mr-2 px-3 lg:hidden"
+            className={`btn-ghost -mr-2 px-3 lg:hidden ${isAdminArea ? 'hidden' : ''}`}
             onClick={() => setNavOpen((v) => !v)}
             aria-label={navOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={navOpen}

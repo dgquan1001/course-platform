@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ActionResult } from '@/lib/action-result'
 import { toast } from './Toaster'
 
@@ -17,6 +18,7 @@ export default function ActionForm({
   resetOnSuccess?: boolean
 }) {
   const ref = useRef<HTMLFormElement>(null)
+  const router = useRouter()
 
   return (
     <form
@@ -28,6 +30,7 @@ export default function ActionForm({
           if (result.ok) {
             toast(result.message)
             if (resetOnSuccess) ref.current?.reset()
+            if (result.redirectTo) router.push(result.redirectTo)
           } else {
             toast(result.error, 'error')
           }

@@ -7,6 +7,7 @@ export type Account = {
   authEmail: string // email dùng để đăng nhập Supabase (có thể là email nội bộ)
   email: string | null // email thật để liên hệ / nhận mã
   phone: string | null
+  isStaff: boolean // nhân viên / admin: không được "Ghi nhớ đăng nhập" (SEC-13)
 }
 
 // Tìm tài khoản theo email hoặc số điện thoại. Chỉ dùng phía server.
@@ -14,7 +15,7 @@ export async function findAccount(identifier: string): Promise<Account | null> {
   const value = identifier.trim()
   const admin = createAdminClient()
 
-  let query = admin.from('profiles').select('id, email, phone')
+  let query = admin.from('profiles').select('id, email, phone, role')
   if (value.includes('@')) {
     query = query.eq('email', value.toLowerCase())
   } else {
@@ -29,7 +30,13 @@ export async function findAccount(identifier: string): Promise<Account | null> {
   const { data } = await admin.auth.admin.getUserById(profile.id)
   if (!data.user?.email) return null
 
-  return { userId: profile.id, authEmail: data.user.email, email: profile.email, phone: profile.phone }
+  return {
+    userId: profile.id,
+    authEmail: data.user.email,
+    email: profile.email,
+    phone: profile.phone,
+    isStaff: profile.role === 'staff' || profile.role === 'admin',
+  }
 }
 
 export async function isPhoneTaken(phone: string, exceptUserId?: string) {

@@ -16,7 +16,7 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 alter table public.profiles add column if not exists phone text;
--- Vai trò: user (bệnh nhân / học viên), staff (nhân viên), admin (quyền cao nhất)
+-- Vai trò: user (khách hàng / học viên), staff (nhân viên), admin (quyền cao nhất)
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('user', 'staff', 'admin'));
 -- Số điện thoại dùng để đăng nhập nên không được trùng
@@ -80,7 +80,7 @@ alter table public.courses add constraint courses_price_nonnegative check (price
 
 -- Loại khóa (v0.2): free = miễn phí, ai cũng xem · program = chương trình trả phí (khóa cũ mặc định là loại này)
 -- · premium = 1:4, 1:2, 1:1, chỉ có thông tin + liên hệ Zalo, không có bài học, không nhận đơn.
--- Nhóm bệnh: vẹo lưng / vẹo ngực. Đối tượng: bệnh nhân (đội chuyên gia để giai đoạn sau).
+-- Nhóm bệnh: vẹo lưng / vẹo ngực. Đối tượng: khách hàng (đội chuyên gia để giai đoạn sau).
 alter table public.courses add column if not exists kind text not null default 'program';
 alter table public.courses drop constraint if exists courses_kind_check;
 alter table public.courses add constraint courses_kind_check check (kind in ('free', 'program', 'premium'));
@@ -142,7 +142,7 @@ begin
   end loop;
 end $$;
 
--- Tiến độ: bệnh nhân tick từng bài đã tập (checklist buổi = danh sách bài của buổi). course_id điền tự động để đếm nhanh.
+-- Tiến độ: khách hàng tick từng bài đã tập (checklist buổi = danh sách bài của buổi). course_id điền tự động để đếm nhanh.
 create table if not exists public.lesson_progress (
   user_id uuid not null references auth.users (id) on delete cascade,
   lesson_id uuid not null references public.lessons (id) on delete cascade,
@@ -418,11 +418,11 @@ begin
     raise exception 'Nhân viên chỉ tạo được đơn cấp gói (nguồn nhân viên, đã duyệt).';
   end if;
   if new.user_id is null or new.course_id is null then
-    raise exception 'Thiếu bệnh nhân hoặc chương trình.';
+    raise exception 'Thiếu khách hàng hoặc chương trình.';
   end if;
-  -- Chỉ cấp gói cho tài khoản bệnh nhân (không tự cấp cho tài khoản nhân viên / admin – làm sai doanh thu, RK-34)
+  -- Chỉ cấp gói cho tài khoản khách hàng (không tự cấp cho tài khoản nhân viên / admin – làm sai doanh thu, RK-34)
   if not exists (select 1 from public.profiles where id = new.user_id and role = 'user') then
-    raise exception 'Chỉ cấp gói cho tài khoản bệnh nhân.';
+    raise exception 'Chỉ cấp gói cho tài khoản khách hàng.';
   end if;
   select p.months, p.sessions, c.title into new.plan_months, new.plan_sessions, new.course_title
   from public.course_plans p
@@ -439,7 +439,7 @@ begin
   new.reviewed_by := auth.uid();
   new.reviewed_by_name := (select coalesce(nullif(full_name, ''), email, phone) from public.profiles where id = auth.uid());
   new.review_note := null;
-  -- Hạn học như khi duyệt đơn (ADR-012): nối tiếp hạn cuối hiện tại của bệnh nhân cho chương trình này
+  -- Hạn học như khi duyệt đơn (ADR-012): nối tiếp hạn cuối hiện tại của khách hàng cho chương trình này
   perform pg_advisory_xact_lock(hashtext('registration_access:' || new.user_id || ':' || new.course_id));
   select max(access_until) into current_until
   from public.registrations
@@ -477,9 +477,9 @@ create trigger registrations_log_insert
   for each row execute procedure public.log_registration_insert();
 
 -- ------------------------------------------------------------
--- Bệnh nhân do nhân viên quản lý (v0.2 Đợt 11, ADR-014)
+-- Khách hàng do nhân viên quản lý (v0.2 Đợt 11, ADR-014)
 -- account_events: nhật ký tạo tài khoản / cấp lại mật khẩu / sửa thông tin (chỉ server ghi, không lưu mật khẩu).
--- patient_notes: ghi chú nội bộ về bệnh nhân – tách khỏi profiles để bệnh nhân không đọc được.
+-- patient_notes: ghi chú nội bộ về khách hàng – tách khỏi profiles để khách hàng không đọc được.
 -- ------------------------------------------------------------
 create table if not exists public.account_events (
   id uuid primary key default gen_random_uuid(),
@@ -491,6 +491,11 @@ create table if not exists public.account_events (
   created_at timestamptz not null default now()
 );
 create index if not exists account_events_user_idx on public.account_events (user_id, created_at desc);
+-- Đợt 26 (18/10/2026): ghi cả lần xóa tài khoản (khách hàng / nhân viên) – user_id = null, user_name giữ tên người bị xóa
+alter table public.account_events drop constraint if exists account_events_action_check;
+alter table public.account_events add constraint account_events_action_check
+  check (action in ('created', 'password_reset', 'profile_updated', 'deleted'));
+create index if not exists account_events_action_idx on public.account_events (action, created_at desc);
 
 create table if not exists public.patient_notes (
   user_id uuid primary key references public.profiles (id) on delete cascade,
@@ -527,8 +532,8 @@ create trigger patient_notes_stamp
 -- ------------------------------------------------------------
 -- Phiếu tham vấn bác sĩ (v0.2 Đợt 12, ADR-015)
 -- consult_questions: một mẫu phiếu chung do admin soạn (check = có/không, scale = thang 0–10, text = trả lời ngắn).
--- consultations: phiếu bệnh nhân gửi – lưu ảnh chụp câu hỏi + câu trả lời (sửa mẫu không làm sai phiếu cũ).
--- Chỉ server (service role) ghi phiếu; nhân viên, admin đổi trạng thái + ghi chú nội bộ; bệnh nhân đọc phiếu của mình
+-- consultations: phiếu khách hàng gửi – lưu ảnh chụp câu hỏi + câu trả lời (sửa mẫu không làm sai phiếu cũ).
+-- Chỉ server (service role) ghi phiếu; nhân viên, admin đổi trạng thái + ghi chú nội bộ; khách hàng đọc phiếu của mình
 -- qua hàm my_consultations() (không thấy ghi chú nội bộ). Dữ liệu sức khỏe: không hiển thị công khai.
 -- ------------------------------------------------------------
 create table if not exists public.consult_questions (
@@ -675,6 +680,30 @@ create trigger profiles_guard_role
   before update of role on public.profiles
   for each row execute procedure public.guard_role_change();
 
+-- Đợt 26: xóa tài khoản (trang Nhân viên, Supabase dashboard, script) không được làm mất admin cuối cùng.
+-- Xóa auth.users → cascade xóa profiles → trigger này chặn cả lần xóa.
+create or replace function public.guard_admin_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.role = 'admin' then
+    perform pg_advisory_xact_lock(hashtext('profiles_admin_role'));
+    if not exists (select 1 from public.profiles where role = 'admin' and id <> old.id) then
+      raise exception 'Phải còn ít nhất 1 tài khoản admin.';
+    end if;
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists profiles_guard_admin_delete on public.profiles;
+create trigger profiles_guard_admin_delete
+  before delete on public.profiles
+  for each row execute procedure public.guard_admin_delete();
+
 -- ------------------------------------------------------------
 -- Khách quan tâm khóa premium: bấm "Liên hệ Zalo nhận ưu đãi" (để lại họ tên, SĐT) hoặc "Mở Zalo ngay"
 -- (lượt bấm ẩn danh: phone = null, chỉ để thống kê). Chỉ server (service role) ghi; nhân viên, admin xử lý.
@@ -812,7 +841,7 @@ as $$
   );
 $$;
 
--- Nhân viên hoặc admin: duyệt đơn, quản lý bệnh nhân, xem trước nội dung khóa học
+-- Nhân viên hoặc admin: duyệt đơn, quản lý khách hàng, xem trước nội dung khóa học
 create or replace function public.is_staff()
 returns boolean
 language sql
@@ -1014,7 +1043,7 @@ grant execute on function public.course_progress(uuid) to anon, authenticated;
 
 -- ------------------------------------------------------------
 -- Số liệu quản trị (v0.2 Đợt 11 – 13)
--- _patient_courses: mỗi cặp (bệnh nhân, chương trình) đã được duyệt: hạn học (infinity = không thời hạn), lần duyệt đầu,
+-- _patient_courses: mỗi cặp (khách hàng, chương trình) đã được duyệt: hạn học (infinity = không thời hạn), lần duyệt đầu,
 -- số buổi đã mua, số bài đã tick / tổng số bài trong các buổi đã mua, lần tập gần nhất. Hàm nội bộ: không cấp quyền gọi
 -- cho người dùng, chỉ dùng bên trong các hàm security definer bên dưới (đã kiểm tra nhân viên / admin).
 -- ------------------------------------------------------------
@@ -1069,7 +1098,7 @@ as $$
 $$;
 revoke execute on function public._patient_courses(uuid) from public, anon, authenticated;
 
--- Danh sách bệnh nhân (tài khoản role = user) cho trang quản trị: lọc theo từ khóa, nguồn, trạng thái gói, mới tạo N ngày.
+-- Danh sách khách hàng (tài khoản role = user) cho trang quản trị: lọc theo từ khóa, nguồn, trạng thái gói, mới tạo N ngày.
 -- p_status: active (đang học) · expiring (còn ≤ 7 ngày) · expired (có chương trình đã hết hạn chưa gia hạn)
 -- · none (chưa có gói) · inactive (đang học nhưng không tập > 7 ngày). Người không phải nhân viên / admin nhận danh sách rỗng.
 create or replace function public.admin_patients(
@@ -1125,7 +1154,7 @@ as $$
 $$;
 grant execute on function public.admin_patients(text, text, text, int, int) to authenticated;
 
--- Tiến độ từng chương trình của một bệnh nhân (trang chi tiết bệnh nhân). until null + unlimited = không thời hạn.
+-- Tiến độ từng chương trình của một khách hàng (trang chi tiết khách hàng). until null + unlimited = không thời hạn.
 create or replace function public.patient_progress(p_user uuid)
 returns table (
   course_id uuid, course_title text, until timestamptz, unlimited boolean, purchased int, done int, total int, last_activity timestamptz
@@ -1255,7 +1284,7 @@ alter table public.courses enable row level security;
 alter table public.lessons enable row level security;
 alter table public.registrations enable row level security;
 
--- profiles: nhân viên xem mọi tài khoản nhưng chỉ sửa tài khoản bệnh nhân (role = user);
+-- profiles: nhân viên xem mọi tài khoản nhưng chỉ sửa tài khoản khách hàng (role = user);
 -- đổi vai trò do trigger guard_role_change kiểm tra (chỉ admin)
 drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select
@@ -1319,7 +1348,7 @@ drop policy if exists "course_sessions_admin_delete" on public.course_sessions;
 create policy "course_sessions_admin_delete" on public.course_sessions for delete
   using (public.is_admin());
 
--- lesson_progress: bệnh nhân đọc tiến độ của mình (kể cả khi hết hạn), nhân viên / admin đọc tất cả;
+-- lesson_progress: khách hàng đọc tiến độ của mình (kể cả khi hết hạn), nhân viên / admin đọc tất cả;
 -- chỉ tick / bỏ tick bài đang xem được (không tick trước buổi bị khóa, không tick khi đã hết hạn)
 alter table public.lesson_progress enable row level security;
 drop policy if exists "lesson_progress_select" on public.lesson_progress;
@@ -1374,13 +1403,13 @@ drop policy if exists "leads_staff_update" on public.leads;
 create policy "leads_staff_update" on public.leads for update
   using (public.is_staff());
 
--- Nhân viên cấp gói cho bệnh nhân (Đợt 11): chỉ tạo đơn nguồn "staff" đã duyệt, người tạo là chính mình.
+-- Nhân viên cấp gói cho khách hàng (Đợt 11): chỉ tạo đơn nguồn "staff" đã duyệt, người tạo là chính mình.
 -- Trigger registrations_stamp_insert điền gói, hạn học, người xử lý; khách tự đăng ký vẫn chỉ qua server (service role).
 drop policy if exists "registrations_staff_insert" on public.registrations;
 create policy "registrations_staff_insert" on public.registrations for insert
   with check (public.is_staff() and source = 'staff' and status = 'approved' and created_by = auth.uid());
 
--- Nhật ký tài khoản (nhân viên, admin đọc; chỉ server ghi) và ghi chú nội bộ về bệnh nhân (nhân viên, admin đọc / ghi)
+-- Nhật ký tài khoản (nhân viên, admin đọc; chỉ server ghi) và ghi chú nội bộ về khách hàng (nhân viên, admin đọc / ghi)
 alter table public.account_events enable row level security;
 drop policy if exists "account_events_staff_select" on public.account_events;
 create policy "account_events_staff_select" on public.account_events for select
@@ -1411,7 +1440,7 @@ drop policy if exists "consult_questions_admin_delete" on public.consult_questio
 create policy "consult_questions_admin_delete" on public.consult_questions for delete
   using (public.is_admin());
 
--- Phiếu tham vấn: nhân viên, admin đọc & cập nhật trạng thái; bệnh nhân đọc qua my_consultations(); chỉ server thêm; không ai xóa
+-- Phiếu tham vấn: nhân viên, admin đọc & cập nhật trạng thái; khách hàng đọc qua my_consultations(); chỉ server thêm; không ai xóa
 alter table public.consultations enable row level security;
 drop policy if exists "consultations_staff_select" on public.consultations;
 create policy "consultations_staff_select" on public.consultations for select

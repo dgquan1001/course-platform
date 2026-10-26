@@ -8,7 +8,7 @@ import ConsultationForm from './ConsultationForm'
 
 export const metadata: Metadata = { title: 'Phiếu tham vấn bác sĩ' }
 
-// Phiếu tham vấn (SCR-20): bệnh nhân đã đăng nhập gửi bất cứ lúc nào (?course= chọn sẵn chương trình, ?origin= nguồn nhắc)
+// Phiếu tham vấn (SCR-20): khách hàng đã đăng nhập gửi bất cứ lúc nào (?course= chọn sẵn chương trình, ?origin= nguồn nhắc)
 export default async function ConsultationPage(props: { searchParams: Promise<{ course?: string; origin?: string }> }) {
   const searchParams = await props.searchParams
   const user = await requireUserPage('/courses/consultation')

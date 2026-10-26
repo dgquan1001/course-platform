@@ -23,9 +23,9 @@ v0.1 có danh sách bài phẳng và RLS chặn cả dòng `lessons` → không 
 - **Tách đề cương và video**: đề cương (buổi, tên/mô tả bài) đọc công khai với khóa đang hiển thị; cột `video_url`
   **không** cấp quyền `select` cho `anon`/`authenticated`; video chỉ lấy qua RPC `get_lesson_video(lesson_id)` (`security definer`)
   kiểm tra `can_view_lesson()`.
-- `can_view_lesson(lesson)` đúng khi: staff/admin; hoặc khóa `free` đang hiển thị; hoặc khóa `program` mà bệnh nhân còn hạn
+- `can_view_lesson(lesson)` đúng khi: staff/admin; hoặc khóa `free` đang hiển thị; hoặc khóa `program` mà khách hàng còn hạn
   **và** buổi nằm trong số buổi đã mua **và** mọi bài của buổi trước đã tick.
-- Bảng `lesson_progress(user_id, lesson_id, completed_at)`; RLS: bệnh nhân chỉ ghi dòng của mình và chỉ khi `can_view_lesson`
+- Bảng `lesson_progress(user_id, lesson_id, completed_at)`; RLS: khách hàng chỉ ghi dòng của mình và chỉ khi `can_view_lesson`
   (không tick trước buổi bị khóa); đọc được cả khi đã hết hạn (vẫn thấy tiến độ cũ). Bỏ tick được.
 - % tiến độ = số bài đã tick / tổng số bài **trong số buổi đã mua** (khóa miễn phí: trên toàn khóa).
 - Khóa miễn phí: không khóa tuần tự; không đăng nhập thì không lưu tiến độ (gợi ý đăng nhập để lưu).
@@ -34,7 +34,7 @@ v0.1 có danh sách bài phẳng và RLS chặn cả dòng `lessons` → không 
 - ✅ Đề cương công khai giúp bán hàng (kiểu Udemy) mà video vẫn được bảo vệ ở database.
 - ✅ Luật mở tuần tự nằm trong database, không vượt qua được bằng cách gọi API.
 - ⚠️ Mọi chỗ đọc `video_url` (trang học, admin) phải đổi sang RPC hoặc client staff/admin; E2E RLS cần cập nhật.
-- ⚠️ Không có "đã xem hết video" thật sự (video nhúng YouTube/TikTok) – tiến độ dựa trên bệnh nhân tự tick.
+- ⚠️ Không có "đã xem hết video" thật sự (video nhúng YouTube/TikTok) – tiến độ dựa trên khách hàng tự tick.
 
 ## Điều chỉnh khi triển khai (Đợt 10, 27/09/2026)
 - **Không dùng column privilege + `get_lesson_video`.** Thay bằng RLS theo dòng: `lessons_select using (can_view_lesson(id))`.

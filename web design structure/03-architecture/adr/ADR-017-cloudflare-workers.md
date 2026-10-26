@@ -1,6 +1,6 @@
 # ADR-017: Chạy website trên Cloudflare Workers (OpenNext), giữ Supabase Free
 
-- **Trạng thái**: Accepted – kế hoạch Đợt 17 (chưa triển khai)
+- **Trạng thái**: Accepted – đã triển khai (Đợt 17, production từ 04/10/2026, deploy tự động từ 06/10); Vercel gỡ khỏi mã nguồn 18/10/2026 (P6, Đợt 26)
 - **Ngày**: 04/10/2026
 - **Người quyết định**: Chủ dự án (chọn Supabase Free + Cloudflare Workers Paid vì chi phí và lợi ích lâu dài); dev đề xuất, rà soát ảnh hưởng
 
@@ -9,7 +9,7 @@
   nên phải lên Vercel Pro (20 USD/tháng / người deploy) trước ngày thu tiền đầu tiên.
 - Supabase Free **không** cấm thương mại; sức chứa đủ cho giai đoạn đầu (runbook §12.1). Điểm yếu là sao lưu – đã bù bằng `backup.yml`.
 - Dự án phụ thuộc sâu vào Supabase (Auth, Postgres + 44 policy RLS + 25 hàm, Storage) → **không** thay Supabase.
-- Chưa có bệnh nhân thật (Đợt 14 đang ở giai đoạn 1, chưa cấu hình Vercel production) → thời điểm đổi nơi chạy ít rủi ro nhất.
+- Chưa có khách hàng thật (Đợt 14 đang ở giai đoạn 1, chưa cấu hình Vercel production) → thời điểm đổi nơi chạy ít rủi ro nhất.
 
 ## Quyết định
 - Phần web (Next.js) chạy trên **Cloudflare Workers gói Paid (5 USD/tháng / tài khoản)** qua adapter mã nguồn mở `@opennextjs/cloudflare`.

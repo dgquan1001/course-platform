@@ -4,8 +4,8 @@ node_modules
 .DS_Store
 *.tsbuildinfo
 test-results
-.idea/workspace.xml
-.idea/claudeCodeEditorTabs.xml
+# Cấu hình IDE (IntelliJ) – riêng từng máy
+.idea/
 .next-e2e
 backups
 
@@ -15,3 +15,4 @@ backups
 .dev.vars*
 
 .next-dev
+.next-perf*

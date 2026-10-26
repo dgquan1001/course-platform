@@ -69,14 +69,14 @@ Ký hiệu: 🔴 bắt buộc sửa trước khi chạy thật · 🟠 phải s�
 | I-01 ✅ | IP người dùng cho giới hạn tần suất | `lib/rate-limit.ts` `clientIp()` lấy phần tử **đầu** `x-forwarded-for`; dùng ở đăng nhập, đăng ký, quên mật khẩu, lead, Turnstile (`remoteip`) | Cloudflare **giữ** `X-Forwarded-For` do người dùng gửi và nối thêm IP vào cuối → người dùng tự đặt được phần tử đầu → **vượt giới hạn đăng nhập sai / đăng ký / gửi mã** (RK-43) | Ưu tiên `cf-connecting-ip`, rồi `x-real-ip`, cuối cùng `x-forwarded-for` (chỉ khi chạy local); cập nhật comment; E2E giả header `X-Forwarded-For` phải không né được giới hạn | 🔴 |
 | I-02 ✅ | Phiên bản Next.js | `next ^14.2.35`, `react ^18` | OpenNext đã ngừng hỗ trợ Next 14 (RK-44) | Nâng Next 15 + React 19, `eslint-config-next` 15, `@types/react` 19 | 🔴 |
 | I-03 ✅ | API động thành bất đồng bộ (Next 15) | `cookies()` ở `lib/supabase/server.ts`, `lib/flash.ts`; `headers()` ở `lib/rate-limit.ts`; `params` / `searchParams` ở 16 file trong `app/` | Next 15 bắt buộc `await` | Đổi sang `await cookies()` / `await headers()`; `params: Promise<…>`; `createClient()` thành async → sửa mọi chỗ gọi | 🔴 |
-| I-04 ✅ | Hook form | `useFormState` / `useFormStatus` ở 5 file (`NewPatientForm`, `ConsultationForm`, `ForgotPasswordForm`, `RegisterForm`, `SubmitButton`) | React 19 đổi `useFormState` → `useActionState` (`react`) | Đổi tên + import; `useFormStatus` giữ (`react-dom`) | 🟠 |
+| I-04 ✅ | Hook form | `useFormState` / `useFormStatus` ở 5 file (`NewCustomerForm`, `ConsultationForm`, `ForgotPasswordForm`, `RegisterForm`, `SubmitButton`) | React 19 đổi `useFormState` → `useActionState` (`react`) | Đổi tên + import; `useFormStatus` giữ (`react-dom`) | 🟠 |
 | I-05 ✅ | `@supabase/ssr` 0.5 → 0.12 | Cookie API kiểu `get/set/remove` ở `middleware.ts`, `lib/supabase/server.ts` | Bản mới khuyến nghị `getAll/setAll`; cần tương thích Next 15 | Nâng `@supabase/ssr` bản mới nhất, chuyển `getAll/setAll` (giữ hành vi ADR-016) | 🟠 |
 | I-06 ✅ | ISR + làm mới theo yêu cầu | `export const revalidate = 300` ở `app/page.tsx`, `app/register/page.tsx`, `app/khoa-hoc/[courseId]/page.tsx`; ~22 lần gọi `revalidatePath` | Không cấu hình cache → trang không được lưu / không làm mới đúng (RK-45) | `open-next.config.ts`: R2 incremental cache + D1 tag cache + DO queue; tạo bucket / database; kiểm tra admin sửa khóa → trang chủ đổi ngay | 🔴 |
 | I-07 ✅ | Gửi email | `lib/mailer.ts` dùng `nodemailer` (TCP/TLS tới Gmail 465) | Chưa chắc chạy trên `workerd` (RK-46) | ✅ P0: `nodemailer` **không** chạy trên workerd; thư viện `worker-mailer` import tĩnh `cloudflare:sockets` nên OpenNext không đóng gói được → tự viết `lib/smtp-workers.ts` (~130 dòng, SMTP qua socket Cloudflare, SSL 465 / STARTTLS 587, AUTH PLAIN, text + HTML UTF-8). Node vẫn dùng `nodemailer` | 🔴 |
 | I-08 ✅ | Hộp thư giả khi kiểm thử | `MAIL_OUTBOX_DIR` → `fs.writeFileSync` | Workers không có hệ thống file → E2E quên mật khẩu không đọc được mã | ✅ `MAIL_OUTBOX_URL` (HTTP) cho cả Node và Workers; bỏ `MAIL_OUTBOX_DIR` | 🟠 |
-| I-09 | `crypto`, `Buffer` | `randomUUID`, `randomInt`, `createHash`, `timingSafeEqual`, `Buffer.from` (forgot-password, register, patients, generate-password) | Có trong `nodejs_compat` | Kiểm tra bằng E2E trên preview (đặt lại mật khẩu, tạo bệnh nhân, mật khẩu sinh ngẫu nhiên) | 🟡 |
+| I-09 | `crypto`, `Buffer` | `randomUUID`, `randomInt`, `createHash`, `timingSafeEqual`, `Buffer.from` (forgot-password, register, patients, generate-password) | Có trong `nodejs_compat` | Kiểm tra bằng E2E trên preview (đặt lại mật khẩu, tạo khách hàng, mật khẩu sinh ngẫu nhiên) | 🟡 |
 | I-10 ✅ | Tối ưu ảnh `next/image` | 3 chỗ: `app/page.tsx`, `app/khoa-hoc/[courseId]/page.tsx`, `components/CourseCover.tsx`; `remotePatterns` Supabase | Cần binding `IMAGES` (Cloudflare Images, tính phí theo lượt biến đổi) hoặc tắt tối ưu (RK-47) | Giai đoạn đầu: `images.unoptimized = true` (ảnh bìa đã nén ≤ 1600px trên trình duyệt, ảnh `public/` tự nén trước); theo dõi dung lượng trang; xem lại khi nhiều khóa | 🟠 |
-| I-11 | Upload ảnh qua server action | `serverActions.bodySizeLimit: '6mb'` (ảnh chuyển khoản ≤ 5 MB) | Workers nhận body ≤ 100 MB → đủ; cần thử thật | E2E đăng ký có ảnh + tạo bệnh nhân có ảnh trên preview | 🟡 |
+| I-11 | Upload ảnh qua server action | `serverActions.bodySizeLimit: '6mb'` (ảnh chuyển khoản ≤ 5 MB) | Workers nhận body ≤ 100 MB → đủ; cần thử thật | E2E đăng ký có ảnh + tạo khách hàng có ảnh trên preview | 🟡 |
 | I-12 | Middleware | `middleware.ts` (edge, chỉ đọc cookie) | OpenNext hỗ trợ middleware edge; Node middleware (Next 15.2+) chưa hỗ trợ | Giữ middleware edge, **không** bật `runtime: 'nodejs'` | 🟡 |
 | I-13 | Header bảo mật / CSP | `next.config.mjs` đọc `NEXT_PUBLIC_SUPABASE_URL` **lúc build** để tạo CSP + `remotePatterns` | Biến phải có ở môi trường build của Workers Builds; Web Analytics cần thêm domain vào CSP | Thêm `https://static.cloudflareinsights.com` (script) và `https://cloudflareinsights.com` (connect) nếu bật Web Analytics; kiểm tra header bằng `curl -I` | 🟠 |
 | I-14 ✅ | Thư viện không dùng / riêng Node | `@vercel/analytics` (không import ở đâu), `sharp` (chỉ để Next tối ưu ảnh trên Node) | Tăng kích thước bản build; `sharp` không chạy trên Workers | ✅ Gỡ `@vercel/analytics`; `sharp` chuyển sang devDependencies (chỉ script E2E dùng) | 🟡 |
@@ -95,7 +95,7 @@ Ký hiệu: 🔴 bắt buộc sửa trước khi chạy thật · 🟠 phải s�
 | I-22 ✅ | `scripts/e2e.mjs` chạy `next start` (Node) | Thêm chế độ `E2E_RUNTIME=workers`: build OpenNext, chạy `opennextjs-cloudflare preview` (workerd), dùng `.dev.vars` tạm từ `.env.local`; giữ chế độ Node để so sánh khi có lỗi. **Kết quả nghiệm thu tính trên chế độ workers** (RK-50) | 🔴 |
 | I-23 ✅ | `.github/workflows/ci.yml` | Job `check`: thêm `npx opennextjs-cloudflare build` để bắt lỗi tương thích sớm; job `e2e` (khi có staging) chạy chế độ workers | 🟠 |
 | I-24 | `keepalive.yml`, `backup.yml`, `scripts/backup-storage.mjs`, `scripts/create-admin.mjs` | Gọi thẳng Supabase, chạy trên Node của GitHub / máy – **không đổi** | ✅ |
-| I-25 | `vercel.json`, `.vercel/` | Xóa sau cutover (P6), không xóa trước để còn đường lùi | 🟡 |
+| I-25 ✅ | `vercel.json`, `.vercel/` | Xóa sau cutover (P6), không xóa trước để còn đường lùi | ✅ 18/10/2026 (Đợt 26): đã xóa `vercel.json`; repo không có `.vercel/` |
 | I-26 ✅ | `.gitignore` | Thêm `.open-next/`, `.wrangler/`, `.dev.vars` | 🔴 |
 
 ### 3.3. Cấu hình bên ngoài
@@ -176,7 +176,7 @@ tránh sửa hai lần. Đợt 14 (chạy thử) tạm dừng ở bước 1.2; b
 Chạy toàn bộ checklist §5 trên bản `*.workers.dev` với project Supabase hiện tại. Ghi kết quả vào §6.
 
 ### P5 – Cutover
-Vì **chưa có bệnh nhân thật** (Đợt 14 chưa mời ai), cutover không cần giờ thấp điểm, không có dữ liệu phải di chuyển.
+Vì **chưa có khách hàng thật** (Đợt 14 chưa mời ai), cutover không cần giờ thấp điểm, không có dữ liệu phải di chuyển.
 1. ⬜ Gắn Custom Domain cho Worker (`<domain>` và `www.<domain>` → chuyển hướng 301 về một bản chính).
 2. ⬜ `NEXT_PUBLIC_SITE_URL` = domain → build lại.
 3. ⬜ Supabase Site URL = domain; Turnstile thêm hostname; (Resend) xác minh domain.
@@ -184,7 +184,8 @@ Vì **chưa có bệnh nhân thật** (Đợt 14 chưa mời ai), cutover không
 5. ⬜ Theo dõi 14 ngày: Workers Logs (lỗi 5xx), Usage (CPU, request), Supabase Usage; ghi nhật ký runbook §10.1.
 
 ### P6 – Dọn dẹp
-- ⬜ Xóa project trên Vercel (sau 14 ngày ổn định), xóa `vercel.json`; gỡ biến `NEXT_DIST_DIR` nếu không còn dùng.
+- ✅ 18/10/2026 (Đợt 26 – chủ dự án xác nhận Cloudflare ổn định): xóa `vercel.json`, mục deploy Vercel trong README, ghi chú Vercel trong mã; giữ `NEXT_DIST_DIR` (E2E build riêng khi `npm run dev` đang chạy).
+- ⬜ (chủ dự án) Xóa project trên Vercel + gỡ app Vercel khỏi repo GitHub (runbook §4.1).
 - ⬜ Cập nhật tài liệu I-32; đóng RK-35, RK-43 → RK-50 tương ứng; roadmap §1.1 / §4.
 
 ## 5. Checklist nghiệm thu (inspection)
@@ -201,8 +202,8 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | CF-03 | 🔴 | ✓ | Đăng ký 3 bước trên **iPhone (Safari) + Android (Chrome)**: QR đúng số tiền, chụp / chọn ảnh, nén ảnh, gửi | Tạo đơn `pending`, ảnh xem được ở admin |
 | CF-04 | 🔴 | ✓ | Đăng nhập bằng email, SĐT `0912…`, `+84…`; đăng xuất; vào `/admin` khi chưa đăng nhập | Đúng chuyển hướng, cookie phiên được ghi / xóa |
 | CF-05 | 🔴 | ✓ | Quên mật khẩu với email thật → nhận mã → đặt mật khẩu mới | Thư tới trong ≤ 1 phút, không vào Spam; mã sai bị chặn |
-| CF-06 | 🔴 | | Bệnh nhân: tập theo buổi, tick / bỏ tick, buổi sau mở, hết hạn mất video, phiếu tham vấn | Như E2E [Bệnh nhân] |
-| CF-07 | 🔴 | ✓ | Nhân viên: duyệt đơn, tạo bệnh nhân Zalo (có ảnh), cấp gói, cấp lại mật khẩu, xử lý phiếu / lead | Thao tác thành công, toast hiện |
+| CF-06 | 🔴 | | Khách hàng: tập theo buổi, tick / bỏ tick, buổi sau mở, hết hạn mất video, phiếu tham vấn | Như E2E [Khách hàng] |
+| CF-07 | 🔴 | ✓ | Nhân viên: duyệt đơn, tạo khách hàng Zalo (có ảnh), cấp gói, cấp lại mật khẩu, xử lý phiếu / lead | Thao tác thành công, toast hiện |
 | CF-08 | 🔴 | | Admin: tạo / sửa / ẩn / xóa khóa, ảnh bìa, gói, buổi – bài; Tổng quan + doanh thu | Như E2E [Admin] |
 | CF-09 | 🔴 | ✓ | Sửa tên một khóa ở admin → mở trang chủ (tab ẩn danh) | Tên mới hiện ngay ở lần tải tiếp theo (TC-ISR) |
 
@@ -214,7 +215,7 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | CF-11 | 🔴 | ✓ | `curl -I https://<domain>` | Có CSP, `X-Frame-Options: DENY`, `nosniff`, HSTS, `Referrer-Policy`, `Permissions-Policy`; không có `x-powered-by` |
 | CF-12 | 🔴 | | Tìm `service_role` / `SUPABASE_SERVICE_ROLE_KEY` trong `.open-next/assets` và mã trả về trình duyệt | Không thấy; khóa chỉ ở Secret |
 | CF-13 | 🔴 | | Repo: `git ls-files` không có `.dev.vars`, `.open-next/`, `.wrangler/` | Không có |
-| CF-14 | 🔴 | | Ảnh chuyển khoản (bucket riêng tư) mở bằng link khi chưa đăng nhập / bằng tài khoản bệnh nhân khác | Bị từ chối (RLS không đổi) |
+| CF-14 | 🔴 | | Ảnh chuyển khoản (bucket riêng tư) mở bằng link khi chưa đăng nhập / bằng tài khoản khách hàng khác | Bị từ chối (RLS không đổi) |
 | CF-15 | 🟠 | ✓ | `http://` → `https://`; `www` → bản chính; `*.workers.dev` sau cutover | Chuyển 301 đúng; workers.dev tắt hoặc chuyển về domain |
 | CF-16 | 🟠 | | Turnstile (nếu bật) trên domain mới | Widget hiện, token xác minh ở server thành công |
 | CF-17 | 🟠 | | Tài khoản Cloudflare: 2FA, chỉ chủ dự án là Super Administrator; token API (nếu có) quyền tối thiểu | Đạt |
@@ -249,7 +250,7 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | CF-31 | 🟠 | | `keepalive.yml`, `backup.yml` chạy tay 1 lần sau chuyển | Thành công (không phụ thuộc Workers) |
 | CF-32 | 🟠 | | Cảnh báo chi phí / usage Cloudflare; Notifications cho lỗi Worker | Đã bật, email về chủ dự án |
 | CF-33 | 🟡 | | Web Analytics nhận lượt xem | Có số liệu sau 1 giờ |
-| CF-41 | 🟠 | ✓ | Mở `/admin`, `/admin/registrations`, `/admin/patients`, `/admin/courses` 10 lần sau khi thao tác (duyệt đơn, lưu khóa) – DevTools › Console | Không có lỗi React #418 (RK-54). Còn lỗi → ghi lại URL, thử Next / OpenNext bản mới |
+| CF-41 | 🟠 | ✓ | Mở `/admin`, `/admin/registrations`, `/admin/customers`, `/admin/courses` 10 lần sau khi thao tác (duyệt đơn, lưu khóa) – DevTools › Console | Không có lỗi React #418 (RK-54). Còn lỗi → ghi lại URL, thử Next / OpenNext bản mới |
 
 ### 5.6. Tên miền, email, pháp lý, tài liệu
 
@@ -274,6 +275,7 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | 04/10/2026 | Lỗi Next 15 | Đổi tab `/admin/registrations?status=` không chuyển trang: Next 15.5 hủy điều hướng khi có `app/admin/loading.tsx` + trang chỉ đổi tham số + dữ liệu lớn (tái hiện bằng tài khoản tạm, thu hẹp từng phần) | Bỏ `app/admin/loading.tsx` (RK-53) |
 | 04/10/2026 | E2E | **Node 99/99**, **Workers 100/100** (TC-102, TC-103 PASS); RK-54: 12 lỗi hydration #418 ở `/admin/**` trên workerd, ghi nhận riêng | Kiểm lại CF-41 sau deploy |
 | 04/10/2026 | Windows | `opennextjs-cloudflare preview` treo ở bước tạo bảng D1 (`npm exec` chèn `^^^`) – E2E tự tạo bảng + `wrangler dev`; Linux / Workers Builds không bị | runbook §8 |
+| 06/10/2026 | P3 / P4 | Chủ dự án: Supabase Site URL + Redirect URLs, tắt đăng ký công khai (SEC-01), nghiệm thu bước 2 trên website thật (trừ email). Workers Builds: lần 1 không build (nối sau merge); lần 2 đỏ `supabaseUrl is required` (biến nhập vào Variables and Secrets lúc chạy, không phải Build variables) → `.env.production` + `.node-version`; lần 3 build đạt, chỉ đỏ ở `wrangler preview` (nhánh phụ); **PR #8 merge `73295e1` → Workers Builds ✅, deploy production từ GitHub** | P5: theo dõi tới 20/10; CF-05 chờ Gmail |
 | 04/10/2026 | P3 | Chủ dự án: tài khoản Cloudflare (đăng nhập GitHub), Workers Paid, `wrangler login`, bật R2, subdomain `bsdomanhcuong`. Dev: R2 `hv-web-cache`, D1 `hv-web-tag-cache` + bảng, Secret Supabase / SMTP_HOST / SMTP_PORT | Còn: SMTP_USER / SMTP_PASS / MAIL_FROM, Supabase Site URL, Workers Builds |
 | 04/10/2026 | Deploy | **https://hv-web.bsdomanhcuong.workers.dev** (bản `d8fea07c`, 1,6 MiB nén, khởi động 16 ms). Windows: `wrangler deploy` tự chuyển sang `opennextjs-cloudflare deploy` và treo ở D1 → `npm run deploy:win` | runbook §4 |
 | 05/10/2026 | Deploy sau rà soát | Bản `a400e7a4`; `enableCacheInterception` hoạt động (`x-opennext-cache: HIT`); TTFB 5 lần: `/register` 0,37 – 1,0 giây (trước 0,6 – 1,4), `/login` 0,22 – 0,89, `/` 0,65 – 1,2; Placement lần đo này `local-SIN` | Dao động chủ yếu do mạng (PERF-01) |
@@ -284,11 +286,11 @@ Cột "Smoke" (S) = chạy lại sau cutover trên domain thật.
 | Tình huống | Cách lùi | Thời gian |
 | --- | --- | --- |
 | Lỗi ở bản deploy mới (sau cutover) | Workers › Deployments › Rollback (CF-29) | < 1 phút |
-| Lỗi nghiêm trọng của nền tảng Workers / OpenNext trong 14 ngày đầu | Giữ project Vercel (Hobby, chưa thu tiền) đến hết P5 → deploy nhánh trước P2 lên Vercel, trỏ DNS domain về Vercel, đổi Supabase Site URL | 30–60 phút |
+| ~~Lỗi nghiêm trọng của nền tảng Workers / OpenNext trong 14 ngày đầu~~ | ~~Lùi về Vercel~~ – **bỏ từ 18/10/2026 (P6, Đợt 26)**: Cloudflare ổn định 12 ngày, đã gỡ Vercel. Thay bằng: Rollback bản trước, hoặc `npm run deploy:win` commit ổn định gần nhất | < 1 phút – 15 phút |
 | Lỗi do nâng Next 15 (P1) | Lùi commit "Next 15" (P1.5) | Theo lần deploy |
 | Dữ liệu | Không di chuyển dữ liệu – Supabase giữ nguyên; sao lưu tuần vẫn chạy | — |
 
-Lưu ý: nếu đã bắt đầu thu tiền thì lùi về Vercel phải dùng **Vercel Pro** (RK-35).
+Lưu ý (lịch sử): lùi về Vercel sau khi thu tiền phải dùng Vercel Pro (RK-35) – không còn áp dụng sau P6.
 
 ## 8. Câu hỏi chờ chủ dự án chốt
 

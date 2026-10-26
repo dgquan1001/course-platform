@@ -1,4 +1,4 @@
-# ADR-014: Nhân viên tạo tài khoản cho bệnh nhân đến từ Zalo (mật khẩu hệ thống sinh)
+# ADR-014: Nhân viên tạo tài khoản cho khách hàng đến từ Zalo (mật khẩu hệ thống sinh)
 
 - **Trạng thái**: Accepted – ✅ triển khai Đợt 11 (27/09/2026), có điều chỉnh (xem cuối file)
 - **Ngày**: 27/09/2026
@@ -9,7 +9,7 @@ Khách đi qua lại giữa Zalo và website. Khách đến từ website tự đ
 (thanh toán chuyển khoản / tiền mặt) cần được nhân viên nhập lên hệ thống để mọi thông tin quản trị tập trung trên website.
 
 ## Quyết định
-- Trang `/admin/patients/new` (staff, admin): họ tên*, SĐT*, email (tùy chọn), ghi chú, xác nhận "bệnh nhân đã đồng ý chính sách
+- Trang `/admin/customers/new` (staff, admin): họ tên*, SĐT*, email (tùy chọn), ghi chú, xác nhận "khách hàng đã đồng ý chính sách
   bảo mật"*, tùy chọn cấp gói ngay: khóa + gói + số tiền* + hình thức thanh toán* (`bank_transfer`, `cash`, `other`)
   + ảnh chuyển khoản (tùy chọn) + ghi chú thanh toán.
 - Server action dùng service role (như ADR-006): kiểm tra `requireStaff()`, trùng SĐT/email, tạo user `email_confirm: true`
@@ -26,11 +26,11 @@ Khách đi qua lại giữa Zalo và website. Khách đến từ website tự đ
   do nhân viên cấp" với [Đổi ngay] / [Để sau]; đổi thành công (qua Supabase Auth, `changePasswordAction`) thì cờ về `false`.
 - **Cấp lại mật khẩu** (staff, admin – gộp roadmap R-02): sinh mật khẩu mới, đặt lại cờ `must_change_password`; chỉ áp dụng
   cho tài khoản `role = 'user'`; ghi vào nhật ký `account_events`.
-- Staff cấp thêm gói / gia hạn cho bệnh nhân đã có tài khoản từ trang chi tiết bệnh nhân (cùng form thanh toán).
+- Staff cấp thêm gói / gia hạn cho khách hàng đã có tài khoản từ trang chi tiết khách hàng (cùng form thanh toán).
 
 ## Hệ quả
 - ✅ Website là nơi quản trị tập trung, song song với Zalo; biết được nguồn khách (`web` / `zalo`).
-- ✅ Bệnh nhân lớn tuổi nhận tài khoản sẵn, chỉ cần SĐT + mật khẩu.
+- ✅ Khách hàng lớn tuổi nhận tài khoản sẵn, chỉ cần SĐT + mật khẩu.
 - ⚠️ Mật khẩu đi qua tin nhắn Zalo → khuyến nghị đổi (hộp nhắc), staff không xem lại được mật khẩu cũ.
 - ⚠️ Staff có quyền tạo đơn đã duyệt không cần ảnh → phải ghi rõ người tạo, số tiền, hình thức để đối soát; dashboard admin có
   doanh thu theo hình thức thanh toán và theo nhân viên.
@@ -41,7 +41,7 @@ Khách đi qua lại giữa Zalo và website. Khách đến từ website tự đ
 - *Gửi link kích hoạt qua SMS/Zalo ZNS*: tốn phí, cần tài khoản OA; để sau.
 
 ## Điều chỉnh khi triển khai (Đợt 11, 27/09/2026)
-- **Ghi chú nội bộ** không đặt ở `profiles.staff_note` (bệnh nhân đọc được dòng profile của mình) mà ở bảng riêng `patient_notes`
+- **Ghi chú nội bộ** không đặt ở `profiles.staff_note` (khách hàng đọc được dòng profile của mình) mà ở bảng riêng `patient_notes`
   (RLS chỉ nhân viên / admin; trigger ghi người sửa, thời điểm).
 - Không có cột `consent_source`: `consent_at` + `consent_version` ghi lúc nhân viên tạo, kèm `account_events.created` biết ai tạo.
 - Trigger đơn cấp gói: `registrations_stamp_insert` (**before insert**: bắt buộc `source = 'staff'`, `status = 'approved'`; tự lấy
@@ -49,5 +49,5 @@ Khách đi qua lại giữa Zalo và website. Khách đến từ website tự đ
   cộng dồn) + `registrations_log_insert` (**after insert**: lịch sử `new → approved`, vì bảng lịch sử tham chiếu khóa ngoại tới đơn).
 - Mật khẩu sinh ở `lib/generate-password.ts` (chỉ chạy ở server, tách khỏi `lib/password.ts` vốn dùng cả ở trình duyệt).
 - "Để sau" của hộp nhắc đổi mật khẩu lưu `sessionStorage` (hết khi đóng trình duyệt) thay cho cookie.
-- Danh sách / chi tiết bệnh nhân đọc qua hàm `admin_patients()` và `patient_progress()` (security definer, kiểm tra `is_staff()`),
+- Danh sách / chi tiết khách hàng đọc qua hàm `admin_patients()` và `patient_progress()` (security definer, kiểm tra `is_staff()`),
   không tải toàn bộ bảng đơn.

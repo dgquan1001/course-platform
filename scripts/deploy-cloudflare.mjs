@@ -47,7 +47,8 @@ if (git('rev-list', '--count', `origin/${branch}..HEAD`).stdout.trim() !== '0') 
 console.log(`Deploy commit ${commit} (nhánh ${branch}) – đã có trên GitHub`)
 
 step('1/4 Build OpenNext')
-if (node([OPENNEXT, 'build']).status !== 0) process.exit(1)
+// Cờ cho phép Next 15 (hết hạn hỗ trợ 21/10/2026 – RK-71); bỏ khi nâng Next 16 (giống script build:cf trong package.json)
+if (node([OPENNEXT, 'build', '--dangerouslyUseUnsupportedNextVersion']).status !== 0) process.exit(1)
 
 step('2/4 Nạp trang dựng sẵn vào R2')
 await new Promise((resolve, reject) => {

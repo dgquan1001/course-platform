@@ -661,7 +661,7 @@ Workers Builds đỏ ngay đầu bước build: `ERROR Next.js version 15.5.28 i
 
 | Mã | Mức | Rủi ro | Xử lý |
 | --- | --- | --- | --- |
-| RK-71 | 🔴 | OpenNext (`checkNextVersionSupport`) chặn build khi bản Next quá 2 năm kể từ ngày ra mắt; Next 15 ra 21/10/2024 → **từ 21/10/2026 mọi lần build / deploy đều dừng** (mã không lỗi, chặn theo ngày; nâng OpenNext 1.20.13 cũng vậy). Ngoài ra Next 15 không còn bản vá bảo mật | ✅ Tạm thời (dev, 26/10): script `npm run build:cf` có cờ `--dangerouslyUseUnsupportedNextVersion`, CI + `deploy:win` + `preview` / `deploy` dùng chung; build sạch trên bản sao (`npm ci`) PASS. ⬜ A-33: đổi Build command của Workers Builds thành `npm run build:cf`. ⬜ Đợt 27: nâng Next 16 (OpenNext ≥ 1.20.13 yêu cầu `next >= 16.4.1`), bỏ cờ, E2E Node + Workers |
+| RK-71 | 🔴 | OpenNext (`checkNextVersionSupport`) chặn build khi bản Next quá 2 năm kể từ ngày ra mắt; Next 15 ra 21/10/2024 → **từ 21/10/2026 mọi lần build / deploy đều dừng** (mã không lỗi, chặn theo ngày; nâng OpenNext 1.20.13 cũng vậy). Ngoài ra Next 15 không còn bản vá bảo mật | ✅ Tạm thời (dev, 26/10): script `npm run build:cf` có cờ `--dangerouslyUseUnsupportedNextVersion`, CI + `deploy:win` + `preview` / `deploy` dùng chung; build sạch trên bản sao (`npm ci`) PASS. ⬜ A-33: đổi Build command của Workers Builds thành `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` (ghi thẳng cờ – `npm run build:cf` lỗi `Missing script` khi `main` chưa merge nhánh có script). ⬜ Đợt 27: nâng Next 16 (OpenNext ≥ 1.20.13 yêu cầu `next >= 16.4.1`), bỏ cờ, E2E Node + Workers |
 
 ## 8. Kế hoạch xử lý đề xuất
 

@@ -62,7 +62,7 @@ Dòng thời gian (cũ → mới; chi tiết từng đợt ở §1.1, §4):
 ### Bước 0c – Sửa lỗi build Cloudflare (26/10/2026) – RK-71 🔴
 
 - [x] (dev) `npm run build:cf` = `opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion`; CI, `deploy:win`, `preview` / `deploy` dùng chung; thử build sạch (`npm ci`) trên bản sao → PASS ✅ 26/10
-- [ ] **(chủ dự án – A-33)** Cloudflare › Workers › hv-web › Settings › Build › **Build command** = `npm run build:cf` → Save → Deployments › Retry build
+- [ ] **(chủ dự án – A-33)** Cloudflare › Workers › hv-web › Settings › Build › **Build command** = `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` → Save → Deployments › Retry build (lần thử `npm run build:cf` 26/10 09:12 lỗi `Missing script` vì `main` chưa có script – chỉ nhánh `hv-dgquan-20261017` có)
 - [ ] **Đợt 27 (dev)** nâng Next 16 (OpenNext 1.20.13 hỗ trợ `next >= 16.4.1`) để nhận lại bản vá bảo mật, rồi bỏ cờ – chạy E2E Node + Workers
 
 ### Bước 0b – Đợt 26 (yêu cầu chủ dự án 18/10/2026) – kế hoạch §3.7
@@ -222,7 +222,7 @@ Sắp theo thứ tự làm trong kế hoạch chạy thử (cột "Bước" ↔ 
 | A-30 | **Chạy `supabase/schema.sql`** (Supabase › SQL Editor › dán toàn bộ › Run) sau Đợt 26: nhật ký xóa tài khoản (`account_events` cho phép `deleted`), trigger chặn xóa admin cuối cùng, lời báo lỗi "khách hàng". Chưa chạy: mọi chức năng vẫn dùng được, chỉ chưa lưu nhật ký xóa | RK-65 | Ngay (trước khi merge) | ✅ 18/10/2026 |
 | A-31 | **Xóa project Vercel** (Vercel › project › Settings › Delete) + **gỡ app Vercel khỏi repo** (GitHub › Settings › Applications › Vercel › Configure) – runbook §4.1 | RK-35, RK-66 | Khi tiện (mã nguồn đã gỡ 18/10) | ⬜ |
 | A-32 | Báo nhân viên: menu "Bệnh nhân" → **"Khách hàng"**, nhân viên được **xóa khách hàng** (chỉ khi hết gói, gõ SĐT xác nhận, không hoàn tác); admin quản lý tài khoản nhân viên ở menu **"Nhân viên"**; tài khoản nhân viên nên có SĐT để đăng nhập | RK-63 | Sau deploy | ⬜ |
-| A-33 | **Đổi Build command** của Workers Builds thành `npm run build:cf` (Workers › hv-web › Settings › Build) rồi Retry build – Next 15 hết hỗ trợ 21/10/2026, OpenNext chặn build nếu thiếu cờ (runbook §8) | RK-71 | Ngay (đang chặn deploy) | ⬜ |
+| A-33 | **Đổi Build command** của Workers Builds thành `npx opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion` (Workers › hv-web › Settings › Build) rồi Retry build – Next 15 hết hỗ trợ 21/10/2026, OpenNext chặn build nếu thiếu cờ (runbook §8) | RK-71 | Ngay (đang chặn deploy) | ⬜ |
 | A-25 | Mời email trung tâm vào tài khoản Cloudflare (Super Administrator + 2FA) và GitHub khi chốt email | SEC-10 | Khi chốt email | ⬜ |
 | A-2, A-3 | Secrets GitHub cho CI E2E trên staging, bật "Require status checks" | RV-10 | Sau A-1 | ⏸ |
 
